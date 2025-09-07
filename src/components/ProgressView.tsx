@@ -151,8 +151,8 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
 
     // Monthly completions
     const monthlyCompletions = completions.filter(date => {
-      const d = new Date(date);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      const [year, month, day] = date.split('-').map(Number);
+      return month - 1 === currentMonth && year === currentYear;
     }).length;
 
     // Days in current month
