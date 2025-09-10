@@ -11,6 +11,7 @@ import {
   CalendarCheck,
   ListChecks,
   UserCircle2,
+  Lightbulb,
 } from "lucide-react";
 
 interface IconProps {
@@ -30,6 +31,7 @@ const icons: Record<string, React.ElementType> = {
   calendarcheck: CalendarCheck,
   listchecks: ListChecks,
   usercircle2: UserCircle2,
+  lightbulb: Lightbulb,
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {

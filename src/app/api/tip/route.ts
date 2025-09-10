@@ -33,11 +33,27 @@ export async function POST(request: Request) {
     const highPriorityCount = tasks.filter(
       (t: DayTask) => t.priority === Priority.High && !t.completed
     ).length;
+
+    const taskDetails = tasks
+      .map((t: DayTask) => {
+      return `Nombre: ${t.name}, Prioridad: ${t.priority}, Completada: ${t.completed ? "Sí" : "No"}`;
+      })
+      .join("; ");
+
     const prompt = `
-            Eres un coach de productividad motivacional. Basado en este resumen de tareas del día, da un consejo corto, útil y amigable en español.
-            Resumen: Hay ${tasks.length} tareas en total. ${highPriorityCount} de ellas son de alta prioridad y no están completadas.
-            Ejemplo de respuesta: "Parece que tienes varias tareas de 'Alta' prioridad. ¡Intenta empezar por la más difícil para coger impulso!"
-        `;
+      Eres un coach de productividad motivacional. Basado en este resumen de tareas del día, da un consejo corto, útil y amigable en español.
+      Detalles de las tareas de hoy: ${taskDetails}.
+      Reglas:
+      1. No des palabras con asteriscos porque no las puedo presentar bien.
+      2. No repitas consejos comunes.
+      3. Mantén el consejo en menos de 20 palabras.
+      4. Sé positivo y alentador.
+      Ejemplos: 
+      - "Si haces X tarea muy pronto seras Y"
+      - "Esta tarea X solo te tomara Y minutos, ¡puedes hacerlo!"
+      - "Hacer lo difícil primero te hará el resto del día más fácil, que tal si haces X tarea ahora?"
+
+    `;
     console.log("Enviando prompt a Gemini para obtener consejo:", prompt);
 
     const response = await ai.models.generateContent({

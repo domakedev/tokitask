@@ -527,6 +527,14 @@ export default function HomePage() {
     showNotification("Horario generado con IA.", "success");
   };
 
+  useEffect(() => {
+    if (userData && userData.dayTasks.length > 0) {
+      fetchAiTip();
+    } else {
+      setAiTip(null);
+    }
+  }, [userData?.dayTasks]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -594,7 +602,12 @@ export default function HomePage() {
             {userData.dayTasks.length > 0 ? (
               <>
                 {aiTip && (
-                  <AiTipCard tip={aiTip} onDismiss={() => setAiTip(null)} />
+                  <div className="mb-4">
+                    <AiTipCard
+                      tip={aiTip}
+                      onDismiss={() => setAiTip(null)}
+                    />
+                  </div>
                 )}
                 <TaskList
                   tasks={userData.dayTasks}
