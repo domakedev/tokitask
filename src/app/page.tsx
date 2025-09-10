@@ -38,10 +38,12 @@ const getUpdatedSchedule = async (
     minute: "2-digit",
     hour12: false,
   });
+  const payload = { tasks, endOfDay, userTime };
+  console.log("Enviando a /api/schedule:", payload);
   const response = await fetch("/api/schedule", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tasks, endOfDay, userTime }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     const errorData = await response.json();
