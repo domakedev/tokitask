@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⏰ Tokitask – Organiza tu día con IA
 
-## Getting Started
+![Banner](https://img.shields.io/badge/STATUS-En%20Desarrollo-blue?style=for-the-badge)  
+![License](https://img.shields.io/badge/LICENSE-MIT-green?style=for-the-badge)  
+![Made with](https://img.shields.io/badge/Made%20with-Next.js-black?style=for-the-badge&logo=nextdotjs)  
+![Mobile First](https://img.shields.io/badge/Design-Mobile%20First-purple?style=for-the-badge)  
 
-First, run the development server:
+Tokitask es una aplicación web **mobile-first** que utiliza **IA** para ayudarte a organizar tu día de manera eficiente.  
+Crea un horario dinámico basado en las tareas que quieras realizar, su duración y el momento en que inicies tu jornada.  
+
+---
+## 👨‍💻 Autor
+
+**Cesar Guevara Cabrera**  
+🌐 [domakedev.com](https://domakedev.com)  
+💼 Desarrollador Fullstack | Entusiasta de IA y UX | Ing. Electrónico 
+
+---
+
+## ✨ Características principales
+
+- 📅 **Horario Diario Inteligente**: genera automáticamente un plan de día según tus tareas.  
+- 📋 **Horario General**: crea una lista de tareas base que podrás reutilizar en diferentes días.  
+- 👤 **Perfil**: gestiona tus preferencias y configuración personal.  
+- 📱 **Diseño Mobile-First**: aunque sea una web, la navegación se siente como una app móvil.  
+- 🤖 **Potenciado con IA**: ajusta tu horario en tiempo real según lo que ya completaste.  
+
+---
+
+## 🚀 Tecnologías
+
+- ⚡ **Next.js** – framework principal  
+- 🎨 **TailwindCSS** – estilos rápidos y modernos  
+- 🧠 **IA personalizada** – recomendación de tiempos y organización  
+- 🔧 **TypeScript** – tipado seguro  
+- 🌐 **Responsive Web App** – lista para usarse en móvil y escritorio  
+
+---
+
+## 📷 Vista previa (mockups)
+
+> *(Aquí puedes añadir capturas de pantalla o diseños de Figma más adelante)*
+
+---
+
+## 🛠️ Instalación y uso
 
 ```bash
+# Clonar el repositorio
+git clone https://github.com/tuusuario/tokitask.git
+
+# Entrar al proyecto
+cd tokitask
+
+# Instalar dependencias
+npm install
+
+# Ejecutar en modo desarrollo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+El proyecto estará disponible en: **http://localhost:3000**
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📄 Licencia
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Este proyecto está bajo la licencia **MIT**.  
+Puedes usarlo, modificarlo y distribuirlo libremente siempre que mantengas el crédito al autor.  
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+⭐ Si te gusta este proyecto, ¡no olvides darle una estrella en GitHub!
