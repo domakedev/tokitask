@@ -188,8 +188,9 @@ export default function HomePage() {
     async (options?: { endOfDay?: string; tasks?: DayTask[] }) => {
       if (!userData) return;
 
-  const tasksForSync = options?.tasks || userData.dayTasks;
-      const endOfDayForSync = options?.endOfDay || userData.endOfDay;
+      const tasksForSync = options?.tasks || userData.dayTasks;
+      // Usar SIEMPRE el valor más reciente de endOfDay
+      const endOfDayForSync = options?.endOfDay ?? tempEndOfDay ?? userData.endOfDay;
 
       // Usar los campos correctos para enviar a la IA
       const tasksToPlan: DayTask[] = tasksForSync.length > 0
@@ -201,9 +202,9 @@ export default function HomePage() {
         : [];
 
       if (tasksToPlan.length === 0) {
-        // If all tasks are completed, just update the DB with the current state
-        await handleUpdateUserData({ ...userData, dayTasks: tasksForSync });
-        setFreeTime(null); // Or calculate remaining time if needed
+        // Si todas las tareas están completadas, actualiza la DB con el endOfDay más reciente
+        await handleUpdateUserData({ ...userData, dayTasks: tasksForSync, endOfDay: endOfDayForSync });
+        setFreeTime(null); // O calcula el tiempo restante si es necesario
         return;
       }
 
@@ -212,12 +213,12 @@ export default function HomePage() {
         const { updatedTasks, freeTime: newFreeTime } =
           await getUpdatedSchedule(tasksToPlan, endOfDayForSync);
 
-        // Merge AI response with original task data to preserve all fields
+        // Mezcla la respuesta de la IA con los datos originales de las tareas para preservar todos los campos
         const mappedTasks = updatedTasks.map(aiTask => {
           const originalTask = tasksToPlan.find(t => t.id === aiTask.id);
           return {
-            ...originalTask, // Keep all original properties like title, completed status etc.
-            ...aiTask,       // Overwrite with new values from AI like startTime and aiDuration
+            ...originalTask,
+            ...aiTask,
           };
         });
 
@@ -244,7 +245,7 @@ export default function HomePage() {
         setIsSyncing(false);
       }
     },
-    [userData, handleUpdateUserData]
+    [userData, handleUpdateUserData, tempEndOfDay]
   );
 
   const fetchAiTip = useCallback(async () => {
@@ -489,12 +490,13 @@ export default function HomePage() {
   };
 
   const handleSetEndOfDay = async () => {
-    if (!userData || !tempEndOfDay) return;
-    const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
-    // Optimistically update UI
-    setUserData(updatedUserData);
-    showNotification("Hora de fin del día actualizada.", "success");
-    syncWithAI({ endOfDay: tempEndOfDay });
+  if (!userData || !tempEndOfDay) return;
+  const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
+  // Actualiza la UI y la base de datos antes de sincronizar con IA
+  setUserData(updatedUserData);
+  await handleUpdateUserData(updatedUserData);
+  showNotification("Hora de fin del día actualizada.", "success");
+  syncWithAI({ endOfDay: tempEndOfDay });
   };
 
   const handleStartDay = () => {
