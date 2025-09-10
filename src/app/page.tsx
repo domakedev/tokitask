@@ -2,25 +2,19 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   onAuthStateChanged,
-  signInWithPopup,
   signOut,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   User,
 } from "firebase/auth";
 import {
   auth,
-  googleProvider,
   firebaseInitializationError,
 } from "../services/firebase";
 import {
   getUserData,
-  createUserDocument,
   updateUserData,
 } from "../services/firestoreService";
 import {
   Page,
-  Priority,
   DayTask,
   GeneralTask,
   BaseTask,
@@ -540,10 +534,7 @@ export default function HomePage() {
   if (!user || !userData) {
     return null; // Or a loading spinner, while redirecting
   }
-
-  const tasksToShow =
-    currentPage === Page.Day ? userData.dayTasks : userData.generalTasks;
-
+  
   return (
     <div className="max-w-2xl mx-auto pb-28">
       {currentPage === Page.Day && (
@@ -616,9 +607,9 @@ export default function HomePage() {
                 <p className="mt-2 text-slate-400">
                   Haz clic en{" "}
                   <span className="font-semibold text-emerald-400">
-                    "Empezar Día"
+                    &quot;Empezar Día&quot;
                   </span>{" "}
-                  para usar tu plantilla de 'Horario General' y generar tu plan
+                  para usar tu plantilla de &apos;Horario General&apos; y generar tu plan
                   de hoy con IA.
                 </p>
               </div>
@@ -633,7 +624,7 @@ export default function HomePage() {
                 </h2>
                 <p className="mt-2 text-slate-400">
                   Para poder generar un horario, primero necesitas crear una
-                  plantilla de tareas en la sección 'General'.
+                  plantilla de tareas en la sección &apos;General&apos;.
                 </p>
                 <button
                   onClick={() => setCurrentPage(Page.General)}
