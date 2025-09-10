@@ -97,6 +97,7 @@ export async function POST(request: Request) {
       8. Si hay varias tareas y el tiempo no sobra, reparte el tiempo disponible proporcionalmente entre todas las tareas considerando su "baseDuration" y la prioridad de cada una.
       9. Los tiempos asignados por la IA ("aiDuration") para cada tarea deben ser múltiplos de 5 minutos.
       10. Devuelve un objeto JSON con dos claves: 'updatedTasks' (la lista de tareas pendientes ajustadas) y 'freeTime'.
+      11. También debes entender el nombre de la tarea entender de que trata y en base a eso asignar un tiempo adecuado, por ejemplo si es comer no le pongas que no se puede o 1 minuto, o si es bañarse no le pongas 3 minutos, pero si es por ej jugar o mirar serie o comprar un dulce o cosas asi de simples si puedes poner un tiempo bajo, debes mantener cierta coherencia realista para el tiempo mínimo.
       Tareas pendientes para planificar:
       ${JSON.stringify(pendingTasks, null, 2)}
     `;
