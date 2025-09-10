@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     console.log("Enviando prompt a Gemini para obtener consejo:", prompt);
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-pro",
       contents: prompt,
     });
     const tip = response.text?.trim() ?? defaultTip;
