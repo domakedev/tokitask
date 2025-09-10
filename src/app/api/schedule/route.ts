@@ -61,11 +61,11 @@ const responseSchema = {
 
 export async function POST(request: Request) {
   try {
-    const { tasks, endOfDay } = await request.json();
+    const { tasks, endOfDay, userTime } = await request.json();
 
-    if (!tasks || !endOfDay) {
+    if (!tasks || !endOfDay || !userTime) {
       return NextResponse.json(
-        { error: "Missing tasks or endOfDay in request body" },
+        { error: "Missing tasks, endOfDay, or userTime in request body" },
         { status: 400 }
       );
     }
@@ -80,11 +80,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const now = new Date().toLocaleTimeString("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    // Usar la hora enviada por el usuario
+    const now = userTime;
 
     const prompt = `
       Eres un asistente de productividad experto. Tu tarea es crear un horario detallado desde ahora (${now}) hasta el final del día (${endOfDay}).

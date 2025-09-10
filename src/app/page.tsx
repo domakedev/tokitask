@@ -31,10 +31,17 @@ const getUpdatedSchedule = async (
   tasks: DayTask[],
   endOfDay: string
 ): Promise<{ updatedTasks: DayTask[]; freeTime: string | null }> => {
+  // Obtener la hora actual del usuario en formato HH:mm
+  const now = new Date();
+  const userTime = now.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
   const response = await fetch("/api/schedule", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tasks, endOfDay }),
+    body: JSON.stringify({ tasks, endOfDay, userTime }),
   });
   if (!response.ok) {
     const errorData = await response.json();
