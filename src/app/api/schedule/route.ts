@@ -55,8 +55,12 @@ const responseSchema = {
         "Una cadena que representa el tiempo libre restante, ej: '1h 15min', o null si no hay tiempo libre.",
       nullable: true,
     },
+    tip: {
+      type: Type.STRING,
+      description: "Consejo breve y útil para el usuario en español, motivacional o de productividad, generado en base a las tareas y el horario.",
+    },
   },
-  required: ["updatedTasks", "freeTime"],
+  required: ["updatedTasks", "freeTime", "tip"],
 };
 
 export async function POST(request: Request) {
@@ -96,8 +100,9 @@ export async function POST(request: Request) {
       7. No modifiques las tareas completadas. El resultado solo debe contener las tareas pendientes, ajustadas y reordenadas.
       8. Si hay varias tareas y el tiempo no sobra, reparte el tiempo disponible proporcionalmente entre todas las tareas considerando su "baseDuration" y la prioridad de cada una.
       9. Los tiempos asignados por la IA ("aiDuration") para cada tarea deben ser múltiplos de 5 minutos.
-      10. Devuelve un objeto JSON con dos claves: 'updatedTasks' (la lista de tareas pendientes ajustadas) y 'freeTime'.
+      10. Devuelve un objeto JSON con tres claves: 'updatedTasks' (la lista de tareas pendientes ajustadas), 'freeTime' y 'tip'.
       11. También debes entender el nombre de la tarea entender de que trata y en base a eso asignar un tiempo adecuado, por ejemplo si es comer no le pongas que no se puede o 1 minuto, o si es bañarse no le pongas 3 minutos, pero si es por ej jugar o mirar serie o comprar un dulce o cosas asi de simples si puedes poner un tiempo bajo, debes mantener cierta coherencia realista para el tiempo mínimo.
+      12. Además, analiza el horario y las tareas y genera un consejo breve y útil para el usuario en español, motivacional o de productividad, que ayude a mejorar su día. El consejo debe ir en la clave 'tip' del objeto JSON.
       Tareas pendientes para planificar:
       ${JSON.stringify(pendingTasks, null, 2)}
     `;
@@ -115,12 +120,10 @@ export async function POST(request: Request) {
     });
 
     const textResponse = response?.text?.trim() || "";
-    console.log("Respuesta de Gemini (horario):", JSON.parse(textResponse));
-    const result: { updatedTasks: DayTask[]; freeTime: string | null } =
-      JSON.parse(textResponse);
-
+    const parsed = JSON.parse(textResponse);
+    console.log("Respuesta de Gemini (horario):", parsed);
     let foundCurrent = false;
-    const finalPendingTasks = result.updatedTasks.map((task) => {
+    const finalPendingTasks = parsed.updatedTasks.map((task: DayTask) => {
       if (task.isCurrent && !foundCurrent) {
         foundCurrent = true;
         return task;
@@ -134,7 +137,8 @@ export async function POST(request: Request) {
 
     const responsePayload = {
       updatedTasks: [...completedTasks, ...finalPendingTasks],
-      freeTime: result.freeTime,
+      freeTime: parsed.freeTime,
+      tip: parsed.tip ?? null,
     };
 
     return NextResponse.json(responsePayload);

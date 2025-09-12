@@ -1,25 +1,9 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import {
-  onAuthStateChanged,
-  signOut,
-  User,
-} from "firebase/auth";
-import {
-  auth,
-  firebaseInitializationError,
-} from "../services/firebase";
-import {
-  getUserData,
-  updateUserData,
-} from "../services/firestoreService";
-import {
-  Page,
-  DayTask,
-  GeneralTask,
-  BaseTask,
-  UserData,
-} from "../types";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { auth, firebaseInitializationError } from "../services/firebase";
+import { getUserData, updateUserData } from "../services/firestoreService";
+import { Page, DayTask, GeneralTask, BaseTask, UserData } from "../types";
 // import { getUpdatedSchedule, getAiTip } from "./actions";
 
 import { useRouter } from "next/navigation";
@@ -30,7 +14,7 @@ import BottomNav from "../components/BottomNav";
 const getUpdatedSchedule = async (
   tasks: DayTask[],
   endOfDay: string
-): Promise<{ updatedTasks: DayTask[]; freeTime: string | null }> => {
+): Promise<{ updatedTasks: DayTask[]; freeTime: string | null; tip?: string }> => {
   // Obtener la hora actual del usuario en formato HH:mm
   const now = new Date();
   const userTime = now.toLocaleTimeString("es-ES", {
@@ -53,19 +37,7 @@ const getUpdatedSchedule = async (
   return response.json();
 };
 
-// Helper function to call the tip API
-const getAiTip = async (tasks: DayTask[]): Promise<string> => {
-  const response = await fetch("/api/tip", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tasks }),
-  });
-  if (!response.ok) {
-    return "Recuerda tomar pequeños descansos para mantenerte enfocado y con energía.";
-  }
-  const data = await response.json();
-  return data.tip;
-};
+// Eliminado fetchAiTip y el efecto asociado, ahora el tip se actualiza solo con syncWithAI
 import Icon from "../components/Icon";
 import TaskModal from "../components/AddTaskModal";
 import ConfirmationModal from "../components/ConfirmationModal";
@@ -199,20 +171,28 @@ export default function HomePage() {
 
       const tasksForSync = options?.tasks || userData.dayTasks;
       // Usar SIEMPRE el valor más reciente de endOfDay
-      const endOfDayForSync = options?.endOfDay ?? tempEndOfDay ?? userData.endOfDay;
+      const endOfDayForSync =
+        options?.endOfDay ?? tempEndOfDay ?? userData.endOfDay;
 
       // Usar los campos correctos para enviar a la IA
-      const tasksToPlan: DayTask[] = tasksForSync.length > 0
-        ? tasksForSync.filter((t) => !t.completed).map(t => ({
-            ...t,
-            baseDuration: t.baseDuration,
-            aiDuration: t.aiDuration ?? "",
-          }))
-        : [];
+      const tasksToPlan: DayTask[] =
+        tasksForSync.length > 0
+          ? tasksForSync
+              .filter((t) => !t.completed)
+              .map((t) => ({
+                ...t,
+                baseDuration: t.baseDuration,
+                aiDuration: t.aiDuration ?? "",
+              }))
+          : [];
 
       if (tasksToPlan.length === 0) {
         // Si todas las tareas están completadas, actualiza la DB con el endOfDay más reciente
-        await handleUpdateUserData({ ...userData, dayTasks: tasksForSync, endOfDay: endOfDayForSync });
+        await handleUpdateUserData({
+          ...userData,
+          dayTasks: tasksForSync,
+          endOfDay: endOfDayForSync,
+        });
         setFreeTime(null); // O calcula el tiempo restante si es necesario
         return;
       }
@@ -223,8 +203,8 @@ export default function HomePage() {
           await getUpdatedSchedule(tasksToPlan, endOfDayForSync);
 
         // Mezcla la respuesta de la IA con los datos originales de las tareas para preservar todos los campos
-        const mappedTasks = updatedTasks.map(aiTask => {
-          const originalTask = tasksToPlan.find(t => t.id === aiTask.id);
+        const mappedTasks = updatedTasks.map((aiTask) => {
+          const originalTask = tasksToPlan.find((t) => t.id === aiTask.id);
           return {
             ...originalTask,
             ...aiTask,
@@ -257,18 +237,7 @@ export default function HomePage() {
     [userData, handleUpdateUserData, tempEndOfDay]
   );
 
-  const fetchAiTip = useCallback(async () => {
-    if (!userData || !userData.dayTasks || userData.dayTasks.length === 0) {
-      setAiTip(null);
-      return;
-    }
-    try {
-      const tip = await getAiTip(userData.dayTasks);
-      setAiTip(tip);
-    } catch (error) {
-      console.error("Error fetching AI tip:", error);
-    }
-  }, [userData]);
+  // Eliminada la función fetchAiTip, el tip se actualiza solo con syncWithAI
 
   useEffect(() => {
     if (firebaseInitializationError) {
@@ -320,6 +289,20 @@ export default function HomePage() {
     } catch (error) {
       console.error("Sign Out Error:", error);
     }
+  };
+
+  // Actualiza el tiempo organizado por IA en la tarea y en la DB
+  const handleUpdateAiDuration = async (
+    taskId: number,
+    newAiDuration: string
+  ) => {
+    if (!userData) return;
+    const updatedTasks = userData.dayTasks.map((t) =>
+      t.id === taskId ? { ...t, aiDuration: newAiDuration } : t
+    );
+    const updatedUserData = { ...userData, dayTasks: updatedTasks };
+    setUserData(updatedUserData);
+    await updateUserData(userData.uid, updatedUserData);
   };
 
   const handleSaveTask = async (task: BaseTask | Omit<BaseTask, "id">) => {
@@ -378,7 +361,7 @@ export default function HomePage() {
                 ...task,
                 id: Date.now(),
                 completed: false,
-                baseDuration: task.baseDuration || ""
+                baseDuration: task.baseDuration || "",
               } as GeneralTask,
             ];
       updatedUserData = { ...userData, generalTasks: updatedTasks };
@@ -499,13 +482,13 @@ export default function HomePage() {
   };
 
   const handleSetEndOfDay = async () => {
-  if (!userData || !tempEndOfDay) return;
-  const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
-  // Actualiza la UI y la base de datos antes de sincronizar con IA
-  setUserData(updatedUserData);
-  await handleUpdateUserData(updatedUserData);
-  showNotification("Hora de fin del día actualizada.", "success");
-  syncWithAI({ endOfDay: tempEndOfDay });
+    if (!userData || !tempEndOfDay) return;
+    const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
+    // Actualiza la UI y la base de datos antes de sincronizar con IA
+    setUserData(updatedUserData);
+    await handleUpdateUserData(updatedUserData);
+    showNotification("Hora de fin del día actualizada.", "success");
+    syncWithAI({ endOfDay: tempEndOfDay });
   };
 
   const handleStartDay = () => {
@@ -527,13 +510,7 @@ export default function HomePage() {
     showNotification("Horario generado con IA.", "success");
   };
 
-  useEffect(() => {
-    if (userData && userData.dayTasks.length > 0) {
-      fetchAiTip();
-    } else {
-      setAiTip(null);
-    }
-  }, [userData?.dayTasks]);
+  // Eliminado el efecto que llamaba a fetchAiTip, ahora el tip se actualiza solo con syncWithAI
 
   if (loading) {
     return (
@@ -553,7 +530,7 @@ export default function HomePage() {
   if (!user || !userData) {
     return null; // Or a loading spinner, while redirecting
   }
-  
+
   return (
     <div className="max-w-2xl mx-auto pb-28">
       {currentPage === Page.Day && (
@@ -603,10 +580,7 @@ export default function HomePage() {
               <>
                 {aiTip && (
                   <div className="mb-4">
-                    <AiTipCard
-                      tip={aiTip}
-                      onDismiss={() => setAiTip(null)}
-                    />
+                    <AiTipCard tip={aiTip} onDismiss={() => setAiTip(null)} />
                   </div>
                 )}
                 <TaskList
@@ -616,6 +590,7 @@ export default function HomePage() {
                   onDelete={handleDeleteTask}
                   onReorder={handleReorderTasks}
                   onEdit={handleEditTask}
+                  onUpdateAiDuration={handleUpdateAiDuration}
                 />
                 {freeTime && <FreeTimeCard duration={freeTime} />}
               </>
@@ -633,8 +608,8 @@ export default function HomePage() {
                   <span className="font-semibold text-emerald-400">
                     &quot;Empezar Día&quot;
                   </span>{" "}
-                  para usar tu plantilla de &apos;Horario General&apos; y generar tu plan
-                  de hoy con IA.
+                  para usar tu plantilla de &apos;Horario General&apos; y
+                  generar tu plan de hoy con IA.
                 </p>
               </div>
             ) : (
@@ -792,9 +767,16 @@ export default function HomePage() {
 
       {isSyncing && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-          <Icon name="loader" className="h-16 w-16 animate-spin text-emerald-400 mb-6" />
-          <p className="text-lg text-white font-semibold">Procesando tu horario con IA...</p>
-          <p className="text-sm text-slate-300 mt-2">Esto puede tardar unos segundos.</p>
+          <Icon
+            name="loader"
+            className="h-16 w-16 animate-spin text-emerald-400 mb-6"
+          />
+          <p className="text-lg text-white font-semibold">
+            Procesando tu horario con IA...
+          </p>
+          <p className="text-sm text-slate-300 mt-2">
+            Esto puede tardar unos segundos.
+          </p>
         </div>
       )}
     </div>

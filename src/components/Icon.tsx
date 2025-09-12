@@ -12,6 +12,10 @@ import {
   ListChecks,
   UserCircle2,
   Lightbulb,
+  Play,
+  Pause,
+  StopCircle,
+  Clock,
 } from "lucide-react";
 
 interface IconProps {
@@ -32,6 +36,10 @@ const icons: Record<string, React.ElementType> = {
   listchecks: ListChecks,
   usercircle2: UserCircle2,
   lightbulb: Lightbulb,
+  play: Play,
+  pause: Pause,
+  stop: StopCircle,
+  clock: Clock,
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {
