@@ -208,8 +208,11 @@ export default function HomePage() {
 
       setIsSyncing(true);
       try {
-        const { updatedTasks, freeTime: newFreeTime } =
-          await getUpdatedSchedule(tasksToPlan, endOfDayForSync);
+        const {
+          updatedTasks,
+          freeTime: newFreeTime,
+          tip,
+        } = await getUpdatedSchedule(tasksToPlan, endOfDayForSync);
 
         // Mezcla la respuesta de la IA con los datos originales de las tareas para preservar todos los campos
         const mappedTasks = updatedTasks.map((aiTask) => {
@@ -234,6 +237,7 @@ export default function HomePage() {
 
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
+        setAiTip(tip || null); // <-- Ahora se establece el tip de IA correctamente
         showNotification("Horario actualizado con IA.", "success");
         lastSyncRef.current = new Date();
       } catch (error) {
@@ -520,7 +524,7 @@ export default function HomePage() {
       setShowConfirmation(false);
       showNotification("Horario generado con IApo.", "success");
     } catch (error: unknown) {
-      console.log("🚀 ~ confirmStartDay ~ error:", error)
+      console.log("🚀 ~ confirmStartDay ~ error:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -551,7 +555,7 @@ export default function HomePage() {
       }, 2000);
       return () => clearInterval(interval);
     }
-  }, [isSyncing]);
+  }, [isSyncing, aiLoadingMessages.length]);
 
   if (loading) {
     return (
