@@ -610,7 +610,7 @@ export default function HomePage() {
                 disabled={isSyncing || userData.generalTasks.length === 0}
                 className="flex-1 bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Empezar Día
+                Clonar Horario General
               </button>
               <button
                 onClick={() => syncWithAI()}

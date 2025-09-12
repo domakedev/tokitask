@@ -44,7 +44,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activePage, onNavigate }) => {
         <NavLink
           page={Page.General}
           iconName="ListChecks"
-          label="General"
+          label="Horario General"
           isActive={activePage === Page.General}
           onClick={onNavigate}
         />
