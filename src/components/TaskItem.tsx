@@ -24,6 +24,20 @@ const getPriorityClass = (priority: Priority): string => {
   }
 };
 
+const getSecondsFromAiDuration = (aiDuration?: string) => {
+  if (!aiDuration) return 0;
+  const match = aiDuration.match(/(\d+)h\s*(\d+)?m?/);
+  if (match) {
+    const h = parseInt(match[1] || "0", 10);
+    const m = parseInt(match[2] || "0", 10);
+    return h * 3600 + m * 60;
+  }
+  // Si solo minutos
+  const minMatch = aiDuration.match(/(\d+)m/);
+  if (minMatch) return parseInt(minMatch[1], 10) * 60;
+  return 0;
+};
+
 const TaskItem: React.FC<
   TaskItemProps & React.HTMLAttributes<HTMLDivElement>
 > = ({
@@ -40,27 +54,18 @@ const TaskItem: React.FC<
   const [timerActive, setTimerActive] = useState(false);
   const [paused, setPaused] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [startTimestamp, setStartTimestamp] = useState<number | null>(null);
+  const initialAiDuration = isDaily && "aiDuration" in task ? (task as DayTask).aiDuration : undefined;
+  const [durationSeconds, setDurationSeconds] = useState<number>(getSecondsFromAiDuration(initialAiDuration));
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Convertir aiDuration a segundos
-  const getSecondsFromAiDuration = (aiDuration: string) => {
-    if (!aiDuration) return 0;
-    const match = aiDuration.match(/(\d+)h\s*(\d+)?m?/);
-    if (match) {
-      const h = parseInt(match[1] || "0", 10);
-      const m = parseInt(match[2] || "0", 10);
-      return h * 3600 + m * 60;
-    }
-    // Si solo minutos
-    const minMatch = aiDuration.match(/(\d+)m/);
-    if (minMatch) return parseInt(minMatch[1], 10) * 60;
-    return 0;
-  };
+  // ...existing code...
 
-  // Iniciar temporizador
+  // Iniciar temporizador preciso
   const handleStartTimer = () => {
     if (!("aiDuration" in task)) return;
-    setRemainingSeconds(getSecondsFromAiDuration(task.aiDuration));
+    setDurationSeconds(getSecondsFromAiDuration(task.aiDuration));
+    setStartTimestamp(Date.now());
     setTimerActive(true);
     setPaused(false);
   };
@@ -90,23 +95,26 @@ const TaskItem: React.FC<
     audio.play();
   };
 
-  // Actualizar cada minuto en la UI y DB
+  // Temporizador preciso usando timestamp
   useEffect(() => {
-    if (!timerActive || paused || remainingSeconds === null) return;
-    if (remainingSeconds <= 0) {
-      playSoftSound();
-      setTimerActive(false);
-      setPaused(false);
-      setRemainingSeconds(null);
-      return;
-    }
+    if (!timerActive || paused || startTimestamp === null) return;
     intervalRef.current = setInterval(() => {
-      setRemainingSeconds((prev) => (prev !== null ? prev - 1 : null));
+      const elapsed = Math.floor((Date.now() - startTimestamp) / 1000);
+      const remaining = Math.max(durationSeconds - elapsed, 0);
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        playSoftSound();
+        setTimerActive(false);
+        setPaused(false);
+        setStartTimestamp(null);
+        setRemainingSeconds(null);
+        clearInterval(intervalRef.current!);
+      }
     }, 1000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [timerActive, paused, remainingSeconds]);
+  }, [timerActive, paused, startTimestamp, durationSeconds]);
 
   // Cuando cambia el tiempo, actualizar en la UI y DB
   useEffect(() => {
@@ -125,7 +133,7 @@ const TaskItem: React.FC<
       }
     }
     // eslint-disable-next-line
-  }, [remainingSeconds]);
+  }, [remainingSeconds, timerActive, paused, task]);
 
   // Formatear segundos a formato "xh ym"
   // Formatear segundos a formato "xh ym ss"
