@@ -14,7 +14,11 @@ import BottomNav from "../components/BottomNav";
 const getUpdatedSchedule = async (
   tasks: DayTask[],
   endOfDay: string
-): Promise<{ updatedTasks: DayTask[]; freeTime: string | null; tip?: string }> => {
+): Promise<{
+  updatedTasks: DayTask[];
+  freeTime: string | null;
+  tip?: string;
+}> => {
   // Obtener la hora actual del usuario en formato HH:mm
   const now = new Date();
   const userTime = now.toLocaleTimeString("es-ES", {
@@ -512,6 +516,27 @@ export default function HomePage() {
 
   // Eliminado el efecto que llamaba a fetchAiTip, ahora el tip se actualiza solo con syncWithAI
 
+  // Mensajes animados para el modal de IA
+  const aiLoadingMessages = [
+    "Analizando tus tareas...",
+    "Calculando tiempos óptimos...",
+    "Buscando consejos personalizados...",
+    "Organizando tu día...",
+    "Preparando tu horario ideal...",
+  ];
+  const [aiLoadingIndex, setAiLoadingIndex] = useState(0);
+  useEffect(() => {
+    if (isSyncing) {
+      setAiLoadingIndex(0);
+      const interval = setInterval(() => {
+        setAiLoadingIndex((prev) =>
+          prev < aiLoadingMessages.length - 1 ? prev + 1 : 0
+        );
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isSyncing]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -771,12 +796,32 @@ export default function HomePage() {
             name="loader"
             className="h-16 w-16 animate-spin text-emerald-400 mb-6"
           />
-          <p className="text-lg text-white font-semibold">
-            Procesando tu horario con IA...
-          </p>
-          <p className="text-sm text-slate-300 mt-2">
+          <p className="text-sm text-slate-300 mt-6 text-center">
             Esto puede tardar unos segundos.
           </p>
+          <div className="relative h-8 w-full flex items-center justify-center overflow-hidden mt-2">
+            <span
+              key={aiLoadingIndex}
+              className="absolute w-full text-lg text-white font-semibold transition-all duration-500 ease-in-out animate-slide-up text-center"
+              style={{
+                animation: "slideUp 0.5s",
+              }}
+            >
+              {aiLoadingMessages[aiLoadingIndex]}
+            </span>
+          </div>
+          <style jsx global>{`
+            @keyframes slideUp {
+              from {
+                opacity: 0;
+                transform: translateY(30px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}</style>
         </div>
       )}
     </div>
