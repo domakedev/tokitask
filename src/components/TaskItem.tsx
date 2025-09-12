@@ -178,73 +178,54 @@ const TaskItem: React.FC<
   const showTimer = isDaily && "aiDuration" in task && !task.completed;
 
   return (
-    <div className={taskClasses} {...divProps}>
-      {isDaily ? (
-        <button
-          onClick={() => onToggleComplete?.(task.id)}
-          className="flex-shrink-0 h-6 w-6 rounded flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-emerald-500 cursor-pointer"
-          aria-label={
-            task.completed
-              ? "Marcar tarea como incompleta"
-              : "Marcar tarea como completa"
-          }
-        >
-          {task.completed ? (
-            <div className="h-full w-full rounded bg-rose-600 flex items-center justify-center">
-              <Icon name="check" className="h-4 w-4 text-white" />
-            </div>
-          ) : (
-            <div className="h-full w-full rounded border-2 border-slate-400 group-hover:border-white transition-colors"></div>
-          )}
-        </button>
-      ) : (
-        <div className="flex-shrink-0 cursor-grab">
-          <Icon name="grip-vertical" className="text-slate-500 h-5 w-5" />
-        </div>
-      )}
+    <div className={taskClasses + " relative"} {...divProps}>
+      {/* Columna izquierda: check o grip */}
+      <div className="flex flex-col items-center justify-between h-full mr-2">
+        {isDaily ? (
+          <button
+            onClick={() => onToggleComplete?.(task.id)}
+            className="flex-shrink-0 h-7 w-7 rounded flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-emerald-500 cursor-pointer"
+            aria-label={
+              task.completed
+                ? "Marcar tarea como incompleta"
+                : "Marcar tarea como completa"
+            }
+          >
+            {task.completed ? (
+              <div className="h-full w-full rounded bg-rose-600 flex items-center justify-center">
+                <Icon name="check" className="h-5 w-5 text-white" />
+              </div>
+            ) : (
+              <div className="h-full w-full rounded border-2 border-slate-400 group-hover:border-white transition-colors"></div>
+            )}
+          </button>
+        ) : (
+          <div className="flex-shrink-0 cursor-grab">
+            <Icon name="grip-vertical" className="text-slate-500 h-5 w-5" />
+          </div>
+        )}
+      </div>
 
-      <div className="flex-grow">
+      {/* Columna central: nombre y detalles */}
+      <div className="flex flex-col flex-grow min-w-0">
         <p
-          className={`font-semibold text-white ${
+          className={`font-semibold text-white text-base truncate mb-1 ${
             isDaily && task.completed ? "line-through" : ""
           }`}
         >
           {task.name}
         </p>
-        <div className="flex items-center text-sm text-slate-400 mt-1 space-x-4">
-          <span>Base: {task.baseDuration}</span>
+        <div className="flex items-center text-xs text-slate-400 space-x-3 mb-2">
+          <span className="bg-slate-700 rounded px-2 py-0.5">
+            Base: {task.baseDuration}
+          </span>
           {isDaily && "aiDuration" in task && (
-            <span>Organizado IA: {task.aiDuration}</span>
-          )}
-          {showTimer && (
-            <span className="text-emerald-400 font-bold flex items-center space-x-2">
-              <Icon name="clock" className="inline-block h-4 w-4 mr-1" />
-              {remainingSeconds !== null &&
-                formatSecondsToAiDuration(remainingSeconds)}
-              {!timerActive && (
-                <button onClick={handleStartTimer} className="ml-2">
-                  <Icon name="play" className="h-4 w-4 text-emerald-500" />
-                </button>
-              )}
-              {timerActive && !paused && (
-                <button onClick={handlePauseTimer} className="ml-2">
-                  <Icon name="pause" className="h-4 w-4 text-yellow-500" />
-                </button>
-              )}
-              {timerActive && paused && (
-                <button onClick={handleResumeTimer} className="ml-2">
-                  <Icon name="play" className="h-4 w-4 text-emerald-500" />
-                </button>
-              )}
-              {timerActive && (
-                <button onClick={handleStopTimer} className="ml-2">
-                  <Icon name="stop" className="h-4 w-4 text-slate-500" />
-                </button>
-              )}
+            <span className="bg-emerald-900/40 text-emerald-300 rounded px-2 py-0.5">
+              IA: {task.aiDuration}
             </span>
           )}
           <span
-            className={`text-xs font-medium px-2 py-0.5 rounded-full border ${getPriorityClass(
+            className={`font-medium px-2 py-0.5 rounded-full border ${getPriorityClass(
               task.priority
             )}`}
           >
@@ -253,20 +234,60 @@ const TaskItem: React.FC<
         </div>
       </div>
 
-      <div className="flex items-center space-x-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={() => onEdit?.(task.id)}
-          className="p-2 rounded-md hover:bg-slate-700 hover:text-white transition-colors"
-          aria-label="Editar tarea"
-        >
-          <Icon name="pencil" className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => onDelete(task.id)}
-          className="p-2 rounded-md hover:bg-red-700 hover:text-white transition-colors"
-        >
-          <Icon name="trash2" className="h-4 w-4" />
-        </button>
+      {/* Columna derecha: temporizador arriba, editar/eliminar abajo */}
+      <div className="flex flex-col items-end justify-between ml-2 h-full">
+        {showTimer && (
+          <div className="flex items-center gap-1 mb-2">
+            <Icon name="clock" className="inline-block h-4 w-4 mr-1" />
+            <span
+              className="text-lg font-mono text-emerald-400 bg-slate-900 border border-slate-700 rounded px-3 py-1"
+              style={{
+                minWidth: "90px",
+                maxWidth: "150px",
+                textAlign: "center",
+              }}
+            >
+              {remainingSeconds !== null
+                ? formatSecondsToAiDuration(remainingSeconds)
+                : task.aiDuration}
+            </span>
+            {!timerActive && (
+              <button onClick={handleStartTimer} className="ml-1">
+                <Icon name="play" className="h-4 w-4 text-emerald-500" />
+              </button>
+            )}
+            {timerActive && !paused && (
+              <button onClick={handlePauseTimer} className="ml-1">
+                <Icon name="pause" className="h-4 w-4 text-yellow-500" />
+              </button>
+            )}
+            {timerActive && paused && (
+              <button onClick={handleResumeTimer} className="ml-1">
+                <Icon name="play" className="h-4 w-4 text-emerald-500" />
+              </button>
+            )}
+            {timerActive && (
+              <button onClick={handleStopTimer} className="ml-1">
+                <Icon name="stop" className="h-4 w-4 text-red-500" />
+              </button>
+            )}
+          </div>
+        )}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => onEdit?.(task.id)}
+            className="p-2 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+            aria-label="Editar tarea"
+          >
+            <Icon name="pencil" className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onDelete(task.id)}
+            className="p-2 rounded-md hover:bg-red-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+          >
+            <Icon name="trash2" className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
