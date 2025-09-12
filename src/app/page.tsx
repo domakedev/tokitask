@@ -544,7 +544,7 @@ export default function HomePage() {
           name="loader"
           className="h-12 w-12 animate-spin text-emerald-400 mb-4"
         />
-        <p className="text-lg text-white font-semibold">Cargando...</p>
+        <p className="text-lg text-white font-semibold">Iniciando sesión...</p>
       </div>
     );
   }
