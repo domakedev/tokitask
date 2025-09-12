@@ -604,21 +604,69 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row justify-center items-center sm:space-x-3 gap-2">
               <button
                 onClick={handleStartDay}
                 disabled={isSyncing || userData.generalTasks.length === 0}
-                className="flex-1 bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 w-full bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Clonar Horario General
               </button>
               <button
                 onClick={() => syncWithAI()}
                 disabled={isSyncing || userData.dayTasks.length === 0}
-                className="flex-1 bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 w-full text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-75 transition-transform transform disabled:opacity-50 disabled:cursor-not-allowed border-none animate-float animate-gradient"
+                style={{
+                  position: "relative",
+                  overflow: "hidden",
+                  boxShadow:
+                    "0 4px 16px 0 rgba(0, 212, 255, 0.15), 0 1.5px 6px 0 rgba(16, 185, 129, 0.12)",
+                }}
               >
-                {isSyncing ? "Calculando..." : "Organizar Horario con IA"}
+                <span
+                  className="absolute inset-0 z-0 animate-gradient"
+                  style={{
+                    background:
+                      "linear-gradient(270deg, #22d3ee, #34d399, #2563eb, #22d3ee)",
+                    backgroundSize: "600% 600%",
+                    filter: "blur(0.5px)",
+                    opacity: 0.95,
+                  }}
+                />
+                <span className="relative z-10">
+                  {isSyncing ? "Calculando..." : "Organizar tiempos con IA"}
+                </span>
               </button>
+              <style jsx global>{`
+                @keyframes float {
+                  0% {
+                    transform: translateY(0);
+                  }
+                  50% {
+                    transform: translateY(-6px);
+                  }
+                  100% {
+                    transform: translateY(0);
+                  }
+                }
+                .animate-float {
+                  animation: float 2.2s ease-in-out infinite;
+                }
+                @keyframes gradientMove {
+                  0% {
+                    background-position: 0% 50%;
+                  }
+                  50% {
+                    background-position: 100% 50%;
+                  }
+                  100% {
+                    background-position: 0% 50%;
+                  }
+                }
+                .animate-gradient {
+                  animation: gradientMove 20s ease-in-out infinite;
+                }
+              `}</style>
             </div>
           </header>
           <main className="px-4 sm:px-6 mt-4">
