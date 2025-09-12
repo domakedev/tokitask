@@ -817,7 +817,11 @@ export default function HomePage() {
         </button>
       )}
 
-      <BottomNav activePage={currentPage} onNavigate={setCurrentPage} />
+      <BottomNav
+        activePage={currentPage}
+        onNavigate={setCurrentPage}
+        profilePhotoUrl={user?.photoURL || undefined}
+      />
 
       {isModalOpen && (
         <TaskModal
