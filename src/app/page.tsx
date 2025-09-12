@@ -809,12 +809,25 @@ export default function HomePage() {
       )}
 
       {currentPage !== Page.Profile && (
-        <button
-          onClick={() => setModalOpen(true)}
-          className="fixed bottom-24 right-6 bg-emerald-600 text-white p-4 rounded-full shadow-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-110 z-20"
-        >
-          <Icon name="plus" />
-        </button>
+        <>
+          <div
+            className="fixed bottom-24 right-6 flex flex-col items-center z-20"
+            style={{ width: 56 }}
+          >
+            <button
+              onClick={() => setModalOpen(true)}
+              className="w-full bg-emerald-600 text-white p-4 rounded-full shadow-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-110"
+            >
+              <Icon name="plus" />
+            </button>
+            <span
+              className="w-full mt-2 bg-emerald-600 text-white text-xs font-medium px-0 py-1 rounded shadow"
+              style={{ textAlign: "center", opacity: 0.95, display: "block" }}
+            >
+              Nueva tarea
+            </span>
+          </div>
+        </>
       )}
 
       <BottomNav
