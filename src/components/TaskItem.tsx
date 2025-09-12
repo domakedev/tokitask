@@ -232,61 +232,60 @@ const TaskItem: React.FC<
             {task.priority}
           </span>
         </div>
-      </div>
-
-      {/* Columna derecha: temporizador arriba, editar/eliminar abajo */}
-      <div className="flex flex-col items-end justify-between ml-2 h-full">
-        {showTimer && (
-          <div className="flex items-center gap-1 mb-2">
-            <Icon name="clock" className="inline-block h-4 w-4 mr-1" />
-            <span
-              className="text-lg font-mono text-emerald-400 bg-slate-900 border border-slate-700 rounded px-3 py-1"
-              style={{
-                minWidth: "90px",
-                maxWidth: "150px",
-                textAlign: "center",
-              }}
+        {/* Contenedor horizontal para temporizador y opciones debajo de la info principal */}
+        <div className="flex flex-row items-center justify-between w-full mt-2 gap-2">
+          {showTimer && (
+            <div className="flex items-center gap-1">
+              <Icon name="clock" className="inline-block h-4 w-4 mr-1" />
+              <span
+                className="text-lg font-mono text-emerald-400 bg-slate-900 border border-slate-700 rounded px-3 py-1"
+                style={{
+                  minWidth: "90px",
+                  maxWidth: "150px",
+                  textAlign: "center",
+                }}
+              >
+                {remainingSeconds !== null
+                  ? formatSecondsToAiDuration(remainingSeconds)
+                  : task.aiDuration}
+              </span>
+              {!timerActive && (
+                <button onClick={handleStartTimer} className="ml-1">
+                  <Icon name="play" className="h-4 w-4 text-emerald-500" />
+                </button>
+              )}
+              {timerActive && !paused && (
+                <button onClick={handlePauseTimer} className="ml-1">
+                  <Icon name="pause" className="h-4 w-4 text-yellow-500" />
+                </button>
+              )}
+              {timerActive && paused && (
+                <button onClick={handleResumeTimer} className="ml-1">
+                  <Icon name="play" className="h-4 w-4 text-emerald-500" />
+                </button>
+              )}
+              {timerActive && (
+                <button onClick={handleStopTimer} className="ml-1">
+                  <Icon name="stop" className="h-4 w-4 text-red-500" />
+                </button>
+              )}
+            </div>
+          )}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onEdit?.(task.id)}
+              className="p-2 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+              aria-label="Editar tarea"
             >
-              {remainingSeconds !== null
-                ? formatSecondsToAiDuration(remainingSeconds)
-                : task.aiDuration}
-            </span>
-            {!timerActive && (
-              <button onClick={handleStartTimer} className="ml-1">
-                <Icon name="play" className="h-4 w-4 text-emerald-500" />
-              </button>
-            )}
-            {timerActive && !paused && (
-              <button onClick={handlePauseTimer} className="ml-1">
-                <Icon name="pause" className="h-4 w-4 text-yellow-500" />
-              </button>
-            )}
-            {timerActive && paused && (
-              <button onClick={handleResumeTimer} className="ml-1">
-                <Icon name="play" className="h-4 w-4 text-emerald-500" />
-              </button>
-            )}
-            {timerActive && (
-              <button onClick={handleStopTimer} className="ml-1">
-                <Icon name="stop" className="h-4 w-4 text-red-500" />
-              </button>
-            )}
+              <Icon name="pencil" className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onDelete(task.id)}
+              className="p-2 rounded-md hover:bg-red-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+            >
+              <Icon name="trash2" className="h-4 w-4" />
+            </button>
           </div>
-        )}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => onEdit?.(task.id)}
-            className="p-2 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
-            aria-label="Editar tarea"
-          >
-            <Icon name="pencil" className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => onDelete(task.id)}
-            className="p-2 rounded-md hover:bg-red-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
-          >
-            <Icon name="trash2" className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </div>
