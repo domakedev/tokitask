@@ -539,11 +539,12 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
         <Icon
           name="loader"
-          className="h-12 w-12 animate-spin text-emerald-400"
+          className="h-12 w-12 animate-spin text-emerald-400 mb-4"
         />
+        <p className="text-lg text-white font-semibold">Cargando...</p>
       </div>
     );
   }
