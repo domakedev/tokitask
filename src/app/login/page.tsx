@@ -18,14 +18,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [error, setAuthError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !auth) return;
+    setIsLoading(true);
     try {
       if (isSigningUp) {
-        const result = await createUserWithEmailAndPassword(auth, email, password);
+        const result = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
         await createUserDocument({
           uid: result.user.uid,
           email,
@@ -45,11 +51,14 @@ export default function LoginPage() {
           ? "No se pudo crear la cuenta."
           : "Email o contraseña incorrectos."
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
     if (!auth || !googleProvider) return;
+    setIsLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
@@ -68,6 +77,8 @@ export default function LoginPage() {
     } catch (error) {
       console.error("Google Sign-In Error:", error);
       setAuthError("Error al iniciar sesión con Google.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,6 +99,17 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-slate-800 rounded-lg shadow-xl p-6 sm:p-8 space-y-6">
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center mb-6">
+              <Icon
+                name="loader"
+                className="h-8 w-8 animate-spin text-emerald-400 mb-2"
+              />
+              <span className="text-lg text-white font-semibold">
+                Iniciando sesión...
+              </span>
+            </div>
+          )}
           <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div>
               <label

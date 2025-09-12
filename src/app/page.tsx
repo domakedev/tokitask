@@ -19,26 +19,31 @@ const getUpdatedSchedule = async (
   freeTime: string | null;
   tip?: string;
 }> => {
-  // Obtener la hora actual del usuario en formato HH:mm
-  const now = new Date();
-  const userTime = now.toLocaleTimeString("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  const payload = { tasks, endOfDay, userTime };
-  console.log("Enviando a /api/schedule:", payload);
-  const response = await fetch("/api/schedule", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    console.error("Error from /api/schedule:", errorData);
-    throw new Error("Failed to fetch updated schedule");
+  try {
+    // Obtener la hora actual del usuario en formato HH:mm
+    const now = new Date();
+    const userTime = now.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const payload = { tasks, endOfDay, userTime };
+    console.log("Enviando a /api/schedulexxxxx:", payload);
+    const response = await fetch("/api/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error from /api/scheduleyyyyyy:", errorData);
+      throw new Error("Failed to fetch updated schedule");
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching updated schedule44:", error);
+    throw error;
   }
-  return response.json();
 };
 
 // Eliminado fetchAiTip y el efecto asociado, ahora el tip se actualiza solo con syncWithAI
@@ -232,8 +237,9 @@ export default function HomePage() {
         showNotification("Horario actualizado con IA.", "success");
         lastSyncRef.current = new Date();
       } catch (error) {
-        console.error("Error syncing with AI:", error);
+        console.error("Error syncing with AI----240:", error);
         showNotification("Error al sincronizar con la IA.", "error");
+        throw new Error("Error syncing with AI 244");
       } finally {
         setIsSyncing(false);
       }
@@ -509,9 +515,19 @@ export default function HomePage() {
       isCurrent: false,
       aiDuration: "",
     }));
-    await syncWithAI({ tasks: generalTasksAsDay });
-    setShowConfirmation(false);
-    showNotification("Horario generado con IA.", "success");
+    try {
+      await syncWithAI({ tasks: generalTasksAsDay });
+      setShowConfirmation(false);
+      showNotification("Horario generado con IApo.", "success");
+    } catch (error: unknown) {
+      console.log("🚀 ~ confirmStartDay ~ error:", error)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Error al generar el horario con IA.";
+      showNotification(errorMessage, "error");
+      setShowConfirmation(false);
+    }
   };
 
   // Eliminado el efecto que llamaba a fetchAiTip, ahora el tip se actualiza solo con syncWithAI
@@ -544,7 +560,7 @@ export default function HomePage() {
           name="loader"
           className="h-12 w-12 animate-spin text-emerald-400 mb-4"
         />
-        <p className="text-lg text-white font-semibold">Iniciando sesión...</p>
+        <p className="text-lg text-white font-semibold">Cargando...</p>
       </div>
     );
   }
