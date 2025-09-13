@@ -55,8 +55,11 @@ const TaskItem: React.FC<
   const [paused, setPaused] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [startTimestamp, setStartTimestamp] = useState<number | null>(null);
-  const initialAiDuration = isDaily && "aiDuration" in task ? (task as DayTask).aiDuration : undefined;
-  const [durationSeconds, setDurationSeconds] = useState<number>(getSecondsFromAiDuration(initialAiDuration));
+  const initialAiDuration =
+    isDaily && "aiDuration" in task ? (task as DayTask).aiDuration : undefined;
+  const [durationSeconds, setDurationSeconds] = useState<number>(
+    getSecondsFromAiDuration(initialAiDuration)
+  );
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // ...existing code...
@@ -109,31 +112,44 @@ const TaskItem: React.FC<
         setStartTimestamp(null);
         setRemainingSeconds(null);
         clearInterval(intervalRef.current!);
+        // Guardar en la DB y estado global el nuevo valor "0m 00s"
+        if (typeof onUpdateAiDuration === "function" && "aiDuration" in task) {
+          onUpdateAiDuration(task.id, "0m 00s");
+        }
       }
     }, 1000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [timerActive, paused, startTimestamp, durationSeconds]);
+  }, [
+    timerActive,
+    paused,
+    startTimestamp,
+    durationSeconds,
+    onUpdateAiDuration,
+    task,
+  ]);
 
   // Cuando cambia el tiempo, actualizar en la UI y DB
+  const lastSyncedAiDuration = useRef<string | null>(null);
   useEffect(() => {
     if (
       timerActive &&
       !paused &&
       remainingSeconds !== null &&
-      "aiDuration" in task
+      "aiDuration" in task &&
+      typeof onUpdateAiDuration === "function"
     ) {
-      // Actualizar en la DB solo cada minuto
-      if (remainingSeconds % 60 === 0) {
+      // Actualizar en la DB solo cada minuto (cuando el valor es múltiplo de 60 y mayor que 0)
+      if (remainingSeconds > 0 && remainingSeconds % 60 === 0) {
         const newAiDuration = formatSecondsToAiDuration(remainingSeconds);
-        if (typeof onUpdateAiDuration === "function") {
+        if (lastSyncedAiDuration.current !== newAiDuration) {
           onUpdateAiDuration(task.id, newAiDuration);
+          lastSyncedAiDuration.current = newAiDuration;
         }
       }
     }
-    // eslint-disable-next-line
-  }, [remainingSeconds, timerActive, paused, task]);
+  }, [remainingSeconds, timerActive, paused, task, onUpdateAiDuration]);
 
   // Formatear segundos a formato "xh ym"
   // Formatear segundos a formato "xh ym ss"

@@ -154,17 +154,17 @@ export default function HomePage() {
     }
   }, [userData?.endOfDay]);
 
-  const showNotification = (
-    message: string,
-    type: "success" | "error" = "success"
-  ) => {
-    setNotification({ message, type });
-  };
+  const showNotification = useCallback(
+    (message: string, type: "success" | "error" = "success") => {
+      setNotification({ message, type });
+    },
+    []
+  );
 
   const handleUpdateUserData = useCallback(
     async (newUserData: Partial<UserData>) => {
       if (user) {
-  const prevUserData = userData ? { ...userData } as UserData : null;
+        const prevUserData = userData ? ({ ...userData } as UserData) : null;
         // Immediately update the local state for a responsive UI
         const updatedData = { ...userData, ...newUserData } as UserData;
         setUserData(updatedData);
@@ -173,12 +173,15 @@ export default function HomePage() {
           await updateUserData(user.uid, updatedData);
         } catch (error) {
           if (prevUserData) setUserData(prevUserData);
-          showNotification("Error al actualizar los datos. No se guardó en la base de datos.", "error");
+          showNotification(
+            "Error al actualizar los datos. No se guardó en la base de datos.",
+            "error"
+          );
           throw new Error("Error updating user data");
         }
       }
     },
-    [user, userData] // Add userData to dependencies
+    [user, userData, showNotification]
   );
 
   const syncWithAI = useCallback(
@@ -255,7 +258,7 @@ export default function HomePage() {
         setIsSyncing(false);
       }
     },
-    [userData, handleUpdateUserData, tempEndOfDay]
+    [userData, handleUpdateUserData, tempEndOfDay, showNotification]
   );
 
   // Eliminada la función fetchAiTip, el tip se actualiza solo con syncWithAI
@@ -314,30 +317,33 @@ export default function HomePage() {
   };
 
   // Actualiza el tiempo organizado por IA en la tarea y en la DB
-  const handleUpdateAiDuration = async (
-    taskId: number,
-    newAiDuration: string
-  ) => {
-    if (!userData) return;
-  const prevUserData = { ...userData };
-  try {
-      const updatedTasks = userData.dayTasks.map((t) =>
-        t.id === taskId ? { ...t, aiDuration: newAiDuration } : t
-      );
-      const updatedUserData = { ...userData, dayTasks: updatedTasks };
-      setUserData(updatedUserData);
-      await updateUserData(userData.uid, updatedUserData);
-    } catch (error) {
-      console.error("Error en handleUpdateAiDuration:", error);
-      setUserData(prevUserData);
-      showNotification("Error al actualizar el tiempo de IA. No se guardó en la base de datos.", "error");
-    }
-  };
+  const handleUpdateAiDuration = useCallback(
+    async (taskId: number, newAiDuration: string) => {
+      if (!userData) return;
+      const prevUserData = { ...userData };
+      try {
+        const updatedTasks = userData.dayTasks.map((t) =>
+          t.id === taskId ? { ...t, aiDuration: newAiDuration } : t
+        );
+        const updatedUserData = { ...userData, dayTasks: updatedTasks };
+        setUserData(updatedUserData);
+        await updateUserData(userData.uid, updatedUserData);
+      } catch (error) {
+        console.error("Error en handleUpdateAiDuration:", error);
+        setUserData(prevUserData);
+        showNotification(
+          "Error al actualizar el tiempo de IA. No se guardó en la base de datos.",
+          "error"
+        );
+      }
+    },
+    [userData, showNotification]
+  );
 
   const handleSaveTask = async (task: BaseTask | Omit<BaseTask, "id">) => {
     if (!userData) return;
-  let updatedUserData: UserData;
-  const prevUserData = { ...userData };
+    let updatedUserData: UserData;
+    const prevUserData = { ...userData };
     try {
       if (currentPage === Page.Day) {
         const updatedTasks =
@@ -387,13 +393,16 @@ export default function HomePage() {
     } catch (error) {
       console.error("Error en handleSaveTask:", error);
       setUserData(prevUserData);
-      showNotification("Error al guardar la tarea. No se guardó en la base de datos.", "error");
+      showNotification(
+        "Error al guardar la tarea. No se guardó en la base de datos.",
+        "error"
+      );
     }
   };
 
   const handleToggleComplete = async (taskId: number) => {
     if (!userData) return;
-  const prevUserData = { ...userData };
+    const prevUserData = { ...userData };
     try {
       if (currentPage === Page.Day) {
         const updatedTasks = userData.dayTasks.map((t) =>
@@ -418,7 +427,10 @@ export default function HomePage() {
     } catch (error) {
       console.error("Error en handleToggleComplete:", error);
       setUserData(prevUserData);
-      showNotification("Error al actualizar el estado de la tarea. No se guardó en la base de datos.", "error");
+      showNotification(
+        "Error al actualizar el estado de la tarea. No se guardó en la base de datos.",
+        "error"
+      );
     }
   };
 
@@ -435,7 +447,7 @@ export default function HomePage() {
 
   const confirmDelete = async () => {
     if (!userData || !taskToDelete) return;
-  const prevUserData = { ...userData };
+    const prevUserData = { ...userData };
     try {
       if (currentPage === Page.Day) {
         const updatedTasks = userData.dayTasks.filter(
@@ -466,7 +478,10 @@ export default function HomePage() {
       setUserData(prevUserData);
       setShowConfirmation(false);
       setTaskToDelete(null);
-      showNotification("Error al eliminar la tarea. No se guardó en la base de datos.", "error");
+      showNotification(
+        "Error al eliminar la tarea. No se guardó en la base de datos.",
+        "error"
+      );
     }
   };
 
@@ -485,7 +500,7 @@ export default function HomePage() {
     reorderedTasks: (DayTask | GeneralTask)[]
   ) => {
     if (!userData) return;
-  const prevUserData = { ...userData };
+    const prevUserData = { ...userData };
     try {
       let updatedUserData: UserData;
       if (currentPage === Page.Day) {
@@ -505,13 +520,16 @@ export default function HomePage() {
     } catch (error) {
       console.error("Error en handleReorderTasks:", error);
       setUserData(prevUserData);
-      showNotification("Error al reordenar las tareas. No se guardó en la base de datos.", "error");
+      showNotification(
+        "Error al reordenar las tareas. No se guardó en la base de datos.",
+        "error"
+      );
     }
   };
 
   const handleSetEndOfDay = async () => {
     if (!userData || !tempEndOfDay) return;
-  const prevUserData = { ...userData };
+    const prevUserData = { ...userData };
     try {
       const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
       setUserData(updatedUserData);
@@ -521,7 +539,10 @@ export default function HomePage() {
     } catch (error) {
       console.error("Error en handleSetEndOfDay:", error);
       setUserData(prevUserData);
-      showNotification("Error al actualizar la hora de fin del día. No se guardó en la base de datos.", "error");
+      showNotification(
+        "Error al actualizar la hora de fin del día. No se guardó en la base de datos.",
+        "error"
+      );
     }
   };
 
