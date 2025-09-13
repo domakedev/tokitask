@@ -65,11 +65,35 @@ const responseSchema = {
 
 export async function POST(request: Request) {
   try {
-    const { tasks, endOfDay, userTime } = await request.json();
+    const body = await request.json();
+    const { tasks, endOfDay, userTime } = body;
 
-    if (!tasks || !endOfDay || !userTime) {
+    // Validaciones más detalladas
+    if (!tasks) {
       return NextResponse.json(
-        { error: "Missing tasks, endOfDay, or userTime in request body" },
+        { error: "Missing tasks in request body" },
+        { status: 400 }
+      );
+    }
+
+    if (!endOfDay) {
+      return NextResponse.json(
+        { error: "Missing endOfDay in request body" },
+        { status: 400 }
+      );
+    }
+
+    if (!userTime) {
+      return NextResponse.json(
+        { error: "Missing userTime in request body" },
+        { status: 400 }
+      );
+    }
+
+    // Validar que tasks sea un array
+    if (!Array.isArray(tasks)) {
+      return NextResponse.json(
+        { error: "Tasks must be an array" },
         { status: 400 }
       );
     }

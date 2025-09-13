@@ -39,18 +39,23 @@ const responseSchema = {
             type: Type.STRING,
             description: "Una cadena que representa el tiempo libre restante, ej: '1h 15min', o null si no hay tiempo libre.",
             nullable: true,
+        },
+        tip: {
+            type: Type.STRING,
+            description: "Consejo breve y útil para el usuario en español, motivacional o de productividad.",
+            nullable: true,
         }
     },
-    required: ["updatedTasks", "freeTime"]
+    required: ["updatedTasks", "freeTime", "tip"]
 };
 
 
-export const getUpdatedSchedule = async (tasks: DayTask[], endOfDay: string): Promise<{ updatedTasks: DayTask[], freeTime: string | null }> => {
+export const getUpdatedSchedule = async (tasks: DayTask[], endOfDay: string): Promise<{ updatedTasks: DayTask[], freeTime: string | null, tip: string | null }> => {
     const completedTasks = tasks.filter(t => t.completed);
     const pendingTasks = tasks.filter(t => !t.completed);
 
     if (pendingTasks.length === 0) {
-        return { updatedTasks: completedTasks, freeTime: null };
+        return { updatedTasks: completedTasks, freeTime: null, tip: null };
     }
     
     const now = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -86,7 +91,7 @@ export const getUpdatedSchedule = async (tasks: DayTask[], endOfDay: string): Pr
         
         const textResponse = response?.text?.trim() || "";
         console.log("Respuesta de Gemini (horario):", textResponse);
-        const result: { updatedTasks: DayTask[], freeTime: string | null } = JSON.parse(textResponse);
+        const result: { updatedTasks: DayTask[], freeTime: string | null, tip: string | null } = JSON.parse(textResponse);
         
         // Ensure only one task is current
         let foundCurrent = false;
@@ -104,7 +109,8 @@ export const getUpdatedSchedule = async (tasks: DayTask[], endOfDay: string): Pr
 
         return {
             updatedTasks: [...completedTasks, ...finalPendingTasks],
-            freeTime: result.freeTime
+            freeTime: result.freeTime,
+            tip: result.tip ?? null
         };
 
     } catch (error) {

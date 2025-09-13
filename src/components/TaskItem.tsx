@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { BaseTask, DayTask, Priority } from "../types";
 import Icon from "./Icon";
+import { useTimer } from "../hooks/useTimer";
 
 interface TaskItemProps {
   task: DayTask | (BaseTask & { completed?: boolean; isCurrent?: boolean });
@@ -26,19 +27,15 @@ const getPriorityClass = (priority: Priority): string => {
 
 const getSecondsFromAiDuration = (aiDuration?: string) => {
   if (!aiDuration) return 0;
-  // Unificar formato: quitar espacios y convertir a minúsculas
   const normalized = aiDuration.replace(/\s+/g, '').toLowerCase();
-  // Buscar horas y minutos
   const match = normalized.match(/(\d+)h(\d+)?m?/);
   if (match) {
     const h = parseInt(match[1] || "0", 10);
     const m = parseInt(match[2] || "0", 10);
     return h * 3600 + m * 60;
   }
-  // Buscar solo minutos (acepta 'min', 'm')
   const minMatch = normalized.match(/(\d+)(m|min)/);
   if (minMatch) return parseInt(minMatch[1], 10) * 60;
-  // Buscar solo horas
   const hourMatch = normalized.match(/(\d+)h/);
   if (hourMatch) return parseInt(hourMatch[1], 10) * 3600;
   return 0;
@@ -56,119 +53,19 @@ const TaskItem: React.FC<
   className,
   ...divProps
 }) => {
-  // Temporizador para tareas diarias
-  const [timerActive, setTimerActive] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  const [startTimestamp, setStartTimestamp] = useState<number | null>(null);
   const initialAiDuration =
     isDaily && "aiDuration" in task ? (task as DayTask).aiDuration : undefined;
-  const [durationSeconds, setDurationSeconds] = useState<number>(
-    getSecondsFromAiDuration(initialAiDuration)
-  );
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Iniciar temporizador preciso
-  const handleStartTimer = () => {
-    if (!("aiDuration" in task)) return;
-    setDurationSeconds(getSecondsFromAiDuration(task.aiDuration));
-    setStartTimestamp(Date.now());
-    setTimerActive(true);
-    setPaused(false);
-  };
-
-  // Pausar temporizador
-  const handlePauseTimer = () => {
-    setPaused(true);
-  };
-
-  // Reanudar temporizador
-  const handleResumeTimer = () => {
-    setPaused(false);
-  };
-
-  // Detener temporizador
-  const handleStopTimer = () => {
-    setTimerActive(false);
-    setPaused(false);
-    setRemainingSeconds(null);
-  };
-
-  // Sonido suave al terminar
-  // Sonido suave al terminar (usando archivo mp3)
-  const playSoftSound = () => {
-    const audio = new Audio("/soft-sound.mp3"); // Ruta corregida para Next.js
-    audio.volume = 1;
-    audio.play();
-  };
-
-  // Temporizador preciso usando timestamp
-  useEffect(() => {
-    if (!timerActive || paused || startTimestamp === null) return;
-    intervalRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTimestamp) / 1000);
-      const remaining = Math.max(durationSeconds - elapsed, 0);
-      setRemainingSeconds(remaining);
-      if (remaining <= 0) {
-        playSoftSound();
-        setTimerActive(false);
-        setPaused(false);
-        setStartTimestamp(null);
-        setRemainingSeconds(null);
-        clearInterval(intervalRef.current!);
-        console.log("[Timer] Temporizador finalizado");
-        // Ya NO comunicar a la DB al finalizar
-        // if (typeof onUpdateAiDuration === "function" && "aiDuration" in task) {
-        //   onUpdateAiDuration(task.id, "0m 00s");
-        // }
-      }
-    }, 1000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [
+  const {
     timerActive,
     paused,
-    startTimestamp,
-    durationSeconds,
-    onUpdateAiDuration,
-    task,
-  ]);
-
-  // Cuando cambia el tiempo, actualizar en la UI y DB
-  // Ya NO comunicar a la DB cada minuto
-  // const lastSyncedAiDuration = useRef<string | null>(null);
-  // useEffect(() => {
-  //   if (
-  //     timerActive &&
-  //     !paused &&
-  //     remainingSeconds !== null &&
-  //     "aiDuration" in task &&
-  //     typeof onUpdateAiDuration === "function"
-  //   ) {
-  //     // Actualizar en la DB solo cada minuto (cuando el valor es múltiplo de 60 y mayor que 0)
-  //     if (remainingSeconds > 0 && remainingSeconds % 60 === 0) {
-  //       const newAiDuration = formatSecondsToAiDuration(remainingSeconds);
-  //       if (lastSyncedAiDuration.current !== newAiDuration) {
-  //         onUpdateAiDuration(task.id, newAiDuration);
-  //         lastSyncedAiDuration.current = newAiDuration;
-  //       }
-  //     }
-  //   }
-  // }, [remainingSeconds, timerActive, paused, task, onUpdateAiDuration]);
-
-  // Formatear segundos a formato "xh ym"
-  // Formatear segundos a formato "xh ym ss"
-  const formatSecondsToAiDuration = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    let out = "";
-    if (h > 0) out += `${h}h `;
-    if (m > 0 || h > 0) out += `${m}m `;
-    out += `${s < 10 ? "0" : ""}${s}s`;
-    return out.trim();
-  };
+    remainingSeconds,
+    handleStartTimer,
+    handlePauseTimer,
+    handleResumeTimer,
+    handleStopTimer,
+    formatSecondsToAiDuration,
+  } = useTimer(initialAiDuration, onUpdateAiDuration, task.id);
 
   const getTaskSpecificClasses = () => {
     if (!isDaily) {
@@ -207,14 +104,12 @@ const TaskItem: React.FC<
   // Mostrar temporizador solo para tareas diarias y con tiempo IA
   const showTimer = isDaily && "aiDuration" in task && !task.completed;
 
-  // Actualizar el tiempo si la tarea cambia
-  useEffect(() => {
-    setDurationSeconds(getSecondsFromAiDuration(initialAiDuration));
-    setRemainingSeconds(null);
-    setTimerActive(false);
-    setPaused(false);
-    setStartTimestamp(null);
-  }, [initialAiDuration, task.id]);
+  const handleStartTimerClick = useCallback(() => {
+    if ("aiDuration" in task) {
+      handleStartTimer();
+    }
+  }, [handleStartTimer, task]);
+
 
   return (
     <div className={taskClasses + " relative"} {...divProps}>
@@ -289,7 +184,7 @@ const TaskItem: React.FC<
                   : task.aiDuration}
               </span>
               {!timerActive && (
-                <button onClick={handleStartTimer} className="ml-1">
+                <button onClick={handleStartTimerClick} className="ml-1">
                   <Icon name="play" className="h-4 w-4 text-emerald-500" />
                 </button>
               )}
