@@ -68,6 +68,13 @@ export default function HomePage() {
     handleStartDay,
   } = useAiSync(userData, handleUpdateUserData, showNotification);
 
+  // Handle redirect to login when user is not authenticated
+  useEffect(() => {
+    if (!loading && (!user || !userData)) {
+      router.push("/login");
+    }
+  }, [user, userData, loading, router]);
+
   // AI Loading Messages
   const aiLoadingMessages = [
     "Analizando tus tareas...",
@@ -151,7 +158,8 @@ export default function HomePage() {
     return <FirebaseErrorScreen />;
   }
 
-  if (!user || !userData) {
+  // Don't render anything while loading or if redirecting
+  if (loading || !user || !userData) {
     return null;
   }
 
