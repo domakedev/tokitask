@@ -141,8 +141,10 @@ export const useAiSync = (
         await handleUpdateUserData(updatedUserData);
       } catch (error) {
         console.error("Error en handleUpdateAiDuration:", error);
+        // Revertir cambios en UI si hay error en DB
+        await handleUpdateUserData(prevUserData);
         showNotification(
-          "Error al actualizar el tiempo de IA. No se guardó en la base de datos.",
+          "Error al actualizar el tiempo de IA. Los cambios han sido revertidos.",
           "error"
         );
       }
@@ -161,8 +163,10 @@ export const useAiSync = (
         syncWithAI({ endOfDay: tempEndOfDay });
       } catch (error) {
         console.error("Error en handleSetEndOfDay:", error);
+        // Revertir cambios en UI si hay error en DB
+        await handleUpdateUserData(prevUserData);
         showNotification(
-          "Error al actualizar la hora de fin del día. No se guardó en la base de datos.",
+          "Error al actualizar la hora de fin del día. Los cambios han sido revertidos.",
           "error"
         );
       }
