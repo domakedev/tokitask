@@ -164,11 +164,18 @@ export default function HomePage() {
   const handleUpdateUserData = useCallback(
     async (newUserData: Partial<UserData>) => {
       if (user) {
+  const prevUserData = userData ? { ...userData } as UserData : null;
         // Immediately update the local state for a responsive UI
         const updatedData = { ...userData, ...newUserData } as UserData;
         setUserData(updatedData);
-        // Then, persist the full updated data to Firestore
-        await updateUserData(user.uid, updatedData);
+        try {
+          // Then, persist the full updated data to Firestore
+          await updateUserData(user.uid, updatedData);
+        } catch (error) {
+          if (prevUserData) setUserData(prevUserData);
+          showNotification("Error al actualizar los datos. No se guardó en la base de datos.", "error");
+          throw new Error("Error updating user data");
+        }
       }
     },
     [user, userData] // Add userData to dependencies
@@ -279,6 +286,7 @@ export default function HomePage() {
         } catch (error) {
           console.error("Error fetching user data:", error);
           setAuthError("No se pudieron cargar los datos del usuario.");
+          throw new Error("Error unsubscribe user data");
         }
       } else {
         setUser(null);
@@ -311,38 +319,64 @@ export default function HomePage() {
     newAiDuration: string
   ) => {
     if (!userData) return;
-    const updatedTasks = userData.dayTasks.map((t) =>
-      t.id === taskId ? { ...t, aiDuration: newAiDuration } : t
-    );
-    const updatedUserData = { ...userData, dayTasks: updatedTasks };
-    setUserData(updatedUserData);
-    await updateUserData(userData.uid, updatedUserData);
+  const prevUserData = { ...userData };
+  try {
+      const updatedTasks = userData.dayTasks.map((t) =>
+        t.id === taskId ? { ...t, aiDuration: newAiDuration } : t
+      );
+      const updatedUserData = { ...userData, dayTasks: updatedTasks };
+      setUserData(updatedUserData);
+      await updateUserData(userData.uid, updatedUserData);
+    } catch (error) {
+      console.error("Error en handleUpdateAiDuration:", error);
+      setUserData(prevUserData);
+      showNotification("Error al actualizar el tiempo de IA. No se guardó en la base de datos.", "error");
+    }
   };
 
   const handleSaveTask = async (task: BaseTask | Omit<BaseTask, "id">) => {
     if (!userData) return;
-
-    let updatedUserData: UserData;
-
-    if (currentPage === Page.Day) {
-      const updatedTasks =
-        "id" in task
-          ? userData.dayTasks.map((t) =>
-              t.id === (task as BaseTask).id ? { ...t, ...task } : t
-            )
-          : [
-              ...userData.dayTasks,
-              {
-                ...task,
-                id: Date.now(),
-                completed: false,
-                isCurrent: false,
-              } as DayTask,
-            ];
-      updatedUserData = {
-        ...userData,
-        dayTasks: recalculateCurrentDayTask(updatedTasks as DayTask[]),
-      };
+  let updatedUserData: UserData;
+  const prevUserData = { ...userData };
+    try {
+      if (currentPage === Page.Day) {
+        const updatedTasks =
+          "id" in task
+            ? userData.dayTasks.map((t) =>
+                t.id === (task as BaseTask).id ? { ...t, ...task } : t
+              )
+            : [
+                ...userData.dayTasks,
+                {
+                  ...task,
+                  id: Date.now(),
+                  completed: false,
+                  isCurrent: false,
+                } as DayTask,
+              ];
+        updatedUserData = {
+          ...userData,
+          dayTasks: recalculateCurrentDayTask(updatedTasks as DayTask[]),
+        };
+        setUserData(updatedUserData);
+      } else {
+        const updatedTasks =
+          "id" in task
+            ? userData.generalTasks.map((t) =>
+                t.id === (task as BaseTask).id ? { ...t, ...task } : t
+              )
+            : [
+                ...userData.generalTasks,
+                {
+                  ...task,
+                  id: Date.now(),
+                  completed: false,
+                  baseDuration: task.baseDuration || "",
+                } as GeneralTask,
+              ];
+        updatedUserData = { ...userData, generalTasks: updatedTasks };
+        setUserData(updatedUserData);
+      }
       await handleUpdateUserData(updatedUserData);
       setModalOpen(false);
       setEditingTask(null);
@@ -350,74 +384,41 @@ export default function HomePage() {
         "id" in task ? "Tarea actualizada." : "Tarea añadida correctamente.",
         "success"
       );
-      // Sincroniza con IA si se añadió una nueva tarea en Mi Día
-      // if (!("id" in task)) {
-      //   setIsSyncing(true);
-      //   try {
-      //     const { updatedTasks, freeTime: newFreeTime } = await getUpdatedSchedule(updatedUserData.dayTasks, userData.endOfDay);
-      //     setUserData({ ...userData, dayTasks: updatedTasks });
-      //     setFreeTime(newFreeTime);
-      //   } catch (error) {
-      //     console.error("Error actualizando horario con IA tras añadir tarea:", error);
-      //   } finally {
-      //     setIsSyncing(false);
-      //   }
-      // }
-    } else {
-      const updatedTasks =
-        "id" in task
-          ? userData.generalTasks.map((t) =>
-              t.id === (task as BaseTask).id ? { ...t, ...task } : t
-            )
-          : [
-              ...userData.generalTasks,
-              {
-                ...task,
-                id: Date.now(),
-                completed: false,
-                baseDuration: task.baseDuration || "",
-              } as GeneralTask,
-            ];
-      updatedUserData = { ...userData, generalTasks: updatedTasks };
-    }
-
-    await handleUpdateUserData(updatedUserData);
-    setModalOpen(false);
-    setModalOpen(false);
-    setEditingTask(null);
-    showNotification(
-      "id" in task ? "Tarea actualizada." : "Tarea añadida correctamente.",
-      "success"
-    );
-
-    if (currentPage === Page.Day) {
+    } catch (error) {
+      console.error("Error en handleSaveTask:", error);
+      setUserData(prevUserData);
+      showNotification("Error al guardar la tarea. No se guardó en la base de datos.", "error");
     }
   };
 
   const handleToggleComplete = async (taskId: number) => {
     if (!userData) return;
-
-    if (currentPage === Page.Day) {
-      const updatedTasks = userData.dayTasks.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t
-      );
-      // Actualiza el estado local y la DB
-      const updatedUserData = {
-        ...userData,
-        dayTasks: recalculateCurrentDayTask(updatedTasks),
-      };
-      setUserData(updatedUserData);
-      await handleUpdateUserData(updatedUserData);
-      showNotification("Estado de la tarea actualizado.", "success");
-      // No llamar a la IA
-    } else {
-      // For general tasks, just update the state and DB
-      const updatedTasks = userData.generalTasks.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t
-      );
-      const updatedUserData = { ...userData, generalTasks: updatedTasks };
-      await handleUpdateUserData(updatedUserData);
-      showNotification("Estado de la tarea actualizado.", "success");
+  const prevUserData = { ...userData };
+    try {
+      if (currentPage === Page.Day) {
+        const updatedTasks = userData.dayTasks.map((t) =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t
+        );
+        const updatedUserData = {
+          ...userData,
+          dayTasks: recalculateCurrentDayTask(updatedTasks),
+        };
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+        showNotification("Estado de la tarea actualizado.", "success");
+      } else {
+        const updatedTasks = userData.generalTasks.map((t) =>
+          t.id === taskId ? { ...t, completed: !t.completed } : t
+        );
+        const updatedUserData = { ...userData, generalTasks: updatedTasks };
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+        showNotification("Estado de la tarea actualizado.", "success");
+      }
+    } catch (error) {
+      console.error("Error en handleToggleComplete:", error);
+      setUserData(prevUserData);
+      showNotification("Error al actualizar el estado de la tarea. No se guardó en la base de datos.", "error");
     }
   };
 
@@ -434,30 +435,38 @@ export default function HomePage() {
 
   const confirmDelete = async () => {
     if (!userData || !taskToDelete) return;
-
-    if (currentPage === Page.Day) {
-      const updatedTasks = userData.dayTasks.filter(
-        (t) => t.id !== taskToDelete.id
-      );
-      // Actualiza el estado local y la DB, pero NO sincroniza con IA
-      const updatedUserData = {
-        ...userData,
-        dayTasks: recalculateCurrentDayTask(updatedTasks),
-      };
-      await handleUpdateUserData(updatedUserData);
+  const prevUserData = { ...userData };
+    try {
+      if (currentPage === Page.Day) {
+        const updatedTasks = userData.dayTasks.filter(
+          (t) => t.id !== taskToDelete.id
+        );
+        const updatedUserData = {
+          ...userData,
+          dayTasks: recalculateCurrentDayTask(updatedTasks),
+        };
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+        setShowConfirmation(false);
+        setTaskToDelete(null);
+        showNotification("Tarea eliminada.", "success");
+      } else {
+        const updatedTasks = userData.generalTasks.filter(
+          (t) => t.id !== taskToDelete.id
+        );
+        const updatedUserData = { ...userData, generalTasks: updatedTasks };
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+        setShowConfirmation(false);
+        setTaskToDelete(null);
+        showNotification("Tarea eliminada.", "success");
+      }
+    } catch (error) {
+      console.error("Error en confirmDelete:", error);
+      setUserData(prevUserData);
       setShowConfirmation(false);
       setTaskToDelete(null);
-      showNotification("Tarea eliminada.", "success");
-      // NO llamar a syncWithAI
-    } else {
-      const updatedTasks = userData.generalTasks.filter(
-        (t) => t.id !== taskToDelete.id
-      );
-      await handleUpdateUserData({ ...userData, generalTasks: updatedTasks });
-      setShowConfirmation(false);
-      setTaskToDelete(null);
-      showNotification("Tarea eliminada.", "success");
-      // NO llamar a syncWithAI
+      showNotification("Error al eliminar la tarea. No se guardó en la base de datos.", "error");
     }
   };
 
@@ -476,33 +485,44 @@ export default function HomePage() {
     reorderedTasks: (DayTask | GeneralTask)[]
   ) => {
     if (!userData) return;
-
-    let updatedUserData: UserData;
-
-    if (currentPage === Page.Day) {
-      updatedUserData = {
-        ...userData,
-        dayTasks: recalculateCurrentDayTask(reorderedTasks as DayTask[]),
-      };
-    } else {
-      updatedUserData = {
-        ...userData,
-        generalTasks: reorderedTasks as GeneralTask[],
-      };
+  const prevUserData = { ...userData };
+    try {
+      let updatedUserData: UserData;
+      if (currentPage === Page.Day) {
+        updatedUserData = {
+          ...userData,
+          dayTasks: recalculateCurrentDayTask(reorderedTasks as DayTask[]),
+        };
+      } else {
+        updatedUserData = {
+          ...userData,
+          generalTasks: reorderedTasks as GeneralTask[],
+        };
+      }
+      setUserData(updatedUserData);
+      await handleUpdateUserData(updatedUserData);
+      // No mostramos notificación para que el reorden sea más fluido
+    } catch (error) {
+      console.error("Error en handleReorderTasks:", error);
+      setUserData(prevUserData);
+      showNotification("Error al reordenar las tareas. No se guardó en la base de datos.", "error");
     }
-
-    await handleUpdateUserData(updatedUserData);
-    // No mostramos notificación para que el reorden sea más fluido
   };
 
   const handleSetEndOfDay = async () => {
     if (!userData || !tempEndOfDay) return;
-    const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
-    // Actualiza la UI y la base de datos antes de sincronizar con IA
-    setUserData(updatedUserData);
-    await handleUpdateUserData(updatedUserData);
-    showNotification("Hora de fin del día actualizada.", "success");
-    syncWithAI({ endOfDay: tempEndOfDay });
+  const prevUserData = { ...userData };
+    try {
+      const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
+      setUserData(updatedUserData);
+      await handleUpdateUserData(updatedUserData);
+      showNotification("Hora de fin del día actualizada.", "success");
+      syncWithAI({ endOfDay: tempEndOfDay });
+    } catch (error) {
+      console.error("Error en handleSetEndOfDay:", error);
+      setUserData(prevUserData);
+      showNotification("Error al actualizar la hora de fin del día. No se guardó en la base de datos.", "error");
+    }
   };
 
   const handleStartDay = () => {
