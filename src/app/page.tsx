@@ -563,7 +563,7 @@ export default function HomePage() {
     try {
       await syncWithAI({ tasks: generalTasksAsDay });
       setShowConfirmation(false);
-      showNotification("Horario generado con IApo.", "success");
+      showNotification("Horario generado con IA.", "success");
     } catch (error: unknown) {
       console.log("🚀 ~ confirmStartDay ~ error:", error);
       const errorMessage =
