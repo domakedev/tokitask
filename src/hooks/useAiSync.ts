@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { DayTask, UserData } from "../types";
 
 export const useAiSync = (
@@ -9,8 +9,15 @@ export const useAiSync = (
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiTip, setAiTip] = useState<string | null>(null);
   const [freeTime, setFreeTime] = useState<string | null>(null);
-  const [tempEndOfDay, setTempEndOfDay] = useState<string>("");
+  const [tempEndOfDay, setTempEndOfDay] = useState<string>(userData?.endOfDay || "18:00");
   const lastSyncRef = useRef<Date | null>(null);
+
+  // Sincronizar tempEndOfDay con userData.endOfDay cuando cambie
+  useEffect(() => {
+    if (userData?.endOfDay && userData.endOfDay !== tempEndOfDay) {
+      setTempEndOfDay(userData.endOfDay);
+    }
+  }, [userData?.endOfDay, tempEndOfDay]);
 
   const recalculateCurrentDayTask = useCallback((tasks: DayTask[]): DayTask[] => {
     const firstPendingIndex = tasks.findIndex((task) => !task.completed);
