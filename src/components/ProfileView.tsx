@@ -1,6 +1,5 @@
 import React from "react";
 import { User } from "firebase/auth";
-import Icon from "./Icon";
 
 interface ProfileViewProps {
   user: User | null;

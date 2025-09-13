@@ -13,7 +13,6 @@ import TaskModal from "../components/AddTaskModal";
 import ConfirmationModal from "../components/ConfirmationModal";
 import NotificationToast from "../components/NotificationToast";
 import FirebaseErrorScreen from "../components/FirebaseErrorScreen";
-import ApiErrorScreen from "../components/ApiErrorScreen";
 import Icon from "../components/Icon";
 
 export default function HomePage() {
@@ -45,7 +44,6 @@ export default function HomePage() {
     showConfirmation,
     setShowConfirmation,
     taskToDelete,
-    setTaskToDelete,
     handleSaveTask,
     handleToggleComplete,
     handleDeleteTask,

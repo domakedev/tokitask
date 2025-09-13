@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { DayTask, Priority } from "../../../types";
+import { DayTask } from "../../../types";
 import { NextResponse } from "next/server";
 import "dotenv/config";
 
@@ -30,9 +30,6 @@ export async function POST(request: Request) {
     }
 
     const ai = getAiClient();
-    const highPriorityCount = tasks.filter(
-      (t: DayTask) => t.priority === Priority.High && !t.completed
-    ).length;
 
     const taskDetails = tasks
       .map((t: DayTask) => {

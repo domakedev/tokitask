@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
-import { UserData, Priority } from "../types";
+import { UserData } from "../types";
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
   if (!db) return null;

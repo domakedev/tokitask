@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import { BaseTask, DayTask, Priority } from "../types";
 import Icon from "./Icon";
 import { useTimer } from "../hooks/useTimer";
@@ -23,22 +23,6 @@ const getPriorityClass = (priority: Priority): string => {
     default:
       return "bg-slate-600 text-slate-300";
   }
-};
-
-const getSecondsFromAiDuration = (aiDuration?: string) => {
-  if (!aiDuration) return 0;
-  const normalized = aiDuration.replace(/\s+/g, '').toLowerCase();
-  const match = normalized.match(/(\d+)h(\d+)?m?/);
-  if (match) {
-    const h = parseInt(match[1] || "0", 10);
-    const m = parseInt(match[2] || "0", 10);
-    return h * 3600 + m * 60;
-  }
-  const minMatch = normalized.match(/(\d+)(m|min)/);
-  if (minMatch) return parseInt(minMatch[1], 10) * 60;
-  const hourMatch = normalized.match(/(\d+)h/);
-  if (hourMatch) return parseInt(hourMatch[1], 10) * 3600;
-  return 0;
 };
 
 const TaskItem: React.FC<

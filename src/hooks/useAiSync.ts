@@ -153,7 +153,7 @@ export const useAiSync = (
   const handleSetEndOfDay = useCallback(
     async () => {
       if (!userData || !tempEndOfDay) return;
-      const prevUserData = { ...userData };
+      const prevUserData = { ...userData }; // Necesario para rollback si hay error en DB
       try {
         const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
         await handleUpdateUserData(updatedUserData);

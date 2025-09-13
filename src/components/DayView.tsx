@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React from "react";
 import { DayTask, GeneralTask, UserData } from "../types";
 import CurrentDate from "./CurrentDate";
 import RemainingTime from "./RemainingTime";
@@ -37,16 +37,8 @@ const DayView: React.FC<DayViewProps> = ({
   onReorder,
   onEdit,
   onUpdateAiDuration,
-  onSetEndOfDay,
-  tempEndOfDay,
-  setTempEndOfDay,
   onDismissAiTip,
 }) => {
-  const handleSetEndOfDay = useCallback(() => {
-    if (tempEndOfDay) {
-      onSetEndOfDay(tempEndOfDay);
-    }
-  }, [tempEndOfDay, onSetEndOfDay]);
 
   return (
     <div>
@@ -169,9 +161,9 @@ const DayView: React.FC<DayViewProps> = ({
             <p className="mt-2 text-slate-400">
               Haz clic en{" "}
               <span className="font-semibold text-emerald-400">
-                "Empezar Día"
+                &quot;Empezar Día&quot;
               </span>{" "}
-              para usar tu plantilla de 'Horario General' y
+              para usar tu plantilla de &quot;Horario General&quot; y
               generar tu plan de hoy con IA.
             </p>
           </div>
@@ -186,7 +178,7 @@ const DayView: React.FC<DayViewProps> = ({
             </h2>
             <p className="mt-2 text-slate-400">
               Para poder generar un horario, primero necesitas crear una
-              plantilla de tareas en la sección 'General'.
+              plantilla de tareas en la sección &quot;General&quot;.
             </p>
             <button
               onClick={() => {}}

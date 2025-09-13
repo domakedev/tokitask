@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from "react";
-import { GeneralTask, UserData } from "../types";
+import React, { useCallback } from "react";
+import { GeneralTask, UserData, BaseTask } from "../types";
 import TaskList from "./TaskList";
 
 interface GeneralViewProps {
   userData: UserData;
-  onSaveTask: (task: any) => void;
+  onSaveTask: (task: BaseTask | Omit<BaseTask, "id">) => void;
   onDelete: (id: number) => void;
   onReorder: (tasks: (GeneralTask)[]) => void;
   onEdit: (id: number) => void;
@@ -16,7 +16,6 @@ interface GeneralViewProps {
 
 const GeneralView: React.FC<GeneralViewProps> = ({
   userData,
-  onSaveTask,
   onDelete,
   onReorder,
   onEdit,

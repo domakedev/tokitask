@@ -46,11 +46,10 @@ export const useTimer = (
 
   const handleStartTimer = useCallback(() => {
     if (!aiDuration) return;
-    const durationSeconds = getSecondsFromAiDuration(aiDuration);
     startTimestamp.current = Date.now();
     setTimerActive(true);
     setPaused(false);
-  }, [aiDuration, getSecondsFromAiDuration]);
+  }, [aiDuration]);
 
   const handlePauseTimer = useCallback(() => {
     setPaused(true);

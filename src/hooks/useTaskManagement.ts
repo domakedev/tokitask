@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
+import { User } from "firebase/auth";
 import { DayTask, GeneralTask, UserData, BaseTask, Page } from "../types";
 import { updateUserData } from "../services/firestoreService";
 
 export const useTaskManagement = (
-  user: any,
+  user: User | null,
   userData: UserData | null,
   setUserData: (data: UserData | null) => void,
   showNotification: (message: string, type?: "success" | "error") => void
@@ -22,7 +23,7 @@ export const useTaskManagement = (
         setUserData(updatedData);
         try {
           await updateUserData(user.uid, updatedData);
-        } catch (error) {
+        } catch {
           setUserData(prevUserData);
           showNotification(
             "Error al actualizar los datos. No se guardó en la base de datos.",
