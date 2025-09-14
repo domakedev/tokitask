@@ -23,7 +23,7 @@ interface IconProps {
   className?: string;
 }
 
-const icons: Record<string, React.ElementType> = {
+const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   check: Check,
   trash2: Trash2,
   pencil: Pencil,
