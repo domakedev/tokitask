@@ -66,10 +66,10 @@ export default function DashboardPage() {
     handleStartDay,
   } = useAiSync(userData, handleUpdateUserData, showNotification);
 
-  // Handle redirect to landing when user is not authenticated
+  // Handle redirect to login when user is not authenticated
   useEffect(() => {
     if (!loading && (!user || !userData)) {
-      router.push("/");
+      router.push("/login");
     }
   }, [user, userData, loading, router]);
 

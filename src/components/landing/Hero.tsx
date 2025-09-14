@@ -76,7 +76,7 @@ const Hero = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-center lg:text-left"
           >
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 mt-12 md:mt-0">
               Gestiona tu tiempo
               <span className="block text-cyan-400">con IA</span>
             </h1>
@@ -98,7 +98,7 @@ const Hero = () => {
               className="flex justify-center lg:justify-start"
             >
               <button
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/dashboard")}
                 className="px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25"
               >
                 Comenzar Ahora
