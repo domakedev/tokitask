@@ -43,7 +43,7 @@ export default function LoginPage() {
         await signInWithEmailAndPassword(auth, email, password);
       }
       setAuthError(null);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       console.error("Authentication Error:", err);
       setAuthError(
@@ -73,7 +73,7 @@ export default function LoginPage() {
         });
       }
       setAuthError(null);
-      router.push("/");
+      router.push("/dashboard");
     } catch (error) {
       console.error("Google Sign-In Error:", error);
       setAuthError("Error al iniciar sesión con Google.");

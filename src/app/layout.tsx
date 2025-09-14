@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TokiTask",
-  description: "Tu planificador diario inteligente.",
+  title: "TokiTask - Gestiona tu tiempo con IA",
+  description: "Revoluciona tu productividad con IA. Organiza tareas diarias, recibe sugerencias inteligentes y optimiza tu tiempo libre con sincronización automática.",
 };
 
 export default function RootLayout({
