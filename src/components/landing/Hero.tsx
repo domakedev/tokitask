@@ -66,7 +66,7 @@ const Hero = () => {
   }, [aiLoadingMessages.length]);
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-black via-slate-900 to-black">
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-black via-slate-900 to-black pt-12 sm:pt-6 md:pt-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Contenido de texto - Izquierda */}
@@ -76,7 +76,7 @@ const Hero = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-center lg:text-left"
           >
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 mt-12 md:mt-0">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 mt-24 sm:mt-20 md:mt-0">
               Gestiona tu tiempo
               <span className="block text-cyan-400">con IA</span>
             </h1>
