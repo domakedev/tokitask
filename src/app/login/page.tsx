@@ -1,60 +1,19 @@
 "use client";
 import React, { useState } from "react";
 import Icon from "../../components/Icon";
-import {
-  signInWithPopup,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
+import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../../services/firebase";
 import {
   getUserData,
   createUserDocument,
 } from "../../services/firestoreService";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSigningUp, setIsSigningUp] = useState(false);
   const [error, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password || !auth) return;
-    setIsLoading(true);
-    try {
-      if (isSigningUp) {
-        const result = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-        await createUserDocument({
-          uid: result.user.uid,
-          email,
-          dayTasks: [],
-          generalTasks: [],
-          endOfDay: "23:00",
-        });
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-      setAuthError(null);
-      router.push("/dashboard");
-    } catch (err) {
-      console.error("Authentication Error:", err);
-      setAuthError(
-        isSigningUp
-          ? "No se pudo crear la cuenta."
-          : "Email o contraseña incorrectos."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleGoogleSignIn = async () => {
     if (!auth || !googleProvider) return;
@@ -91,10 +50,17 @@ export default function LoginPage() {
             className="h-12 w-12 text-emerald-400 mx-auto"
           />
           <h1 className="text-3xl font-bold text-white mt-4">
-            Bienvenido a Horario AI
+            Bienvenido a TokiTask
           </h1>
-          <p className="text-slate-400 mt-2">
-            Tu planificador diario inteligente.
+          <p className="text-slate-400 mt-2 flex items-center justify-center flex-col">
+            Tu planificador diario inteligente potenciado con <br />
+            <Image
+              src="/gemini-icon-logo.svg"
+              alt="Gemini Logo"
+              className="h-28 w-28"
+              width={80}
+              height={80}
+            />
           </p>
         </div>
 
@@ -110,64 +76,8 @@ export default function LoginPage() {
               </span>
             </div>
           )}
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-slate-300 mb-1"
-              >
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-slate-300 mb-1"
-              >
-                Contraseña
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-105"
-            >
-              {isSigningUp ? "Registrarse" : "Iniciar Sesión"}
-            </button>
-            <p className="text-sm text-center text-slate-400">
-              {isSigningUp ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?"}
-              <button
-                type="button"
-                onClick={() => setIsSigningUp(!isSigningUp)}
-                className="font-semibold text-emerald-400 hover:underline ml-1"
-              >
-                {isSigningUp ? "Inicia sesión" : "Regístrate"}
-              </button>
-            </p>
-          </form>
 
           {error && <p className="text-sm text-red-400 text-center">{error}</p>}
-
-          <div className="flex items-center space-x-2">
-            <hr className="flex-grow border-slate-600" />
-            <span className="text-slate-400 text-sm">O</span>
-            <hr className="flex-grow border-slate-600" />
-          </div>
 
           <div className="space-y-4">
             <button

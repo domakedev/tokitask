@@ -4,6 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars, Float, Text } from "@react-three/drei";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../hooks/useAuth";
 import Jarvis from "./Jarvis";
 // @ts-expect-error THREE.js types not properly configured
 import * as THREE from "three";
@@ -43,6 +44,7 @@ function AIParticles() {
 // Componente principal del Hero
 const Hero = () => {
   const router = useRouter();
+  const { user } = useAuth();
 
   // Mensajes de carga de IA con animación secuencial
   const aiLoadingMessages = [
@@ -98,7 +100,7 @@ const Hero = () => {
               className="flex justify-center lg:justify-start"
             >
               <button
-                onClick={() => router.push("/dashboard")}
+                onClick={() => router.push(user ? "/dashboard" : "/login")}
                 className="px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25"
               >
                 Comenzar Ahora

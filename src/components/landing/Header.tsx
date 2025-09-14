@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const Header = () => {
   const router = useRouter();
@@ -38,7 +39,10 @@ const Header = () => {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  <path
+                    strokeWidth="2"
+                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
                 </svg>
               </div>
               {/* Animated ring */}
@@ -50,7 +54,16 @@ const Header = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold text-white">TokiTask</span>
-              <span className="text-xs text-cyan-400 font-medium">TT</span>
+              <div className="flex justify-start items-end gap-2 text-sm text-slate-400 ">
+                <span>Potenciado por </span>
+                <Image
+                  src="/gemini-icon-logo.svg"
+                  alt="Gemini"
+                  className="h-8 w-16 text-cyan-400"
+                  width={32}
+                  height={32}
+                />
+              </div>
             </div>
           </motion.div>
 
