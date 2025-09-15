@@ -3,3 +3,21 @@
 button:hover {
     cursor: pointer;
 }
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #334155; /* slate-700 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #06b6d4; /* cyan-500 */
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0891b2; /* cyan-600 */
+}

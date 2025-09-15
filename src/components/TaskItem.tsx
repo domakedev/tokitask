@@ -6,10 +6,10 @@ import { useTimer } from "../hooks/useTimer";
 interface TaskItemProps {
   task: DayTask | (BaseTask & { completed?: boolean; isCurrent?: boolean });
   isDaily: boolean;
-  onToggleComplete?: (id: number) => void;
-  onDelete: (id: number) => void;
-  onEdit?: (id: number) => void;
-  onUpdateAiDuration?: (id: number, newAiDuration: string) => void;
+  onToggleComplete?: (id: string) => void;
+  onDelete: (id: string) => void;
+  onEdit?: (id: string) => void;
+  onUpdateAiDuration?: (id: string, newAiDuration: string) => void;
 }
 
 const getPriorityClass = (priority: Priority): string => {

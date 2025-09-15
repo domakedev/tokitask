@@ -28,6 +28,16 @@ export default function LoginPage() {
           email: user.email!,
           dayTasks: [],
           generalTasks: [],
+          weeklyTasks: {
+            all: [],
+            monday: [],
+            tuesday: [],
+            wednesday: [],
+            thursday: [],
+            friday: [],
+            saturday: [],
+            sunday: []
+          },
           endOfDay: "23:00",
         });
       }

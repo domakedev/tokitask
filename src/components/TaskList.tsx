@@ -7,11 +7,11 @@ type Task = DayTask | GeneralTask;
 interface TaskListProps {
   tasks: Task[];
   isDaily: boolean;
-  onToggleComplete?: (id: number) => void;
-  onDelete: (id: number) => void;
+  onToggleComplete?: (id: string) => void;
+  onDelete: (id: string) => void;
   onReorder: (reorderedTasks: Task[]) => void;
-  onEdit?: (id: number) => void;
-  onUpdateAiDuration?: (id: number, newAiDuration: string) => void;
+  onEdit?: (id: string) => void;
+  onUpdateAiDuration?: (id: string, newAiDuration: string) => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({

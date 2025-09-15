@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { User } from "firebase/auth";
 import { DayTask, GeneralTask, UserData, BaseTask, Page } from "../types";
 import { updateUserData } from "../services/firestoreService";
+import { generateTaskId } from "../utils/idGenerator";
 
 export const useTaskManagement = (
   user: User | null,
@@ -60,9 +61,10 @@ export const useTaskManagement = (
                   ...userData.dayTasks,
                   {
                     ...task,
-                    id: Date.now(),
+                    id: generateTaskId(),
                     completed: false,
                     isCurrent: false,
+                    aiDuration: "",
                   } as DayTask,
                 ];
           updatedUserData = {
@@ -80,7 +82,7 @@ export const useTaskManagement = (
                   ...userData.generalTasks,
                   {
                     ...task,
-                    id: Date.now(),
+                    id: generateTaskId(),
                     completed: false,
                     baseDuration: task.baseDuration || "",
                   } as GeneralTask,
@@ -108,7 +110,7 @@ export const useTaskManagement = (
   );
 
   const handleToggleComplete = useCallback(
-    async (taskId: number) => {
+    async (taskId: string) => {
       if (!userData) return;
       const prevUserData = { ...userData };
       try {
@@ -144,10 +146,12 @@ export const useTaskManagement = (
     [userData, currentPage, setUserData, recalculateCurrentDayTask, handleUpdateUserData, showNotification]
   );
 
-  const handleDeleteTask = useCallback((taskId: number) => {
+  const handleDeleteTask = useCallback((taskId: string) => {
     const task = [
       ...(userData?.dayTasks || []),
       ...(userData?.generalTasks || []),
+      // También buscar en weeklyTasks
+      ...Object.values(userData?.weeklyTasks || {}).flat(),
     ].find((t) => t.id === taskId);
     if (task) {
       setTaskToDelete(task);
@@ -198,10 +202,12 @@ export const useTaskManagement = (
     [userData, taskToDelete, currentPage, setUserData, recalculateCurrentDayTask, handleUpdateUserData, showNotification]
   );
 
-  const handleEditTask = useCallback((taskId: number) => {
+  const handleEditTask = useCallback((taskId: string) => {
     const task = [
       ...(userData?.dayTasks || []),
       ...(userData?.generalTasks || []),
+      // También buscar en weeklyTasks
+      ...Object.values(userData?.weeklyTasks || {}).flat(),
     ].find((t) => t.id === taskId);
     if (task) {
       setEditingTask(task);
@@ -240,6 +246,30 @@ export const useTaskManagement = (
     [userData, currentPage, setUserData, recalculateCurrentDayTask, handleUpdateUserData, showNotification]
   );
 
+  const handleClearAllDayTasks = useCallback(
+    async () => {
+      if (!userData || currentPage !== Page.Day) return;
+      const prevUserData = { ...userData };
+      try {
+        const updatedUserData = {
+          ...userData,
+          dayTasks: [],
+        };
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+        showNotification("Todas las tareas del día han sido eliminadas.", "success");
+      } catch (error) {
+        console.error("Error en handleClearAllDayTasks:", error);
+        setUserData(prevUserData);
+        showNotification(
+          "Error al eliminar las tareas. No se guardó en la base de datos.",
+          "error"
+        );
+      }
+    },
+    [userData, currentPage, setUserData, handleUpdateUserData, showNotification]
+  );
+
   return {
     currentPage,
     setCurrentPage,
@@ -259,5 +289,6 @@ export const useTaskManagement = (
     handleReorderTasks,
     handleUpdateUserData,
     recalculateCurrentDayTask,
+    handleClearAllDayTasks,
   };
 };

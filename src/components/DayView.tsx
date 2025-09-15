@@ -6,6 +6,7 @@ import TaskList from "./TaskList";
 import AiTipCard from "./AiTipCard";
 import FreeTimeCard from "./FreeTimeCard";
 import Icon from "./Icon";
+import { getCurrentWeekDayName, getCurrentWeekDay } from "../utils/dateUtils";
 
 interface DayViewProps {
   userData: UserData;
@@ -14,12 +15,12 @@ interface DayViewProps {
   freeTime: string | null;
   onStartDay: () => void;
   onSyncWithAI: () => void;
-  onToggleComplete: (id: number) => void;
-  onDelete: (id: number) => void;
+  onToggleComplete: (id: string) => void;
+  onDelete: (id: string) => void;
   onReorder: (tasks: (DayTask | GeneralTask)[]) => void;
-  onEdit: (id: number) => void;
-  onUpdateAiDuration: (id: number, duration: string) => void;
-  onSetEndOfDay: (endOfDay: string) => void;
+  onEdit: (id: string) => void;
+  onUpdateAiDuration: (id: string, duration: string) => void;
+  onSetEndOfDay: () => void;
   tempEndOfDay: string;
   setTempEndOfDay: (value: string) => void;
   onDismissAiTip: () => void;
@@ -46,7 +47,9 @@ const DayView: React.FC<DayViewProps> = ({
         <div>
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-bold text-white">Mi Día</h1>
+              <h1 className="text-2xl font-bold text-white">
+                Mi día {getCurrentWeekDayName()}
+              </h1>
               <CurrentDate />
             </div>
             <div className="text-right">
@@ -68,10 +71,10 @@ const DayView: React.FC<DayViewProps> = ({
         <div className="flex flex-col sm:flex-row justify-center items-center sm:space-x-3 gap-2">
           <button
             onClick={onStartDay}
-            disabled={isSyncing || userData.generalTasks.length === 0}
+            disabled={isSyncing || (!userData.generalTasks?.length && !userData.weeklyTasks?.[getCurrentWeekDay()]?.length)}
             className="flex-1 w-full bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Clonar Horario General
+            Clonar horario del día
           </button>
           <button
             onClick={onSyncWithAI}
@@ -147,7 +150,19 @@ const DayView: React.FC<DayViewProps> = ({
               onEdit={onEdit}
               onUpdateAiDuration={onUpdateAiDuration}
             />
-            {freeTime && <FreeTimeCard duration={freeTime} />}
+            {freeTime ? (
+              <FreeTimeCard duration={freeTime} />
+            ) : (
+              <div className="mt-4 p-4 rounded-lg border border-dashed border-slate-500/30 bg-slate-800/20 flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <Icon name="clock" className="h-6 w-6 text-slate-400" />
+                </div>
+                <div className="flex-grow">
+                  <p className="font-semibold text-white">Sin tiempo libre</p>
+                  <p className="text-sm text-slate-300">No hay tiempo libre disponible para hoy</p>
+                </div>
+              </div>
+            )}
           </>
         ) : userData.generalTasks.length > 0 ? (
           <div className="text-center py-16 px-6 bg-slate-800/50 rounded-lg border border-slate-700">

@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { DayTask, UserData } from "../types";
+import { DayTask, UserData, WeekDay, WEEKDAY_LABELS } from "../types";
+import { getCurrentWeekDay } from "../utils/dateUtils";
+import { generateTaskId } from "../utils/idGenerator";
 
 export const useAiSync = (
   userData: UserData | null,
@@ -17,7 +19,7 @@ export const useAiSync = (
     if (userData?.endOfDay && userData.endOfDay !== tempEndOfDay) {
       setTempEndOfDay(userData.endOfDay);
     }
-  }, [userData?.endOfDay, tempEndOfDay]);
+  }, [userData?.endOfDay]);
 
   const recalculateCurrentDayTask = useCallback((tasks: DayTask[]): DayTask[] => {
     const firstPendingIndex = tasks.findIndex((task) => !task.completed);
@@ -137,7 +139,7 @@ export const useAiSync = (
   );
 
   const handleUpdateAiDuration = useCallback(
-    async (taskId: number, newAiDuration: string) => {
+    async (taskId: string, newAiDuration: string) => {
       if (!userData) return;
       const prevUserData = { ...userData };
       try {
@@ -183,14 +185,66 @@ export const useAiSync = (
 
   const handleStartDay = useCallback(() => {
     if (!userData) return;
-    const generalTasksAsDay: DayTask[] = userData.generalTasks.map((task) => ({
+    const currentDay = getCurrentWeekDay();
+    const dayTasks = userData.weeklyTasks?.[currentDay] || [];
+
+    // Crear IDs únicos para evitar duplicados
+    const dayTasksAsDay: DayTask[] = dayTasks.map((task) => ({
       ...task,
+      id: generateTaskId(), // ID único usando UUID v4
       completed: false,
       isCurrent: false,
       aiDuration: "",
     }));
-    syncWithAI({ tasks: generalTasksAsDay });
+
+    syncWithAI({ tasks: dayTasksAsDay });
   }, [userData, syncWithAI]);
+
+  // Nueva función que solo clona las tareas sin llamar a la IA
+  const handleCloneDaySchedule = useCallback(async () => {
+    if (!userData) return;
+
+    const currentDay = getCurrentWeekDay();
+    const generalTasks = userData.generalTasks || [];
+    const dayTasks = userData.weeklyTasks?.[currentDay] || [];
+    const allTasks = [...generalTasks, ...dayTasks];
+
+    if (allTasks.length === 0) {
+      showNotification("No hay tareas programadas. Crea tareas en la sección General primero.", "error");
+      return;
+    }
+
+    try {
+      // Crear IDs únicos para evitar duplicados
+      const allTasksAsDay: DayTask[] = allTasks.map((task) => ({
+        ...task,
+        id: generateTaskId(), // ID único usando UUID v4
+        completed: false,
+        isCurrent: false,
+        aiDuration: "",
+      }));
+
+      // Calcular cuál es la primera tarea pendiente
+      const firstPendingIndex = allTasksAsDay.findIndex((task) => !task.completed);
+      const finalTasks = allTasksAsDay.map((task, index) => ({
+        ...task,
+        isCurrent: index === firstPendingIndex,
+      }));
+
+      const updatedUserData = {
+        ...userData,
+        dayTasks: finalTasks,
+      };
+
+      await handleUpdateUserData(updatedUserData);
+      setFreeTime(null);
+      setAiTip(null);
+      showNotification(`Horario del ${WEEKDAY_LABELS[getCurrentWeekDay()]} clonado exitosamente.`, "success");
+    } catch (error) {
+      console.error("Error cloning day schedule:", error);
+      showNotification("Error al clonar el horario del día.", "error");
+    }
+  }, [userData, handleUpdateUserData, showNotification]);
 
   return {
     isSyncing,
@@ -203,5 +257,6 @@ export const useAiSync = (
     handleUpdateAiDuration,
     handleSetEndOfDay,
     handleStartDay,
+    handleCloneDaySchedule,
   };
 };

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Page } from "../../types";
+import { Page, WeekDay, BaseTask, GeneralTask } from "../../types";
 import { useAuth } from "../../hooks/useAuth";
 import { useTaskManagement } from "../../hooks/useTaskManagement";
 import { useAiSync } from "../../hooks/useAiSync";
@@ -14,6 +14,7 @@ import ConfirmationModal from "../../components/ConfirmationModal";
 import NotificationToast from "../../components/NotificationToast";
 import FirebaseErrorScreen from "../../components/FirebaseErrorScreen";
 import Icon from "../../components/Icon";
+import { generateTaskId } from "../../utils/idGenerator";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -23,6 +24,11 @@ export default function DashboardPage() {
     message: string;
     type: "success" | "error";
   } | null>(null);
+
+  // Estado para trackear la pestaña activa en General
+  const [activeGeneralTab, setActiveGeneralTab] = useState<WeekDay>(WeekDay.All);
+
+  const [showClearConfirmation, setShowClearConfirmation] = useState(false);
 
   const showNotification = useCallback(
     (message: string, type: "success" | "error" = "success") => {
@@ -41,6 +47,7 @@ export default function DashboardPage() {
     showConfirmation,
     setShowConfirmation,
     taskToDelete,
+    setTaskToDelete,
     handleSaveTask,
     handleToggleComplete,
     handleDeleteTask,
@@ -48,7 +55,254 @@ export default function DashboardPage() {
     handleEditTask,
     handleReorderTasks,
     handleUpdateUserData,
+    handleClearAllDayTasks,
   } = useTaskManagement(user, userData, setUserData, showNotification);
+
+  // Función para manejar cambios de pestaña en General
+  const handleGeneralTabChange = useCallback((tab: WeekDay) => {
+    setActiveGeneralTab(tab);
+  }, []);
+
+  // Funciones específicas para manejar tareas de weeklyTasks
+  const handleEditWeeklyTask = useCallback((taskId: string) => {
+    if (!userData?.weeklyTasks?.[activeGeneralTab]) return;
+
+    const task = userData.weeklyTasks[activeGeneralTab].find(t => t.id === taskId);
+    if (task) {
+      setEditingTask(task);
+      setModalOpen(true);
+    }
+  }, [userData, activeGeneralTab, setEditingTask, setModalOpen]);
+
+  const handleDeleteWeeklyTask = useCallback(async (taskId: string) => {
+    if (!userData) return;
+
+    // Asegurar que weeklyTasks esté inicializado
+    const currentWeeklyTasks = userData.weeklyTasks || {
+      all: [],
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+      saturday: [],
+      sunday: []
+    };
+
+    const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
+    const task = currentDayTasks.find(t => t.id === taskId);
+
+    if (task) {
+      setTaskToDelete(task);
+      setShowConfirmation(true);
+    }
+  }, [userData, activeGeneralTab, setTaskToDelete, setShowConfirmation]);
+
+  // Función específica para confirmar eliminación de tareas semanales
+  const confirmDeleteWeekly = useCallback(async () => {
+    if (!userData || !taskToDelete) return;
+
+    const prevUserData = { ...userData };
+    try {
+      // Asegurar que weeklyTasks esté inicializado
+      const currentWeeklyTasks = userData.weeklyTasks || {
+        all: [],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: []
+      };
+
+      // Filtrar la tarea específica del día activo
+      const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
+      const updatedTasks = currentDayTasks.filter(
+        (t) => t.id !== taskToDelete.id
+      );
+
+      const updatedWeeklyTasks = {
+        ...currentWeeklyTasks,
+        [activeGeneralTab]: updatedTasks
+      };
+
+      const updatedUserData = {
+        ...userData,
+        weeklyTasks: updatedWeeklyTasks
+      };
+
+      setUserData(updatedUserData);
+      await handleUpdateUserData(updatedUserData);
+      setShowConfirmation(false);
+      setTaskToDelete(null);
+      showNotification("Tarea eliminada.", "success");
+    } catch (error) {
+      console.error("Error en confirmDeleteWeekly:", error);
+      setUserData(prevUserData);
+      setShowConfirmation(false);
+      setTaskToDelete(null);
+      showNotification("Error al eliminar la tarea. No se guardó en la base de datos.", "error");
+    }
+  }, [userData, taskToDelete, activeGeneralTab, setUserData, handleUpdateUserData, showNotification, setShowConfirmation, setTaskToDelete]);
+
+  const handleToggleWeeklyTask = useCallback(async (taskId: string) => {
+    if (!userData) return;
+
+    const prevUserData = { ...userData };
+    try {
+      // Asegurar que weeklyTasks esté inicializado
+      const currentWeeklyTasks = userData.weeklyTasks || {
+        all: [],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: []
+      };
+
+      const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
+      const updatedTasks = currentDayTasks.map(t =>
+        t.id === taskId ? { ...t, completed: !t.completed } : t
+      );
+
+      const updatedWeeklyTasks = {
+        ...currentWeeklyTasks,
+        [activeGeneralTab]: updatedTasks
+      };
+
+      const updatedUserData = {
+        ...userData,
+        weeklyTasks: updatedWeeklyTasks
+      };
+
+      setUserData(updatedUserData);
+      await handleUpdateUserData(updatedUserData);
+      showNotification("Estado de la tarea actualizado.", "success");
+    } catch (error) {
+      console.error("Error toggling weekly task:", error);
+      setUserData(prevUserData);
+      showNotification("Error al actualizar el estado de la tarea.", "error");
+    }
+  }, [userData, activeGeneralTab, setUserData, handleUpdateUserData, showNotification]);
+
+  const handleReorderWeeklyTasks = useCallback(async (reorderedTasks: GeneralTask[]) => {
+    if (!userData) return;
+
+    const prevUserData = { ...userData };
+    try {
+      // Asegurar que weeklyTasks esté inicializado
+      const currentWeeklyTasks = userData.weeklyTasks || {
+        all: [],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: []
+      };
+
+      const updatedWeeklyTasks = {
+        ...currentWeeklyTasks,
+        [activeGeneralTab]: reorderedTasks
+      };
+
+      const updatedUserData = {
+        ...userData,
+        weeklyTasks: updatedWeeklyTasks
+      };
+
+      setUserData(updatedUserData);
+      await handleUpdateUserData(updatedUserData);
+    } catch (error) {
+      console.error("Error reordering weekly tasks:", error);
+      setUserData(prevUserData);
+      showNotification("Error al reordenar las tareas.", "error");
+    }
+  }, [userData, activeGeneralTab, setUserData, handleUpdateUserData, showNotification]);
+
+  // Función para guardar tareas contextual según la pestaña activa
+  const handleSaveTaskContextual = useCallback(
+    async (task: BaseTask | Omit<BaseTask, "id">) => {
+      if (currentPage === Page.General) {
+        if (activeGeneralTab === WeekDay.All) {
+          // Guardar en generalTasks
+          await handleSaveTask(task);
+        } else {
+          // Guardar en weeklyTasks para el día específico
+          if (!userData) return;
+
+          const isEditing = "id" in task;
+          const prevUserData = { ...userData };
+
+          try {
+            // Asegurar que weeklyTasks esté inicializado
+            const currentWeeklyTasks = userData.weeklyTasks || {
+              all: [],
+              monday: [],
+              tuesday: [],
+              wednesday: [],
+              thursday: [],
+              friday: [],
+              saturday: [],
+              sunday: []
+            };
+
+            const currentTasks = currentWeeklyTasks[activeGeneralTab] || [];
+            let updatedTasks: GeneralTask[];
+
+            if (isEditing) {
+              // Editar tarea existente - filtrar y reemplazar para evitar duplicados
+              const filteredTasks = currentTasks.filter(t => t.id !== task.id);
+              const existingTask = currentTasks.find(t => t.id === task.id);
+              updatedTasks = [...filteredTasks, {
+                ...task,
+                completed: existingTask?.completed ?? false
+              } as GeneralTask];
+            } else {
+              // Crear nueva tarea - agregar al final con ID único
+              const newTask = {
+                ...task,
+                id: generateTaskId(),
+                completed: false,
+              } as GeneralTask;
+              updatedTasks = [...currentTasks, newTask];
+            }
+
+            const updatedWeeklyTasks = {
+              ...currentWeeklyTasks,
+              [activeGeneralTab]: updatedTasks,
+            };
+
+            const updatedUserData = {
+              ...userData,
+              weeklyTasks: updatedWeeklyTasks,
+            };
+
+            setUserData(updatedUserData);
+            await handleUpdateUserData(updatedUserData);
+            showNotification(
+              isEditing ? "Tarea actualizada." : "Tarea añadida correctamente.",
+              "success"
+            );
+            setModalOpen(false);
+            setEditingTask(null);
+          } catch (error) {
+            console.error("Error saving task for day:", error);
+            setUserData(prevUserData);
+            showNotification("Error al guardar la tarea. No se guardó en la base de datos.", "error");
+          }
+        }
+      } else {
+        // Para otras páginas, usar la función normal
+        await handleSaveTask(task);
+      }
+    },
+    [currentPage, activeGeneralTab, userData, handleSaveTask, handleUpdateUserData, setUserData, showNotification, setModalOpen, setEditingTask]
+  );
 
   const {
     isSyncing,
@@ -61,7 +315,37 @@ export default function DashboardPage() {
     handleUpdateAiDuration,
     handleSetEndOfDay,
     handleStartDay,
+    handleCloneDaySchedule,
   } = useAiSync(userData, handleUpdateUserData, showNotification);
+
+  // Función específica para actualizar endOfDay en General sin llamar a la IA
+  const handleSetEndOfDayGeneral = useCallback(async () => {
+    if (!userData || !tempEndOfDay) return;
+    const prevUserData = { ...userData };
+    try {
+      const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
+      await handleUpdateUserData(updatedUserData);
+      showNotification("Hora de fin del día actualizada.", "success");
+    } catch (error) {
+      console.error("Error en handleSetEndOfDayGeneral:", error);
+      await handleUpdateUserData(prevUserData);
+      showNotification(
+        "Error al actualizar la hora de fin del día. Los cambios han sido revertidos.",
+        "error"
+      );
+    }
+  }, [userData, tempEndOfDay, handleUpdateUserData, showNotification]);
+
+  // Función para mostrar el modal de confirmación antes de clonar
+  const handleShowCloneConfirmation = useCallback(() => {
+    setShowConfirmation(true);
+  }, [setShowConfirmation]);
+
+  // Función para confirmar y clonar, cerrando el modal
+  const handleConfirmClone = useCallback(async () => {
+    await handleCloneDaySchedule();
+    setShowConfirmation(false);
+  }, [handleCloneDaySchedule, setShowConfirmation]);
 
   // Handle redirect to login when user is not authenticated
   useEffect(() => {
@@ -100,7 +384,7 @@ export default function DashboardPage() {
         isSyncing={isSyncing}
         aiTip={aiTip}
         freeTime={freeTime}
-        onStartDay={handleStartDay}
+        onStartDay={handleShowCloneConfirmation}
         onSyncWithAI={syncWithAI}
         onToggleComplete={handleToggleComplete}
         onDelete={handleDeleteTask}
@@ -113,7 +397,7 @@ export default function DashboardPage() {
         onDismissAiTip={() => setAiTip(null)}
       />
     );
-  }, [userData, isSyncing, aiTip, freeTime, handleStartDay, syncWithAI, handleToggleComplete, handleDeleteTask, handleReorderTasks, handleEditTask, handleUpdateAiDuration, handleSetEndOfDay, tempEndOfDay, setTempEndOfDay, setAiTip]);
+  }, [userData, isSyncing, aiTip, freeTime, handleShowCloneConfirmation, syncWithAI, handleToggleComplete, handleDeleteTask, handleReorderTasks, handleEditTask, handleUpdateAiDuration, handleSetEndOfDay, tempEndOfDay, setTempEndOfDay, setAiTip]);
 
   const generalViewComponent = useMemo(() => {
     if (!userData) return null;
@@ -121,16 +405,22 @@ export default function DashboardPage() {
       <GeneralView
         userData={userData}
         onSaveTask={handleSaveTask}
+        onSaveTaskForDay={handleSaveTaskContextual}
         onDelete={handleDeleteTask}
+        onDeleteWeekly={handleDeleteWeeklyTask}
         onReorder={handleReorderTasks}
+        onReorderWeekly={handleReorderWeeklyTasks}
         onEdit={handleEditTask}
+        onEditWeekly={handleEditWeeklyTask}
         onToggleComplete={handleToggleComplete}
-        onSetEndOfDay={handleSetEndOfDay}
+        onToggleWeekly={handleToggleWeeklyTask}
+        onSetEndOfDay={handleSetEndOfDayGeneral}
         tempEndOfDay={tempEndOfDay}
         setTempEndOfDay={setTempEndOfDay}
+        onTabChange={handleGeneralTabChange}
       />
     );
-  }, [userData, handleSaveTask, handleDeleteTask, handleReorderTasks, handleEditTask, handleToggleComplete, handleSetEndOfDay, tempEndOfDay, setTempEndOfDay]);
+  }, [userData, handleSaveTask, handleSaveTaskContextual, handleDeleteTask, handleDeleteWeeklyTask, handleReorderTasks, handleReorderWeeklyTasks, handleEditTask, handleEditWeeklyTask, handleToggleComplete, handleToggleWeeklyTask, handleSetEndOfDayGeneral, tempEndOfDay, setTempEndOfDay, handleGeneralTabChange, confirmDeleteWeekly]);
 
   const handleSignOutWithRedirect = useCallback(async () => {
     await handleSignOut();
@@ -174,6 +464,22 @@ export default function DashboardPage() {
           className="fixed bottom-24 right-6 flex flex-col items-center z-20"
           style={{ width: 56 }}
         >
+          {currentPage === Page.Day && userData.dayTasks.length > 0 && (
+            <>
+              <button
+                onClick={() => setShowClearConfirmation(true)}
+                className="w-full bg-red-600 text-white p-4 rounded-full shadow-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 transition-transform transform hover:scale-110 mb-2"
+              >
+                <Icon name="trash2" />
+              </button>
+              <span
+                className="w-full mb-4 bg-red-600 text-white text-xs font-medium px-0 py-1 rounded shadow"
+                style={{ textAlign: "center", opacity: 0.95, display: "block" }}
+              >
+                Limpiar día
+              </span>
+            </>
+          )}
           <button
             onClick={() => setModalOpen(true)}
             className="w-full bg-emerald-600 text-white p-4 rounded-full shadow-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-110"
@@ -202,7 +508,7 @@ export default function DashboardPage() {
             setModalOpen(false);
             setEditingTask(null);
           }}
-          onSubmit={handleSaveTask}
+          onSubmit={currentPage === Page.General ? handleSaveTaskContextual : handleSaveTask}
           taskToEdit={editingTask}
         />
       )}
@@ -211,7 +517,18 @@ export default function DashboardPage() {
         <ConfirmationModal
           isOpen={showConfirmation}
           onCancel={() => setShowConfirmation(false)}
-          onConfirm={confirmDelete}
+          onConfirm={() => {
+            // Determinar si es una tarea semanal o general/diaria
+            const isWeeklyTask = userData?.weeklyTasks?.[activeGeneralTab]?.some(
+              t => t.id === taskToDelete.id
+            );
+
+            if (isWeeklyTask) {
+              confirmDeleteWeekly();
+            } else {
+              confirmDelete();
+            }
+          }}
           title="Confirmar Eliminación"
           message="¿Estás seguro de que quieres eliminar esta tarea?"
         />
@@ -221,9 +538,22 @@ export default function DashboardPage() {
         <ConfirmationModal
           isOpen={showConfirmation}
           onCancel={() => setShowConfirmation(false)}
-          onConfirm={handleStartDay}
-          title="¿Empezar el día?"
-          message="Esto usará la plantilla de 'Horario General' para generar tu horario de hoy con IA. ¿Deseas continuar?"
+          onConfirm={handleConfirmClone}
+          title="¿Clonar horario del día?"
+          message="Esto clonará las tareas de 'Todos los días' y las tareas específicas del día actual desde tu horario general. ¿Deseas continuar?"
+        />
+      )}
+
+      {showClearConfirmation && (
+        <ConfirmationModal
+          isOpen={showClearConfirmation}
+          onCancel={() => setShowClearConfirmation(false)}
+          onConfirm={() => {
+            handleClearAllDayTasks();
+            setShowClearConfirmation(false);
+          }}
+          title="¿Limpiar todas las tareas del día?"
+          message="Esto eliminará permanentemente todas las tareas del día actual. ¿Estás seguro?"
         />
       )}
 

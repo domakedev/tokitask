@@ -1,68 +1,130 @@
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
-import { UserData } from "../types";
+import { UserData, WeekDay, GeneralTask, DayTask } from "../types";
+import { FirebaseError, ErrorLogger, withErrorHandling } from "../utils/errorHandler";
+
+// Interfaz temporal para migración de datos
+interface LegacyUserData {
+  uid: string;
+  email: string | null;
+  endOfDay: string;
+  generalTasks: GeneralTask[];
+  dayTasks: DayTask[];
+  weeklyTasks?: Record<WeekDay, GeneralTask[]>;
+}
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
-  if (!db) return null;
-  const userDocRef = doc(db, "users", uid);
-  const docSnap = await getDoc(userDocRef);
-  if (docSnap.exists()) {
-  // Adaptar los datos para asegurar que las tareas tengan los nuevos campos
-  const data = docSnap.data() as UserData;
-  if (data) {
-    if (Array.isArray(data.generalTasks)) {
-      data.generalTasks = data.generalTasks.map(t => ({
-        ...t,
-        baseDuration: t.baseDuration || "",
-      }));
+  return withErrorHandling(async () => {
+    if (!db) {
+      throw new FirebaseError("Firebase database not initialized", undefined, {
+        component: 'FirestoreService',
+        operation: 'getUserData',
+        uid
+      });
     }
-    if (Array.isArray(data.dayTasks)) {
-      data.dayTasks = data.dayTasks.map(t => ({
-        ...t,
-        baseDuration: t.baseDuration || "",
-        aiDuration: t.aiDuration || "",
-      }));
+
+    const userDocRef = doc(db, "users", uid);
+    const docSnap = await getDoc(userDocRef);
+
+    if (docSnap.exists()) {
+      // Adaptar los datos para asegurar que las tareas tengan los nuevos campos
+      const data = docSnap.data() as LegacyUserData;
+      if (data) {
+        // Migrar datos antiguos si no tienen weeklyTasks
+        if (!data.weeklyTasks) {
+          (data as UserData).weeklyTasks = {
+            all: [],
+            monday: [],
+            tuesday: [],
+            wednesday: [],
+            thursday: [],
+            friday: [],
+            saturday: [],
+            sunday: []
+          };
+        }
+
+        if (Array.isArray(data.generalTasks)) {
+          data.generalTasks = data.generalTasks.map((t) => ({
+            ...t,
+            baseDuration: t.baseDuration || "",
+          }));
+        }
+        if (Array.isArray(data.dayTasks)) {
+          data.dayTasks = data.dayTasks.map((t) => ({
+            ...t,
+            baseDuration: t.baseDuration || "",
+            aiDuration: t.aiDuration || "",
+          }));
+        }
+      }
+      return data as UserData;
+    } else {
+      ErrorLogger.log(
+        new FirebaseError("User document not found", undefined, {
+          component: 'FirestoreService',
+          operation: 'getUserData',
+          uid
+        })
+      );
+      return null;
     }
-  }
-  return data;
-  } else {
-    console.log("No such document for user, creating one.");
-    return null;
-  }
+  }, { component: 'FirestoreService', operation: 'getUserData', uid });
 };
 
 export const createUserDocument = async (userData: UserData) => {
-  if (!db) return;
-  const userDocRef = doc(db, "users", userData.uid);
-  const docSnap = await getDoc(userDocRef);
-  if (!docSnap.exists()) {
-    try {
-    // Elimina el campo duration y usa los nuevos campos
-    const userDataToSave = {
-      ...userData,
-      generalTasks: userData.generalTasks.map(t => ({ ...t })),
-      dayTasks: userData.dayTasks.map(t => ({ ...t })),
-    };
-    await setDoc(userDocRef, userDataToSave);
-    } catch (error) {
-      console.error("Error creating user document: ", error);
+  return withErrorHandling(async () => {
+    if (!db) {
+      throw new FirebaseError("Firebase database not initialized", undefined, {
+        component: 'FirestoreService',
+        operation: 'createUserDocument',
+        uid: userData.uid
+      });
     }
-  }
+
+    const userDocRef = doc(db, "users", userData.uid);
+    const docSnap = await getDoc(userDocRef);
+
+    if (!docSnap.exists()) {
+      // Asegurar que weeklyTasks esté inicializado
+      const userDataToSave = {
+        ...userData,
+        weeklyTasks: userData.weeklyTasks || {
+          all: [],
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+          saturday: [],
+          sunday: []
+        },
+        generalTasks: userData.generalTasks.map(t => ({ ...t })),
+        dayTasks: userData.dayTasks.map(t => ({ ...t })),
+      };
+      await setDoc(userDocRef, userDataToSave);
+    }
+  }, { component: 'FirestoreService', operation: 'createUserDocument', uid: userData.uid });
 };
 
 export const updateUserData = async (uid: string, data: Partial<UserData>) => {
-  if (!db) return;
-  const userDocRef = doc(db, "users", uid);
-  try {
-  // Elimina el campo duration y usa los nuevos campos
-  const dataToUpdate = {
-    ...data,
-    generalTasks: data.generalTasks?.map(t => ({ ...t })),
-    dayTasks: data.dayTasks?.map(t => ({ ...t })),
-  };
-  await updateDoc(userDocRef, dataToUpdate);
-  } catch (error) {
-    console.error("Error updating user data: ", error);
-    throw error;
-  }
+  return withErrorHandling(async () => {
+    if (!db) {
+      throw new FirebaseError("Firebase database not initialized", undefined, {
+        component: 'FirestoreService',
+        operation: 'updateUserData',
+        uid
+      });
+    }
+
+    const userDocRef = doc(db, "users", uid);
+    // Asegurar que weeklyTasks esté incluido si se está actualizando
+    const dataToUpdate = {
+      ...data,
+      weeklyTasks: data.weeklyTasks,
+      generalTasks: data.generalTasks?.map(t => ({ ...t })),
+      dayTasks: data.dayTasks?.map(t => ({ ...t })),
+    };
+    await updateDoc(userDocRef, dataToUpdate);
+  }, { component: 'FirestoreService', operation: 'updateUserData', uid });
 };

@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 export const useTimer = (
   aiDuration: string | undefined,
-  onUpdateAiDuration?: (id: number, duration: string) => void,
-  taskId?: number
+  onUpdateAiDuration?: (id: string, duration: string) => void,
+  taskId?: string
 ) => {
   const [timerActive, setTimerActive] = useState(false);
   const [paused, setPaused] = useState(false);
