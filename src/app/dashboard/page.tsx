@@ -19,9 +19,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, userData, loading, authError, handleSignOut, setUserData } = useAuth();
 
-  // API key validation is handled server-side in the API routes
-  // No need to check client-side as the key is server-only
-
   const [notification, setNotification] = useState<{
     message: string;
     type: "success" | "error";
@@ -245,7 +242,7 @@ export default function DashboardPage() {
             className="h-16 w-16 animate-spin text-emerald-400 mb-6"
           />
           <p className="text-sm text-slate-300 mt-6 text-center">
-            Esto puede tardar unos segundos.
+            Esto puede tardar hasta un minuto.
           </p>
           <div className="relative h-8 w-full flex items-center justify-center overflow-hidden mt-2">
             <span
