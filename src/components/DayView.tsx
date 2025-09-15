@@ -176,10 +176,13 @@ const DayView: React.FC<DayViewProps> = ({
             <p className="mt-2 text-slate-400">
               Haz clic en{" "}
               <span className="font-semibold text-emerald-400">
-                &quot;Empezar Día&quot;
+                Clonar horario del día
               </span>{" "}
               para usar tu plantilla de &quot;Horario General&quot; y
-              generar tu plan de hoy con IA.
+              generar tu plan de hoy con IA. <br /> <br /> O crea tareas independientes.
+              <span className="inline-flex items-center justify-center rounded-full bg-emerald-600 w-6 h-6 ml-2">
+                <Icon name="plus" className="text-slate-100 w-4 h-4" />
+              </span>
             </p>
           </div>
         ) : (

@@ -105,7 +105,7 @@ const GeneralView: React.FC<GeneralViewProps> = ({
             htmlFor="end-of-day"
             className="block text-base font-semibold text-white mb-2"
           >
-            Hora de finalización del día
+            Hora de finalización para todos los días
           </label>
           <div className="flex items-center space-x-3">
             <input
