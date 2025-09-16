@@ -286,7 +286,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
                           />
                         ))}
                       </div>
-                      <div className="absolute top-0 right-0 text-[12px] font-bold text-black bg-white bg-opacity-50 px-1 rounded">
+                      <div className="absolute top-0 right-0 text-[8px] sm:text-[12px] font-bold text-black bg-white bg-opacity-50 px-1 rounded">
                         {day.day}
                       </div>
                     </>
