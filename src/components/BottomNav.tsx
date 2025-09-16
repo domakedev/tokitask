@@ -69,7 +69,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activePage, onNavigate, profilePh
         <NavLink
           page={Page.Progress}
           iconName="trendingUp"
-          label="Progreso"
+          label="Habit Tracker"
           isActive={activePage === Page.Progress}
           onClick={onNavigate}
         />
