@@ -8,7 +8,7 @@ interface ProgressViewProps {
 }
 
 const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
-  const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
+  const [selectedTaskProgressId, setSelectedTaskProgressId] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isAnimating, setIsAnimating] = useState(false);
@@ -46,11 +46,11 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
     return Array.from(taskMap.values());
   }, [userData]);
 
-  // Get completion dates for selected task (aggregate by task name)
+  // Get completion dates for selected task (aggregate by progressId)
   const completionDates = useMemo(() => {
-    if (!selectedTaskName) return [];
+    if (!selectedTaskProgressId) return [];
 
-    const selectedTask = uniqueTasks.find(t => t.name === selectedTaskName);
+    const selectedTask = uniqueTasks.find(t => t.progressId === selectedTaskProgressId);
     if (!selectedTask) return [];
 
     // Find all tasks with the same name across all sources
@@ -89,7 +89,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
 
     // Remove duplicates and sort
     return [...new Set(allCompletionDates)].sort();
-  }, [selectedTaskName, taskCompletionsByProgressId, userData.generalTasks, userData.dayTasks, userData.weeklyTasks, uniqueTasks]);
+  }, [selectedTaskProgressId, taskCompletionsByProgressId, userData.generalTasks, userData.dayTasks, userData.weeklyTasks, uniqueTasks]);
 
   // Generate calendar days for current month
   const calendarDays = useMemo(() => {
@@ -122,7 +122,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
 
   // Calculate statistics
   const statistics = useMemo(() => {
-    if (!selectedTaskName) return null;
+    if (!selectedTaskProgressId) return null;
 
     const completions = completionDates;
     const now = new Date();
@@ -164,15 +164,45 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       daysInMonth,
       totalCompletions: completions.length
     };
-  }, [selectedTaskName, completionDates]);
+  }, [selectedTaskProgressId, completionDates]);
 
-  const getPriorityColor = (priority: Priority) => {
-    switch (priority) {
-      case Priority.High: return "bg-red-500";
-      case Priority.Medium: return "bg-yellow-500";
-      case Priority.Low: return "bg-green-500";
-      default: return "bg-gray-500";
+  // Generate unique color based on progressId with good contrast
+  const getUniqueTaskColor = (progressId: string | undefined) => {
+    // Verificar que progressId existe y no está vacío
+    if (!progressId || progressId.trim() === "") {
+      return "bg-slate-600"; // Color por defecto
     }
+
+    // Paleta de colores vibrantes con buen contraste para texto blanco
+    const colorPalette = [
+      "bg-emerald-500",   // Verde esmeralda
+      "bg-blue-500",     // Azul
+      "bg-purple-500",   // Púrpura
+      "bg-pink-500",     // Rosa
+      "bg-indigo-500",   // Índigo
+      "bg-cyan-500",     // Cian
+      "bg-teal-500",     // Verde azulado
+      "bg-orange-500",   // Naranja
+      "bg-rose-500",     // Rosa rojizo
+      "bg-violet-500",   // Violeta
+      "bg-sky-500",      // Celeste
+      "bg-lime-500",     // Lima
+      "bg-amber-500",    // Ámbar
+      "bg-fuchsia-500",  // Fucsia
+      "bg-yellow-600",    // Amarillo (más oscuro para mejor contraste)
+    ];
+
+    // Generate a simple hash from progressId
+    let hash = 0;
+    for (let i = 0; i < progressId.length; i++) {
+      const char = progressId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+
+    // Use absolute value and modulo to get consistent index
+    const colorIndex = Math.abs(hash) % colorPalette.length;
+    return colorPalette[colorIndex];
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -210,14 +240,14 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       {/* Task Pills */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold text-white">Seleccionar Tarea</h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-center mt-6 gap-2">
           {uniqueTasks.map(task => (
             <button
               key={task.id}
-              onClick={() => setSelectedTaskName(selectedTaskName === task.name ? null : task.name)}
+              onClick={() => setSelectedTaskProgressId(selectedTaskProgressId === task.progressId ? null : task.progressId)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedTaskName === task.name
-                  ? `${getPriorityColor(task.priority)} text-white`
+                selectedTaskProgressId === task.progressId
+                  ? `${getUniqueTaskColor(task.progressId)} text-white shadow-lg`
                   : "bg-slate-700 text-slate-300 hover:bg-slate-600"
               }`}
             >
@@ -228,7 +258,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       </div>
 
       {/* Calendar */}
-      {selectedTaskName && (
+      {selectedTaskProgressId && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <button
@@ -256,14 +286,14 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
               </div>
             ))}
             {calendarDays.map((day, index) => {
-              const selectedTask = uniqueTasks.find(t => t.name === selectedTaskName);
+              const selectedTask = uniqueTasks.find(t => t.progressId === selectedTaskProgressId);
               return (
                 <div
                   key={`${currentMonth}-${currentYear}-${index}`}
                   className={`p-2 text-center text-sm rounded-lg ${
                     day.isCurrentMonth
                       ? day.isCompleted
-                        ? `${getPriorityColor(selectedTask?.priority || Priority.Low)} text-white`
+                        ? `${getUniqueTaskColor(selectedTask?.progressId || "")} text-white`
                         : "bg-slate-700 text-slate-300"
                       : "bg-slate-800 text-slate-500"
                   }`}
