@@ -188,10 +188,11 @@ export const useAiSync = (
     const currentDay = getCurrentWeekDay();
     const dayTasks = userData.weeklyTasks?.[currentDay] || [];
 
-    // Crear IDs únicos para evitar duplicados
+    // Crear IDs únicos para evitar duplicados, pero mantener progressId
     const dayTasksAsDay: DayTask[] = dayTasks.map((task) => ({
       ...task,
       id: generateTaskId(), // ID único usando UUID v4
+      progressId: task.progressId || generateTaskId(), // Mantener progressId existente o crear uno nuevo
       completed: false,
       isCurrent: false,
       aiDuration: "",
@@ -215,10 +216,11 @@ export const useAiSync = (
     }
 
     try {
-      // Crear IDs únicos para evitar duplicados
+      // Crear IDs únicos para evitar duplicados, pero mantener progressId
       const allTasksAsDay: DayTask[] = allTasks.map((task) => ({
         ...task,
         id: generateTaskId(), // ID único usando UUID v4
+        progressId: task.progressId || generateTaskId(), // Mantener progressId existente o crear uno nuevo
         completed: false,
         isCurrent: false,
         aiDuration: "",

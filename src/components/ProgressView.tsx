@@ -13,8 +13,8 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Usar completions por nombre que son persistentes
-  const taskCompletionsByName = userData.taskCompletionsByName || {};
+  // Usar completions por progressId que son persistentes
+  const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
 
   // Get unique tasks by name (not by ID) to avoid duplicates
   const uniqueTasks = useMemo(() => {
@@ -79,17 +79,17 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       });
     });
 
-    // Aggregate all completion dates from tasks with the same name
+    // Aggregate all completion dates from tasks with the same progressId
     const allCompletionDates: string[] = [];
     allTasksWithSameName.forEach(task => {
-      // Usar completions por nombre que son persistentes
-      const taskCompletions = taskCompletionsByName[task.name] || [];
+      // Usar completions por progressId que son persistentes
+      const taskCompletions = taskCompletionsByProgressId[task.progressId] || [];
       allCompletionDates.push(...taskCompletions);
     });
 
     // Remove duplicates and sort
     return [...new Set(allCompletionDates)].sort();
-  }, [selectedTaskName, taskCompletionsByName, userData.generalTasks, userData.dayTasks, userData.weeklyTasks, uniqueTasks]);
+  }, [selectedTaskName, taskCompletionsByProgressId, userData.generalTasks, userData.dayTasks, userData.weeklyTasks, uniqueTasks]);
 
   // Generate calendar days for current month
   const calendarDays = useMemo(() => {

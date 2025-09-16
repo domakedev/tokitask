@@ -49,6 +49,7 @@ export interface BaseTask {
     name: string;
     baseDuration: string; // Duración original definida por el usuario
     priority: Priority;
+    progressId: string; // UUID único para tracking de progreso (persiste a través de clones)
 }
 
 export interface DayTask extends BaseTask {
@@ -68,5 +69,5 @@ export interface UserData {
     generalTasks: GeneralTask[];
     dayTasks: DayTask[];
     weeklyTasks: Record<WeekDay, GeneralTask[]>;
-    taskCompletionsByName?: Record<string, string[]>; // taskName -> array of completion dates (ISO strings) - PERSISTENT
+    taskCompletionsByProgressId?: Record<string, string[]>; // progressId -> array of completion dates (ISO strings) - PERSISTENT
 }

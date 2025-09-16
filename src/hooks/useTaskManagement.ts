@@ -62,6 +62,7 @@ export const useTaskManagement = (
                   {
                     ...task,
                     id: generateTaskId(),
+                    progressId: generateTaskId(), // Nuevo progressId único
                     completed: false,
                     isCurrent: false,
                     aiDuration: "",
@@ -83,6 +84,7 @@ export const useTaskManagement = (
                   {
                     ...task,
                     id: generateTaskId(),
+                    progressId: generateTaskId(), // Nuevo progressId único
                     completed: false,
                     baseDuration: task.baseDuration || "",
                   } as GeneralTask,
@@ -115,16 +117,16 @@ export const useTaskManagement = (
       const prevUserData = { ...userData };
       try {
         const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-        const taskCompletionsByName = userData.taskCompletionsByName || {};
+        const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
 
-        // Find the task to get its name
-        let taskName = "";
+        // Find the task to get its progressId
+        let taskProgressId = "";
         if (currentPage === Page.Day) {
           const task = userData.dayTasks.find(t => t.id === taskId);
-          taskName = task?.name || "";
+          taskProgressId = task?.progressId || "";
         } else {
           const task = userData.generalTasks.find(t => t.id === taskId);
-          taskName = task?.name || "";
+          taskProgressId = task?.progressId || "";
         }
 
         if (currentPage === Page.Day) {
@@ -133,23 +135,23 @@ export const useTaskManagement = (
               const wasCompleted = t.completed;
               const newCompleted = !t.completed;
 
-              // Update completion history by name (persistent)
+              // Update completion history by progressId (persistent)
               if (newCompleted && !wasCompleted) {
-                if (taskName) {
-                  const currentCompletions = taskCompletionsByName[taskName] || [];
+                if (taskProgressId) {
+                  const currentCompletions = taskCompletionsByProgressId[taskProgressId] || [];
                   // Only add if this date doesn't already exist
                   if (!currentCompletions.includes(now)) {
-                    taskCompletionsByName[taskName] = [...currentCompletions, now];
+                    taskCompletionsByProgressId[taskProgressId] = [...currentCompletions, now];
                   }
                 }
               } else if (!newCompleted && wasCompleted) {
-                // Remove from name-based completions
-                if (taskName) {
-                  const nameCompletions = taskCompletionsByName[taskName] || [];
-                  const nameTodayIndex = nameCompletions.indexOf(now);
-                  if (nameTodayIndex !== -1) {
-                    nameCompletions.splice(nameTodayIndex, 1);
-                    taskCompletionsByName[taskName] = nameCompletions;
+                // Remove from progressId-based completions
+                if (taskProgressId) {
+                  const progressIdCompletions = taskCompletionsByProgressId[taskProgressId] || [];
+                  const todayIndex = progressIdCompletions.indexOf(now);
+                  if (todayIndex !== -1) {
+                    progressIdCompletions.splice(todayIndex, 1);
+                    taskCompletionsByProgressId[taskProgressId] = progressIdCompletions;
                   }
                 }
               }
@@ -161,7 +163,7 @@ export const useTaskManagement = (
           const updatedUserData = {
             ...userData,
             dayTasks: recalculateCurrentDayTask(updatedTasks),
-            taskCompletionsByName,
+            taskCompletionsByProgressId,
           };
           setUserData(updatedUserData);
           await handleUpdateUserData(updatedUserData);
@@ -172,23 +174,23 @@ export const useTaskManagement = (
               const wasCompleted = t.completed;
               const newCompleted = !t.completed;
 
-              // Update completion history by name (persistent)
+              // Update completion history by progressId (persistent)
               if (newCompleted && !wasCompleted) {
-                if (taskName) {
-                  const currentCompletions = taskCompletionsByName[taskName] || [];
+                if (taskProgressId) {
+                  const currentCompletions = taskCompletionsByProgressId[taskProgressId] || [];
                   // Only add if this date doesn't already exist
                   if (!currentCompletions.includes(now)) {
-                    taskCompletionsByName[taskName] = [...currentCompletions, now];
+                    taskCompletionsByProgressId[taskProgressId] = [...currentCompletions, now];
                   }
                 }
               } else if (!newCompleted && wasCompleted) {
-                // Remove from name-based completions
-                if (taskName) {
-                  const nameCompletions = taskCompletionsByName[taskName] || [];
-                  const nameTodayIndex = nameCompletions.indexOf(now);
-                  if (nameTodayIndex !== -1) {
-                    nameCompletions.splice(nameTodayIndex, 1);
-                    taskCompletionsByName[taskName] = nameCompletions;
+                // Remove from progressId-based completions
+                if (taskProgressId) {
+                  const progressIdCompletions = taskCompletionsByProgressId[taskProgressId] || [];
+                  const todayIndex = progressIdCompletions.indexOf(now);
+                  if (todayIndex !== -1) {
+                    progressIdCompletions.splice(todayIndex, 1);
+                    taskCompletionsByProgressId[taskProgressId] = progressIdCompletions;
                   }
                 }
               }
@@ -200,7 +202,7 @@ export const useTaskManagement = (
           const updatedUserData = {
             ...userData,
             generalTasks: updatedTasks,
-            taskCompletionsByName,
+            taskCompletionsByProgressId,
           };
           setUserData(updatedUserData);
           await handleUpdateUserData(updatedUserData);

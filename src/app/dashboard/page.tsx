@@ -153,7 +153,7 @@ export default function DashboardPage() {
     const prevUserData = { ...userData };
     try {
       const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      const taskCompletionsByName = userData.taskCompletionsByName || {};
+      const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
 
       // Asegurar que weeklyTasks esté inicializado
       const currentWeeklyTasks = userData.weeklyTasks || {
@@ -169,30 +169,30 @@ export default function DashboardPage() {
 
       const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
       const task = currentDayTasks.find(t => t.id === taskId);
-      const taskName = task?.name || "";
+      const taskProgressId = task?.progressId || "";
 
       const updatedTasks = currentDayTasks.map(t => {
         if (t.id === taskId) {
           const wasCompleted = t.completed;
           const newCompleted = !t.completed;
 
-          // Update completion history by name (persistent)
+          // Update completion history by progressId (persistent)
           if (newCompleted && !wasCompleted) {
-            if (taskName) {
-              const currentCompletions = taskCompletionsByName[taskName] || [];
+            if (taskProgressId) {
+              const currentCompletions = taskCompletionsByProgressId[taskProgressId] || [];
               // Only add if this date doesn't already exist
               if (!currentCompletions.includes(now)) {
-                taskCompletionsByName[taskName] = [...currentCompletions, now];
+                taskCompletionsByProgressId[taskProgressId] = [...currentCompletions, now];
               }
             }
           } else if (!newCompleted && wasCompleted) {
-            // Remove from name-based completions
-            if (taskName) {
-              const nameCompletions = taskCompletionsByName[taskName] || [];
-              const nameTodayIndex = nameCompletions.indexOf(now);
-              if (nameTodayIndex !== -1) {
-                nameCompletions.splice(nameTodayIndex, 1);
-                taskCompletionsByName[taskName] = nameCompletions;
+            // Remove from progressId-based completions
+            if (taskProgressId) {
+              const progressIdCompletions = taskCompletionsByProgressId[taskProgressId] || [];
+              const todayIndex = progressIdCompletions.indexOf(now);
+              if (todayIndex !== -1) {
+                progressIdCompletions.splice(todayIndex, 1);
+                taskCompletionsByProgressId[taskProgressId] = progressIdCompletions;
               }
             }
           }
@@ -210,7 +210,7 @@ export default function DashboardPage() {
       const updatedUserData = {
         ...userData,
         weeklyTasks: updatedWeeklyTasks,
-        taskCompletionsByName,
+        taskCompletionsByProgressId,
       };
 
       setUserData(updatedUserData);
@@ -302,6 +302,7 @@ export default function DashboardPage() {
               const newTask = {
                 ...task,
                 id: generateTaskId(),
+                progressId: generateTaskId(), // Nuevo progressId único
                 completed: false,
               } as GeneralTask;
               updatedTasks = [...currentTasks, newTask];
