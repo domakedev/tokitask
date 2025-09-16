@@ -73,11 +73,14 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
     for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
       const dateStr = current.toISOString().split('T')[0];
       const isCurrentMonth = current.getMonth() === currentMonth;
-      const completedTasks: string[] = [];
+      const completedTasks: {name: string, progressId: string}[] = [];
       selectedTaskProgressIds.forEach(progressId => {
         const taskCompletions = taskCompletionsByProgressId[progressId] || [];
         if (taskCompletions.includes(dateStr)) {
-          completedTasks.push(progressId);
+          const task = uniqueTasks.find(t => t.progressId === progressId);
+          if (task) {
+            completedTasks.push({name: task.name, progressId});
+          }
         }
       });
 
@@ -141,12 +144,10 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
     };
   }, [selectedTaskProgressIds, completionDates]);
 
-  // Generate unique color based on progressId with good contrast
-  const getUniqueTaskColor = (progressId: string | undefined) => {
-    // Verificar que progressId existe y no está vacío
-    if (!progressId || progressId.trim() === "") {
-      return "bg-slate-600"; // Color por defecto
-    }
+  // Generate unique color based on task index in uniqueTasks array
+  const getUniqueTaskColor = (taskId: string) => {
+    const taskIndex = uniqueTasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return "bg-slate-600"; // Color por defecto
 
     // Paleta de colores vibrantes con buen contraste para texto blanco
     const colorPalette = [
@@ -167,17 +168,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       "bg-yellow-600",    // Amarillo (más oscuro para mejor contraste)
     ];
 
-    // Generate a simple hash from progressId
-    let hash = 0;
-    for (let i = 0; i < progressId.length; i++) {
-      const char = progressId.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-
-    // Use absolute value and modulo to get consistent index
-    const colorIndex = Math.abs(hash) % colorPalette.length;
-    return colorPalette[colorIndex];
+    return colorPalette[taskIndex % colorPalette.length];
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -228,7 +219,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
               }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 selectedTaskProgressIds.includes(task.progressId)
-                  ? `${getUniqueTaskColor(task.progressId)} text-white shadow-lg`
+                  ? `${getUniqueTaskColor(task.id)} text-white shadow-lg`
                   : "bg-slate-700 text-slate-300 hover:bg-slate-600"
               }`}
             >
@@ -277,21 +268,21 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
                         ? "text-white"
                         : "bg-slate-700 text-slate-300"
                       : "bg-slate-800 text-slate-500"
-                  } ${isToday ? "ring-2 ring-white ring-inset" : ""}`}
+                  } ${isToday ? "ring-2 ring-emerald-400 ring-inset" : ""}`}
                 >
                   {day.completedTasks.length === 0 ? (
                     day.day
                   ) : day.completedTasks.length === 1 ? (
-                    <div className={`w-full h-full rounded-lg ${getUniqueTaskColor(day.completedTasks[0])} flex items-center justify-center`}>
+                    <div className={`w-full h-full rounded-lg ${getUniqueTaskColor(uniqueTasks.find(t => t.progressId === day.completedTasks[0].progressId)?.id || "")} flex items-center justify-center`}>
                       {day.day}
                     </div>
                   ) : (
                     <>
                       <div className="w-full h-full flex gap-1 flex-wrap">
-                        {day.completedTasks.map((progressId) => (
+                        {day.completedTasks.map((task) => (
                           <div
-                            key={progressId}
-                            className={`${getUniqueTaskColor(progressId)} flex-1 rounded-lg min-w-2.5 min-h-2.5`}
+                            key={task.progressId}
+                            className={`${getUniqueTaskColor(uniqueTasks.find(t => t.progressId === task.progressId)?.id || "")} flex-1 rounded-lg min-w-2.5 min-h-2.5`}
                           />
                         ))}
                       </div>
