@@ -98,7 +98,7 @@ const TaskItem: React.FC<
   return (
     <div className={taskClasses + " relative"} {...divProps}>
       {/* Columna izquierda: check o grip */}
-      <div className="flex flex-col items-center justify-between h-full mr-1 md:mr-2">
+      <div className="flex flex-col items-center justify-center flex-shrink-0 mr-1 md:mr-2">
         {isDaily ? (
           <button
             onClick={() => onToggleComplete?.(task.id)}
@@ -124,42 +124,62 @@ const TaskItem: React.FC<
         )}
       </div>
 
-      {/* Columna central: nombre y detalles */}
+      {/* Columna central: contenido compacto */}
       <div className="flex flex-col flex-grow min-w-0">
-        <p
-          className={`font-semibold text-white text-sm md:text-base truncate mb-0.5 md:mb-1 ${
-            isDaily && task.completed ? "line-through" : ""
-          }`}
-        >
-          {task.name}
-        </p>
-        <div className="flex items-center text-xs text-slate-400 space-x-2 md:space-x-3 mb-1 md:mb-2">
-          <span className="bg-slate-700 rounded px-1 md:px-2 py-0.5">
-            Tiempo normal: {task.baseDuration}
-          </span>
-          {isDaily && "aiDuration" in task && (
-            <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 md:px-2 py-0.5">
-              Ajustado a tu día con IA: {task.aiDuration}
-            </span>
-          )}
-          <span
-            className={`font-medium px-1 md:px-2 py-0.5 rounded-full border ${getPriorityClass(
-              task.priority
-            )}`}
+        {/* Primera fila: nombre y acciones */}
+        <div className="flex items-start justify-between gap-2">
+          <p
+            className={`font-semibold text-white text-sm md:text-base truncate flex-1 ${
+              isDaily && task.completed ? "line-through" : ""
+            }`}
           >
-            {task.priority}
-          </span>
+            {task.name}
+          </p>
+          <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
+            <button
+              onClick={() => onEdit?.(task.id)}
+              className="p-1 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+              aria-label="Editar tarea"
+            >
+              <Icon name="pencil" className="h-3 w-3 md:h-4 md:w-4" />
+            </button>
+            <button
+              onClick={() => onDelete(task.id)}
+              className="p-1 rounded-md hover:bg-red-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+            >
+              <Icon name="trash2" className="h-3 w-3 md:h-4 md:w-4" />
+            </button>
+          </div>
         </div>
-        {/* Contenedor horizontal para temporizador y opciones debajo de la info principal */}
-        <div className="flex flex-row items-center justify-between w-full mt-1 md:mt-2 gap-1 md:gap-2">
+
+        {/* Segunda fila: badges y temporizador */}
+        <div className="flex items-center justify-between gap-2 mt-1">
+          <div className="flex items-center text-xs text-slate-400 space-x-1 md:space-x-2 flex-1 min-w-0">
+            <span className="bg-slate-700 rounded px-1 py-0.5 text-xs whitespace-nowrap">
+              {task.baseDuration}
+            </span>
+            {isDaily && "aiDuration" in task && (
+              <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 py-0.5 text-xs whitespace-nowrap">
+                IA: {task.aiDuration}
+              </span>
+            )}
+            <span
+              className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap ${getPriorityClass(
+                task.priority
+              )}`}
+            >
+              {task.priority}
+            </span>
+          </div>
+
           {showTimer && (
-            <div className="flex items-center gap-1">
-              <Icon name="clock" className="inline-block h-3 w-3 md:h-4 md:w-4 mr-1" />
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Icon name="clock" className="inline-block h-3 w-3 md:h-4 md:w-4 text-emerald-400" />
               <span
-                className="text-sm md:text-lg font-mono text-emerald-400 bg-slate-900 border border-slate-700 rounded px-2 md:px-3 py-0.5 md:py-1"
+                className="text-xs md:text-sm font-mono text-emerald-400 bg-slate-900 border border-slate-700 rounded px-1 md:px-2 py-0.5"
                 style={{
-                  minWidth: "70px",
-                  maxWidth: "120px",
+                  minWidth: "50px",
+                  maxWidth: "80px",
                   textAlign: "center",
                 }}
               >
@@ -189,21 +209,6 @@ const TaskItem: React.FC<
               )}
             </div>
           )}
-          <div className="flex items-center space-x-1 md:space-x-2">
-            <button
-              onClick={() => onEdit?.(task.id)}
-              className="p-1 md:p-2 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
-              aria-label="Editar tarea"
-            >
-              <Icon name="pencil" className="h-3 w-3 md:h-4 md:w-4" />
-            </button>
-            <button
-              onClick={() => onDelete(task.id)}
-              className="p-1 md:p-2 rounded-md hover:bg-red-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
-            >
-              <Icon name="trash2" className="h-3 w-3 md:h-4 md:w-4" />
-            </button>
-          </div>
         </div>
       </div>
     </div>

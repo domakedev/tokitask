@@ -180,8 +180,8 @@ const DayView: React.FC<DayViewProps> = ({
               </span>{" "}
               para usar tu plantilla de &quot;Horario General&quot; y
               generar tu plan de hoy con IA. <br /> <br /> O crea tareas independientes.
-              <span className="inline-flex items-center justify-center rounded-full bg-emerald-500 w-4 h-4 md:w-6 md:h-6 ml-1 md:ml-2">
-                <Icon name="plus" className="text-slate-100 w-4 h-4" />
+              <span className="inline-flex items-center justify-center rounded-full bg-emerald-500 w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 ml-1 md:ml-2">
+                <Icon name="plus" className="text-slate-100 w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5" />
               </span>
             </p>
           </div>
