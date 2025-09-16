@@ -93,31 +93,31 @@ const GeneralView: React.FC<GeneralViewProps> = ({
 
   return (
     <div>
-      <header className="p-4 sm:p-6 space-y-4 sticky top-0 bg-slate-900/80 backdrop-blur-sm z-10">
+      <header className="p-2 md:p-4 space-y-2 md:space-y-4 sticky top-0 bg-slate-800/80 backdrop-blur-sm z-10">
         <div>
-          <h1 className="text-2xl font-bold text-white">Horario General</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-lg md:text-2xl font-bold text-white">Horario General</h1>
+          <p className="text-xs md:text-sm text-slate-400">
             Plantilla de tareas y configuración por día
           </p>
         </div>
-        <div className="p-4 bg-slate-800 rounded-lg">
+        <div className="p-2 md:p-4 bg-slate-800 rounded-lg">
           <label
             htmlFor="end-of-day"
-            className="block text-base font-semibold text-white mb-2"
+            className="block text-sm md:text-base font-semibold text-white mb-2"
           >
             Hora de finalización para todos los días
           </label>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 md:space-x-3">
             <input
               type="time"
               id="end-of-day"
               value={tempEndOfDay}
               onChange={(e) => setTempEndOfDay(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-slate-700 border border-slate-600 rounded-md py-1 px-2 md:py-2 md:px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
             <button
               onClick={handleSetEndOfDay}
-              className="bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-emerald-700"
+              className="bg-emerald-500 text-white font-semibold py-1 px-3 md:py-2 md:px-4 rounded-lg shadow-lg hover:bg-emerald-600 transition-colors duration-150 ease-in-out"
             >
               Actualizar
             </button>
@@ -125,7 +125,7 @@ const GeneralView: React.FC<GeneralViewProps> = ({
         </div>
         <WeekDayTabs activeTab={activeTab} onTabChange={handleTabChange} />
       </header>
-      <main className="px-4 sm:px-6 mt-4">
+      <main className="px-2 md:px-6 mt-2 md:mt-4">
         {activeTab !== WeekDay.All && <DayTaskNotice />}
         <TaskList
           tasks={currentTasks}
