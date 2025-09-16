@@ -16,6 +16,12 @@ import {
   Pause,
   StopCircle,
   Clock,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  Calendar,
+  CheckCircle,
+  TrendingUp,
 } from "lucide-react";
 
 interface IconProps {
@@ -40,6 +46,12 @@ const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> 
   pause: Pause,
   stop: StopCircle,
   clock: Clock,
+  chevronleft: ChevronLeft,
+  chevronright: ChevronRight,
+  flame: Flame,
+  calendar: Calendar,
+  checkcircle: CheckCircle,
+  trendingup: TrendingUp,
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {

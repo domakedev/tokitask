@@ -7,7 +7,8 @@ export enum Priority {
 export enum Page {
     Day = 'day',
     General = 'general',
-    Profile = 'profile'
+    Profile = 'profile',
+    Progress = 'progress'
 }
 
 export enum WeekDay {
@@ -67,4 +68,5 @@ export interface UserData {
     generalTasks: GeneralTask[];
     dayTasks: DayTask[];
     weeklyTasks: Record<WeekDay, GeneralTask[]>;
+    taskCompletions?: Record<string, string[]>; // taskId -> array of completion dates (ISO strings)
 }

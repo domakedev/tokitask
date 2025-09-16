@@ -114,22 +114,64 @@ export const useTaskManagement = (
       if (!userData) return;
       const prevUserData = { ...userData };
       try {
+        const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        const taskCompletions = userData.taskCompletions || {};
+
         if (currentPage === Page.Day) {
-          const updatedTasks = userData.dayTasks.map((t) =>
-            t.id === taskId ? { ...t, completed: !t.completed } : t
-          );
+          const updatedTasks = userData.dayTasks.map((t) => {
+            if (t.id === taskId) {
+              const wasCompleted = t.completed;
+              const newCompleted = !t.completed;
+
+              // Update completion history
+              if (newCompleted && !wasCompleted) {
+                // Task was just completed, add to history
+                taskCompletions[taskId] = [...(taskCompletions[taskId] || []), now];
+              } else if (!newCompleted && wasCompleted) {
+                // Task was uncompleted, remove from history if it was completed today
+                const completions = taskCompletions[taskId] || [];
+                const todayIndex = completions.indexOf(now);
+                if (todayIndex !== -1) {
+                  completions.splice(todayIndex, 1);
+                  taskCompletions[taskId] = completions;
+                }
+              }
+
+              return { ...t, completed: newCompleted };
+            }
+            return t;
+          });
           const updatedUserData = {
             ...userData,
             dayTasks: recalculateCurrentDayTask(updatedTasks),
+            taskCompletions,
           };
           setUserData(updatedUserData);
           await handleUpdateUserData(updatedUserData);
           showNotification("Estado de la tarea actualizado.", "success");
         } else {
-          const updatedTasks = userData.generalTasks.map((t) =>
-            t.id === taskId ? { ...t, completed: !t.completed } : t
-          );
-          const updatedUserData = { ...userData, generalTasks: updatedTasks };
+          const updatedTasks = userData.generalTasks.map((t) => {
+            if (t.id === taskId) {
+              const wasCompleted = t.completed;
+              const newCompleted = !t.completed;
+
+              // Update completion history
+              if (newCompleted && !wasCompleted) {
+                taskCompletions[taskId] = [...(taskCompletions[taskId] || []), now];
+              } else if (!newCompleted && wasCompleted) {
+                const completions = taskCompletions[taskId] || [];
+                const todayIndex = completions.indexOf(now);
+                if (todayIndex !== -1) {
+                  completions.splice(todayIndex, 1);
+                  taskCompletions[taskId] = completions;
+                }
+              }
+
+              return { ...t, completed: newCompleted };
+            }
+            return t;
+          });
+          const updatedUserData = { ...userData, generalTasks: updatedTasks, taskCompletions };
           setUserData(updatedUserData);
           await handleUpdateUserData(updatedUserData);
           showNotification("Estado de la tarea actualizado.", "success");

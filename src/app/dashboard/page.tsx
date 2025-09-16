@@ -9,6 +9,7 @@ import BottomNav from "../../components/BottomNav";
 import DayView from "../../components/DayView";
 import GeneralView from "../../components/GeneralView";
 import ProfileView from "../../components/ProfileView";
+import ProgressView from "../../components/ProgressView";
 import TaskModal from "../../components/AddTaskModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import NotificationToast from "../../components/NotificationToast";
@@ -151,6 +152,9 @@ export default function DashboardPage() {
 
     const prevUserData = { ...userData };
     try {
+      const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const taskCompletions = userData.taskCompletions || {};
+
       // Asegurar que weeklyTasks esté inicializado
       const currentWeeklyTasks = userData.weeklyTasks || {
         all: [],
@@ -164,9 +168,27 @@ export default function DashboardPage() {
       };
 
       const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
-      const updatedTasks = currentDayTasks.map(t =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t
-      );
+      const updatedTasks = currentDayTasks.map(t => {
+        if (t.id === taskId) {
+          const wasCompleted = t.completed;
+          const newCompleted = !t.completed;
+
+          // Update completion history
+          if (newCompleted && !wasCompleted) {
+            taskCompletions[taskId] = [...(taskCompletions[taskId] || []), now];
+          } else if (!newCompleted && wasCompleted) {
+            const completions = taskCompletions[taskId] || [];
+            const todayIndex = completions.indexOf(now);
+            if (todayIndex !== -1) {
+              completions.splice(todayIndex, 1);
+              taskCompletions[taskId] = completions;
+            }
+          }
+
+          return { ...t, completed: newCompleted };
+        }
+        return t;
+      });
 
       const updatedWeeklyTasks = {
         ...currentWeeklyTasks,
@@ -175,7 +197,8 @@ export default function DashboardPage() {
 
       const updatedUserData = {
         ...userData,
-        weeklyTasks: updatedWeeklyTasks
+        weeklyTasks: updatedWeeklyTasks,
+        taskCompletions
       };
 
       setUserData(updatedUserData);
@@ -431,6 +454,11 @@ export default function DashboardPage() {
     <ProfileView user={user} onSignOut={handleSignOutWithRedirect} />
   ), [user, handleSignOutWithRedirect]);
 
+  const progressViewComponent = useMemo(() => {
+    if (!userData) return null;
+    return <ProgressView userData={userData} />;
+  }, [userData]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
@@ -457,6 +485,7 @@ export default function DashboardPage() {
     <div className="max-w-2xl mx-auto pb-28">
       {currentPage === Page.Day && dayViewComponent}
       {currentPage === Page.General && generalViewComponent}
+      {currentPage === Page.Progress && progressViewComponent}
       {currentPage === Page.Profile && profileViewComponent}
 
       {currentPage !== Page.Profile && (
