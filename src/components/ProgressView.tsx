@@ -8,7 +8,7 @@ interface ProgressViewProps {
 }
 
 const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
-  const [selectedTaskProgressId, setSelectedTaskProgressId] = useState<string | null>(null);
+  const [selectedTaskProgressIds, setSelectedTaskProgressIds] = useState<string[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isAnimating, setIsAnimating] = useState(false);
@@ -46,50 +46,19 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
     return Array.from(taskMap.values());
   }, [userData]);
 
-  // Get completion dates for selected task (aggregate by progressId)
+  // Get completion dates for selected tasks (aggregate by progressId)
   const completionDates = useMemo(() => {
-    if (!selectedTaskProgressId) return [];
+    if (selectedTaskProgressIds.length === 0) return [];
 
-    const selectedTask = uniqueTasks.find(t => t.progressId === selectedTaskProgressId);
-    if (!selectedTask) return [];
-
-    // Find all tasks with the same name across all sources
-    const allTasksWithSameName: BaseTask[] = [];
-
-    // Check general tasks
-    userData.generalTasks.forEach(task => {
-      if (task.name === selectedTask.name) {
-        allTasksWithSameName.push(task);
-      }
-    });
-
-    // Check day tasks
-    userData.dayTasks.forEach(task => {
-      if (task.name === selectedTask.name) {
-        allTasksWithSameName.push(task);
-      }
-    });
-
-    // Check weekly tasks
-    Object.values(userData.weeklyTasks || {}).forEach(dayTasks => {
-      dayTasks.forEach(task => {
-        if (task.name === selectedTask.name) {
-          allTasksWithSameName.push(task);
-        }
-      });
-    });
-
-    // Aggregate all completion dates from tasks with the same progressId
     const allCompletionDates: string[] = [];
-    allTasksWithSameName.forEach(task => {
-      // Usar completions por progressId que son persistentes
-      const taskCompletions = taskCompletionsByProgressId[task.progressId] || [];
+    selectedTaskProgressIds.forEach(progressId => {
+      const taskCompletions = taskCompletionsByProgressId[progressId] || [];
       allCompletionDates.push(...taskCompletions);
     });
 
     // Remove duplicates and sort
     return [...new Set(allCompletionDates)].sort();
-  }, [selectedTaskProgressId, taskCompletionsByProgressId, userData.generalTasks, userData.dayTasks, userData.weeklyTasks, uniqueTasks]);
+  }, [selectedTaskProgressIds, taskCompletionsByProgressId]);
 
   // Generate calendar days for current month
   const calendarDays = useMemo(() => {
@@ -104,13 +73,19 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
     for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
       const dateStr = current.toISOString().split('T')[0];
       const isCurrentMonth = current.getMonth() === currentMonth;
-      const isCompleted = completionDates.includes(dateStr);
+      const completedTasks: string[] = [];
+      selectedTaskProgressIds.forEach(progressId => {
+        const taskCompletions = taskCompletionsByProgressId[progressId] || [];
+        if (taskCompletions.includes(dateStr)) {
+          completedTasks.push(progressId);
+        }
+      });
 
       days.push({
         date: new Date(current),
         dateStr,
         isCurrentMonth,
-        isCompleted,
+        completedTasks,
         day: current.getDate()
       });
 
@@ -118,18 +93,18 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
     }
 
     return days;
-  }, [currentMonth, currentYear, completionDates]);
+  }, [currentMonth, currentYear, selectedTaskProgressIds, taskCompletionsByProgressId]);
 
   // Calculate statistics
   const statistics = useMemo(() => {
-    if (!selectedTaskProgressId) return null;
+    if (selectedTaskProgressIds.length === 0) return null;
 
     const completions = completionDates;
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // Current streak
+    // Current streak (days where at least one selected task was completed)
     let streak = 0;
     const sortedCompletions = [...completions].sort().reverse();
     const today = now.toISOString().split('T')[0];
@@ -164,7 +139,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       daysInMonth,
       totalCompletions: completions.length
     };
-  }, [selectedTaskProgressId, completionDates]);
+  }, [selectedTaskProgressIds, completionDates]);
 
   // Generate unique color based on progressId with good contrast
   const getUniqueTaskColor = (progressId: string | undefined) => {
@@ -239,14 +214,20 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
     <div className="p-4 space-y-6">
       {/* Task Pills */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">Seleccionar Tarea</h2>
+        <h2 className="text-xl font-semibold text-white">Seleccionar Tareas</h2>
         <div className="flex flex-wrap justify-center mt-6 gap-2">
           {uniqueTasks.map(task => (
             <button
               key={task.id}
-              onClick={() => setSelectedTaskProgressId(selectedTaskProgressId === task.progressId ? null : task.progressId)}
+              onClick={() => {
+                setSelectedTaskProgressIds(prev =>
+                  prev.includes(task.progressId)
+                    ? prev.filter(id => id !== task.progressId)
+                    : [...prev, task.progressId]
+                );
+              }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedTaskProgressId === task.progressId
+                selectedTaskProgressIds.includes(task.progressId)
                   ? `${getUniqueTaskColor(task.progressId)} text-white shadow-lg`
                   : "bg-slate-700 text-slate-300 hover:bg-slate-600"
               }`}
@@ -258,7 +239,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       </div>
 
       {/* Calendar */}
-      {selectedTaskProgressId && (
+      {selectedTaskProgressIds.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <button
@@ -286,19 +267,39 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
               </div>
             ))}
             {calendarDays.map((day, index) => {
-              const selectedTask = uniqueTasks.find(t => t.progressId === selectedTaskProgressId);
+              const isToday = day.dateStr === new Date().toISOString().split('T')[0];
               return (
                 <div
                   key={`${currentMonth}-${currentYear}-${index}`}
-                  className={`p-2 text-center text-sm rounded-lg ${
+                  className={`p-2 text-center text-sm rounded-lg relative ${
                     day.isCurrentMonth
-                      ? day.isCompleted
-                        ? `${getUniqueTaskColor(selectedTask?.progressId || "")} text-white`
+                      ? day.completedTasks.length > 0
+                        ? "text-white"
                         : "bg-slate-700 text-slate-300"
                       : "bg-slate-800 text-slate-500"
-                  }`}
+                  } ${isToday ? "ring-2 ring-white ring-inset" : ""}`}
                 >
-                  {day.day}
+                  {day.completedTasks.length === 0 ? (
+                    day.day
+                  ) : day.completedTasks.length === 1 ? (
+                    <div className={`w-full h-full rounded-lg ${getUniqueTaskColor(day.completedTasks[0])} flex items-center justify-center`}>
+                      {day.day}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-full h-full flex gap-1 flex-wrap">
+                        {day.completedTasks.map((progressId) => (
+                          <div
+                            key={progressId}
+                            className={`${getUniqueTaskColor(progressId)} flex-1 rounded-lg min-w-2.5 min-h-2.5`}
+                          />
+                        ))}
+                      </div>
+                      <div className="absolute top-0 right-0 text-[12px] font-bold text-black bg-white bg-opacity-50 px-1 rounded">
+                        {day.day}
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
@@ -345,13 +346,13 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
           <div className="bg-slate-800 p-4 rounded-lg">
             <p className="text-white">
               {statistics.streak > 0 && (
-                <>¡Mantén la racha! Has completado esta tarea por {statistics.streak} días consecutivos.</>
+                <>¡Mantén la racha! Has completado al menos una de estas tareas por {statistics.streak} días consecutivos.</>
               )}
               {statistics.streak === 0 && statistics.totalCompletions > 0 && (
-                <>Has completado esta tarea {statistics.totalCompletions} veces. ¡Sigue adelante!</>
+                <>Has completado estas tareas {statistics.totalCompletions} veces en total. ¡Sigue adelante!</>
               )}
               {statistics.totalCompletions === 0 && (
-                <>Aún no has completado esta tarea. ¡Empieza hoy!</>
+                <>Aún no has completado estas tareas. ¡Empieza hoy!</>
               )}
             </p>
           </div>
