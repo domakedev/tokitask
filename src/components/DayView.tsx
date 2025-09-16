@@ -43,17 +43,17 @@ const DayView: React.FC<DayViewProps> = ({
 
   return (
     <div>
-      <header className="p-4 sm:p-6 space-y-4 sticky top-0 bg-slate-900/80 backdrop-blur-sm z-10">
+      <header className="p-2 md:p-4 space-y-2 md:space-y-4 sticky top-0 bg-slate-900/80 backdrop-blur-sm z-10">
         <div>
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-lg md:text-2xl font-bold text-white">
                 Mi día {getCurrentWeekDayName()}
               </h1>
               <CurrentDate />
             </div>
             <div className="text-right">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-1 sm:space-y-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 md:space-x-6 space-y-1 sm:space-y-0">
                 <div>
                   <p className="text-xs text-slate-400">Fin del día</p>
                   <p className="font-semibold text-emerald-400">
@@ -68,7 +68,7 @@ const DayView: React.FC<DayViewProps> = ({
             </div>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row justify-center items-center sm:space-x-3 gap-2">
+        <div className="flex flex-col sm:flex-row justify-center items-center sm:space-x-2 md:space-x-3 gap-2">
           <button
             onClick={onStartDay}
             disabled={isSyncing || (!userData.generalTasks?.length && !userData.weeklyTasks?.[getCurrentWeekDay()]?.length)}
@@ -128,16 +128,16 @@ const DayView: React.FC<DayViewProps> = ({
               }
             }
             .animate-gradient {
-              animation: gradientMove 20s ease-in-out infinite;
+              animation: gradientMove 10s ease-in-out infinite;
             }
           `}</style>
         </div>
       </header>
-      <main className="px-4 sm:px-6 mt-4">
+      <main className="px-2 md:px-6 mt-2 md:mt-4">
         {userData.dayTasks.length > 0 ? (
           <>
             {aiTip && (
-              <div className="mb-4">
+              <div className="mb-2 md:mb-4">
                 <AiTipCard tip={aiTip} onDismiss={onDismissAiTip} />
               </div>
             )}
@@ -153,54 +153,54 @@ const DayView: React.FC<DayViewProps> = ({
             {freeTime ? (
               <FreeTimeCard duration={freeTime} />
             ) : (
-              <div className="mt-4 p-4 rounded-lg border border-dashed border-slate-500/30 bg-slate-800/20 flex items-center space-x-4">
+              <div className="mt-2 md:mt-4 p-2 md:p-4 rounded-lg border border-dashed border-slate-500/30 bg-slate-800/20 flex items-center space-x-2 md:space-x-4">
                 <div className="flex-shrink-0">
-                  <Icon name="clock" className="h-6 w-6 text-slate-400" />
+                  <Icon name="clock" className="h-4 w-4 md:h-6 md:w-6 text-slate-400" />
                 </div>
                 <div className="flex-grow">
                   <p className="font-semibold text-white">Sin tiempo libre</p>
-                  <p className="text-sm text-slate-300">No hay tiempo libre disponible para hoy</p>
+                  <p className="text-xs md:text-sm text-slate-300">No hay tiempo libre disponible para hoy</p>
                 </div>
               </div>
             )}
           </>
         ) : userData.generalTasks.length > 0 ? (
-          <div className="text-center py-16 px-6 bg-slate-800/50 rounded-lg border border-slate-700">
+          <div className="text-center py-8 md:py-16 px-4 md:px-6 bg-slate-800/50 rounded-lg border border-slate-700">
             <Icon
               name="sunrise"
-              className="h-12 w-12 text-slate-500 mx-auto"
+              className="h-8 w-8 md:h-12 md:w-12 text-slate-500 mx-auto"
             />
-            <h2 className="mt-4 text-xl font-bold text-white">
+            <h2 className="mt-2 md:mt-4 text-lg md:text-xl font-bold text-white">
               ¿Listo para empezar?
             </h2>
-            <p className="mt-2 text-slate-400">
+            <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
               Haz clic en{" "}
               <span className="font-semibold text-emerald-400">
                 Clonar horario del día
               </span>{" "}
               para usar tu plantilla de &quot;Horario General&quot; y
               generar tu plan de hoy con IA. <br /> <br /> O crea tareas independientes.
-              <span className="inline-flex items-center justify-center rounded-full bg-emerald-600 w-6 h-6 ml-2">
+              <span className="inline-flex items-center justify-center rounded-full bg-emerald-500 w-4 h-4 md:w-6 md:h-6 ml-1 md:ml-2">
                 <Icon name="plus" className="text-slate-100 w-4 h-4" />
               </span>
             </p>
           </div>
         ) : (
-          <div className="text-center py-16 px-6 bg-slate-800/50 rounded-lg border border-slate-700">
+          <div className="text-center py-8 md:py-16 px-4 md:px-6 bg-slate-800/50 rounded-lg border border-slate-700">
             <Icon
               name="clipboard-list"
-              className="h-12 w-12 text-slate-500 mx-auto"
+              className="h-8 w-8 md:h-12 md:w-12 text-slate-500 mx-auto"
             />
-            <h2 className="mt-4 text-xl font-bold text-white">
+            <h2 className="mt-2 md:mt-4 text-lg md:text-xl font-bold text-white">
               Crea tu plantilla primero
             </h2>
-            <p className="mt-2 text-slate-400">
+            <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
               Para poder generar un horario, primero necesitas crear una
               plantilla de tareas en la sección &quot;General&quot;.
             </p>
             <button
               onClick={() => {}}
-              className="mt-6 bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-emerald-700"
+              className="mt-4 md:mt-6 bg-emerald-500 text-white font-semibold py-2 px-4 md:py-3 md:px-6 rounded-lg shadow-lg hover:bg-emerald-600 transition-colors duration-150 ease-in-out"
             >
               Ir a General para crear plantilla
             </button>
