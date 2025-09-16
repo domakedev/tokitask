@@ -135,11 +135,11 @@ const TaskItem: React.FC<
         </p>
         <div className="flex items-center text-xs text-slate-400 space-x-3 mb-2">
           <span className="bg-slate-700 rounded px-2 py-0.5">
-            Base: {task.baseDuration}
+            Tiempo normal: {task.baseDuration}
           </span>
           {isDaily && "aiDuration" in task && (
             <span className="bg-emerald-900/40 text-emerald-300 rounded px-2 py-0.5">
-              IA: {task.aiDuration}
+              Ajustado a tu día con IA: {task.aiDuration}
             </span>
           )}
           <span
