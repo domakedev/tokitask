@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BaseTask, Priority } from '../types';
+import { generateUniqueId } from '../utils/idGenerator';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -36,7 +37,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
         if (isEditing) {
             onSubmit({ ...taskToEdit, name, baseDuration: duration, priority });
         } else {
-            onSubmit({ name, baseDuration: duration, priority });
+            onSubmit({ name, baseDuration: duration, priority, progressId: generateUniqueId() });
         }
         onClose();
     };
