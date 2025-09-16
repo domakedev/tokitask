@@ -137,13 +137,15 @@ export default function DashboardPage() {
       await handleUpdateUserData(updatedUserData);
       setShowConfirmation(false);
       setTaskToDelete(null);
-      showNotification("Tarea eliminada.", "success");
+      const taskName = taskToDelete.name || "Tarea";
+      showNotification(`Se eliminó tarea "${taskName}" de la DB.`, "success");
     } catch (error) {
       console.error("Error en confirmDeleteWeekly:", error);
       setUserData(prevUserData);
       setShowConfirmation(false);
       setTaskToDelete(null);
-      showNotification("Error al eliminar la tarea. No se guardó en la base de datos.", "error");
+      const taskName = taskToDelete.name || "Tarea";
+      showNotification(`Error al eliminar tarea "${taskName}". No se guardó en la base de datos.`, "error");
     }
   }, [userData, taskToDelete, activeGeneralTab, setUserData, handleUpdateUserData, showNotification, setShowConfirmation, setTaskToDelete]);
 
@@ -215,11 +217,26 @@ export default function DashboardPage() {
 
       setUserData(updatedUserData);
       await handleUpdateUserData(updatedUserData);
-      showNotification("Estado de la tarea actualizado.", "success");
+      const foundTask = currentDayTasks.find(t => t.id === taskId);
+      const taskName = foundTask?.name || "Tarea";
+      showNotification(`Se actualizó estado de tarea "${taskName}" en la DB.`, "success");
     } catch (error) {
       console.error("Error toggling weekly task:", error);
       setUserData(prevUserData);
-      showNotification("Error al actualizar el estado de la tarea.", "error");
+      const currentWeeklyTasks = userData.weeklyTasks || {
+        all: [],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: []
+      };
+      const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
+      const foundTask = currentDayTasks.find(t => t.id === taskId);
+      const taskName = foundTask?.name || "Tarea";
+      showNotification(`Error al actualizar estado de tarea "${taskName}".`, "error");
     }
   }, [userData, activeGeneralTab, setUserData, handleUpdateUserData, showNotification]);
 
@@ -320,16 +337,16 @@ export default function DashboardPage() {
 
             setUserData(updatedUserData);
             await handleUpdateUserData(updatedUserData);
-            showNotification(
-              isEditing ? "Tarea actualizada." : "Tarea añadida correctamente.",
-              "success"
-            );
+            const taskName = "name" in task ? task.name : "Tarea";
+            const action = isEditing ? "actualizó" : "añadió";
+            showNotification(`Se ${action} tarea "${taskName}" en la DB.`, "success");
             setModalOpen(false);
             setEditingTask(null);
           } catch (error) {
             console.error("Error saving task for day:", error);
             setUserData(prevUserData);
-            showNotification("Error al guardar la tarea. No se guardó en la base de datos.", "error");
+            const taskName = "name" in task ? task.name : "Tarea";
+            showNotification(`Error al guardar tarea "${taskName}". No se guardó en la base de datos.`, "error");
           }
         }
       } else {

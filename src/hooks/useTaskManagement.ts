@@ -95,15 +95,15 @@ export const useTaskManagement = (
         await handleUpdateUserData(updatedUserData);
         setModalOpen(false);
         setEditingTask(null);
-        showNotification(
-          "id" in task ? "Tarea actualizada." : "Tarea añadida correctamente.",
-          "success"
-        );
+        const taskName = "name" in task ? task.name : "Tarea";
+        const action = "id" in task ? "actualizada" : "añadida";
+        showNotification(`Se ${action} tarea "${taskName}" en la DB.`, "success");
       } catch (error) {
         console.error("Error en handleSaveTask:", error);
         setUserData(prevUserData);
+        const taskName = "name" in task ? task.name : "Tarea";
         showNotification(
-          "Error al guardar la tarea. No se guardó en la base de datos.",
+          `Error al guardar tarea "${taskName}". No se guardó en la base de datos.`,
           "error"
         );
       }
@@ -167,7 +167,9 @@ export const useTaskManagement = (
           };
           setUserData(updatedUserData);
           await handleUpdateUserData(updatedUserData);
-          showNotification("Estado de la tarea actualizado.", "success");
+          const task = userData.dayTasks.find(t => t.id === taskId);
+          const taskName = task?.name || "Tarea";
+          showNotification(`Se actualizó estado de tarea "${taskName}" en la DB.`, "success");
         } else {
           const updatedTasks = userData.generalTasks.map((t) => {
             if (t.id === taskId) {
@@ -206,13 +208,23 @@ export const useTaskManagement = (
           };
           setUserData(updatedUserData);
           await handleUpdateUserData(updatedUserData);
-          showNotification("Estado de la tarea actualizado.", "success");
+          const task = userData.generalTasks.find(t => t.id === taskId);
+          const taskName = task?.name || "Tarea";
+          showNotification(`Se actualizó estado de tarea "${taskName}" en la DB.`, "success");
         }
       } catch (error) {
         console.error("Error en handleToggleComplete:", error);
         setUserData(prevUserData);
+        let taskName = "Tarea";
+        if (currentPage === Page.Day) {
+          const task = userData.dayTasks.find(t => t.id === taskId);
+          taskName = task?.name || "Tarea";
+        } else {
+          const task = userData.generalTasks.find(t => t.id === taskId);
+          taskName = task?.name || "Tarea";
+        }
         showNotification(
-          "Error al actualizar el estado de la tarea. No se guardó en la base de datos.",
+          `Error al actualizar estado de tarea "${taskName}". No se guardó en la base de datos.`,
           "error"
         );
       }
@@ -250,7 +262,8 @@ export const useTaskManagement = (
           await handleUpdateUserData(updatedUserData);
           setShowConfirmation(false);
           setTaskToDelete(null);
-          showNotification("Tarea eliminada.", "success");
+          const taskName = taskToDelete.name || "Tarea";
+          showNotification(`Se eliminó tarea "${taskName}" de la DB.`, "success");
         } else {
           const updatedTasks = userData.generalTasks.filter(
             (t) => t.id !== taskToDelete.id
@@ -260,15 +273,17 @@ export const useTaskManagement = (
           await handleUpdateUserData(updatedUserData);
           setShowConfirmation(false);
           setTaskToDelete(null);
-          showNotification("Tarea eliminada.", "success");
+          const taskName = taskToDelete.name || "Tarea";
+          showNotification(`Se eliminó tarea "${taskName}" de la DB.`, "success");
         }
       } catch (error) {
         console.error("Error en confirmDelete:", error);
         setUserData(prevUserData);
         setShowConfirmation(false);
         setTaskToDelete(null);
+        const taskName = taskToDelete.name || "Tarea";
         showNotification(
-          "Error al eliminar la tarea. No se guardó en la base de datos.",
+          `Error al eliminar tarea "${taskName}". No se guardó en la base de datos.`,
           "error"
         );
       }
