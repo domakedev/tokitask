@@ -5,6 +5,7 @@ import { Page, WeekDay, BaseTask, GeneralTask } from "../../types";
 import { useAuth } from "../../hooks/useAuth";
 import { useTaskManagement } from "../../hooks/useTaskManagement";
 import { useAiSync } from "../../hooks/useAiSync";
+import { toast } from "react-toastify";
 import BottomNav from "../../components/BottomNav";
 import DayView from "../../components/DayView";
 import GeneralView from "../../components/GeneralView";
@@ -12,28 +13,29 @@ import ProfileView from "../../components/ProfileView";
 import ProgressView from "../../components/ProgressView";
 import TaskModal from "../../components/AddTaskModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
-import NotificationToast from "../../components/NotificationToast";
 import FirebaseErrorScreen from "../../components/FirebaseErrorScreen";
 import Icon from "../../components/Icon";
 import { generateTaskId } from "../../utils/idGenerator";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, userData, loading, authError, handleSignOut, setUserData } = useAuth();
-
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const { user, userData, loading, authError, handleSignOut, setUserData } =
+    useAuth();
 
   // Estado para trackear la pestaña activa en General
-  const [activeGeneralTab, setActiveGeneralTab] = useState<WeekDay>(WeekDay.All);
+  const [activeGeneralTab, setActiveGeneralTab] = useState<WeekDay>(
+    WeekDay.All
+  );
 
   const [showClearConfirmation, setShowClearConfirmation] = useState(false);
 
   const showNotification = useCallback(
     (message: string, type: "success" | "error" = "success") => {
-      setNotification({ message, type });
+      if (type === "success") {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
     },
     []
   );
@@ -65,39 +67,47 @@ export default function DashboardPage() {
   }, []);
 
   // Funciones específicas para manejar tareas de weeklyTasks
-  const handleEditWeeklyTask = useCallback((taskId: string) => {
-    if (!userData?.weeklyTasks?.[activeGeneralTab]) return;
+  const handleEditWeeklyTask = useCallback(
+    (taskId: string) => {
+      if (!userData?.weeklyTasks?.[activeGeneralTab]) return;
 
-    const task = userData.weeklyTasks[activeGeneralTab].find(t => t.id === taskId);
-    if (task) {
-      setEditingTask(task);
-      setModalOpen(true);
-    }
-  }, [userData, activeGeneralTab, setEditingTask, setModalOpen]);
+      const task = userData.weeklyTasks[activeGeneralTab].find(
+        (t) => t.id === taskId
+      );
+      if (task) {
+        setEditingTask(task);
+        setModalOpen(true);
+      }
+    },
+    [userData, activeGeneralTab, setEditingTask, setModalOpen]
+  );
 
-  const handleDeleteWeeklyTask = useCallback(async (taskId: string) => {
-    if (!userData) return;
+  const handleDeleteWeeklyTask = useCallback(
+    async (taskId: string) => {
+      if (!userData) return;
 
-    // Asegurar que weeklyTasks esté inicializado
-    const currentWeeklyTasks = userData.weeklyTasks || {
-      all: [],
-      monday: [],
-      tuesday: [],
-      wednesday: [],
-      thursday: [],
-      friday: [],
-      saturday: [],
-      sunday: []
-    };
+      // Asegurar que weeklyTasks esté inicializado
+      const currentWeeklyTasks = userData.weeklyTasks || {
+        all: [],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: [],
+      };
 
-    const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
-    const task = currentDayTasks.find(t => t.id === taskId);
+      const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
+      const task = currentDayTasks.find((t) => t.id === taskId);
 
-    if (task) {
-      setTaskToDelete(task);
-      setShowConfirmation(true);
-    }
-  }, [userData, activeGeneralTab, setTaskToDelete, setShowConfirmation]);
+      if (task) {
+        setTaskToDelete(task);
+        setShowConfirmation(true);
+      }
+    },
+    [userData, activeGeneralTab, setTaskToDelete, setShowConfirmation]
+  );
 
   // Función específica para confirmar eliminación de tareas semanales
   const confirmDeleteWeekly = useCallback(async () => {
@@ -114,7 +124,7 @@ export default function DashboardPage() {
         thursday: [],
         friday: [],
         saturday: [],
-        sunday: []
+        sunday: [],
       };
 
       // Filtrar la tarea específica del día activo
@@ -125,12 +135,12 @@ export default function DashboardPage() {
 
       const updatedWeeklyTasks = {
         ...currentWeeklyTasks,
-        [activeGeneralTab]: updatedTasks
+        [activeGeneralTab]: updatedTasks,
       };
 
       const updatedUserData = {
         ...userData,
-        weeklyTasks: updatedWeeklyTasks
+        weeklyTasks: updatedWeeklyTasks,
       };
 
       setUserData(updatedUserData);
@@ -138,143 +148,181 @@ export default function DashboardPage() {
       setShowConfirmation(false);
       setTaskToDelete(null);
       const taskName = taskToDelete.name || "Tarea";
-      showNotification(`Se eliminó tarea "${taskName}" de la DB.`, "success");
+      toast.success(`Se eliminó tarea "${taskName}" de la DB.`);
     } catch (error) {
       console.error("Error en confirmDeleteWeekly:", error);
       setUserData(prevUserData);
       setShowConfirmation(false);
       setTaskToDelete(null);
       const taskName = taskToDelete.name || "Tarea";
-      showNotification(`Error al eliminar tarea "${taskName}". No se guardó en la base de datos.`, "error");
+      toast.error(
+        `Error al eliminar tarea "${taskName}". No se guardó en la base de datos.`
+      );
     }
-  }, [userData, taskToDelete, activeGeneralTab, setUserData, handleUpdateUserData, showNotification, setShowConfirmation, setTaskToDelete]);
+  }, [
+    userData,
+    taskToDelete,
+    activeGeneralTab,
+    setUserData,
+    handleUpdateUserData,
+    showNotification,
+    setShowConfirmation,
+    setTaskToDelete,
+  ]);
 
-  const handleToggleWeeklyTask = useCallback(async (taskId: string) => {
-    if (!userData) return;
+  const handleToggleWeeklyTask = useCallback(
+    async (taskId: string) => {
+      if (!userData) return;
 
-    const prevUserData = { ...userData };
-    try {
-      const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
+      const prevUserData = { ...userData };
+      try {
+        const now = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+        const taskCompletionsByProgressId =
+          userData.taskCompletionsByProgressId || {};
 
-      // Asegurar que weeklyTasks esté inicializado
-      const currentWeeklyTasks = userData.weeklyTasks || {
-        all: [],
-        monday: [],
-        tuesday: [],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        saturday: [],
-        sunday: []
-      };
+        // Asegurar que weeklyTasks esté inicializado
+        const currentWeeklyTasks = userData.weeklyTasks || {
+          all: [],
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+          saturday: [],
+          sunday: [],
+        };
 
-      const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
-      const task = currentDayTasks.find(t => t.id === taskId);
-      const taskProgressId = task?.progressId || "";
+        const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
+        const task = currentDayTasks.find((t) => t.id === taskId);
+        const taskProgressId = task?.progressId || "";
 
-      const updatedTasks = currentDayTasks.map(t => {
-        if (t.id === taskId) {
-          const wasCompleted = t.completed;
-          const newCompleted = !t.completed;
+        const updatedTasks = currentDayTasks.map((t) => {
+          if (t.id === taskId) {
+            const wasCompleted = t.completed;
+            const newCompleted = !t.completed;
 
-          // Update completion history by progressId (persistent)
-          if (newCompleted && !wasCompleted) {
-            if (taskProgressId) {
-              const currentCompletions = taskCompletionsByProgressId[taskProgressId] || [];
-              // Only add if this date doesn't already exist
-              if (!currentCompletions.includes(now)) {
-                taskCompletionsByProgressId[taskProgressId] = [...currentCompletions, now];
+            // Update completion history by progressId (persistent)
+            if (newCompleted && !wasCompleted) {
+              if (taskProgressId) {
+                const currentCompletions =
+                  taskCompletionsByProgressId[taskProgressId] || [];
+                // Only add if this date doesn't already exist
+                if (!currentCompletions.includes(now)) {
+                  taskCompletionsByProgressId[taskProgressId] = [
+                    ...currentCompletions,
+                    now,
+                  ];
+                }
+              }
+            } else if (!newCompleted && wasCompleted) {
+              // Remove from progressId-based completions
+              if (taskProgressId) {
+                const progressIdCompletions =
+                  taskCompletionsByProgressId[taskProgressId] || [];
+                const todayIndex = progressIdCompletions.indexOf(now);
+                if (todayIndex !== -1) {
+                  progressIdCompletions.splice(todayIndex, 1);
+                  taskCompletionsByProgressId[taskProgressId] =
+                    progressIdCompletions;
+                }
               }
             }
-          } else if (!newCompleted && wasCompleted) {
-            // Remove from progressId-based completions
-            if (taskProgressId) {
-              const progressIdCompletions = taskCompletionsByProgressId[taskProgressId] || [];
-              const todayIndex = progressIdCompletions.indexOf(now);
-              if (todayIndex !== -1) {
-                progressIdCompletions.splice(todayIndex, 1);
-                taskCompletionsByProgressId[taskProgressId] = progressIdCompletions;
-              }
-            }
+
+            return { ...t, completed: newCompleted };
           }
+          return t;
+        });
 
-          return { ...t, completed: newCompleted };
-        }
-        return t;
-      });
+        const updatedWeeklyTasks = {
+          ...currentWeeklyTasks,
+          [activeGeneralTab]: updatedTasks,
+        };
 
-      const updatedWeeklyTasks = {
-        ...currentWeeklyTasks,
-        [activeGeneralTab]: updatedTasks
-      };
+        const updatedUserData = {
+          ...userData,
+          weeklyTasks: updatedWeeklyTasks,
+          taskCompletionsByProgressId,
+        };
 
-      const updatedUserData = {
-        ...userData,
-        weeklyTasks: updatedWeeklyTasks,
-        taskCompletionsByProgressId,
-      };
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+        const foundTask = currentDayTasks.find((t) => t.id === taskId);
+        const taskName = foundTask?.name || "Tarea";
+        toast.success(
+          `Se actualizó estado de tarea "${taskName}" en la base de datos.`
+        );
+      } catch (error) {
+        console.error("Error toggling weekly task:", error);
+        setUserData(prevUserData);
+        const currentWeeklyTasks = userData.weeklyTasks || {
+          all: [],
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+          saturday: [],
+          sunday: [],
+        };
+        const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
+        const foundTask = currentDayTasks.find((t) => t.id === taskId);
+        const taskName = foundTask?.name || "Tarea";
+        toast.error(`Error al actualizar estado de tarea "${taskName}".`);
+      }
+    },
+    [
+      userData,
+      activeGeneralTab,
+      setUserData,
+      handleUpdateUserData,
+      showNotification,
+    ]
+  );
 
-      setUserData(updatedUserData);
-      await handleUpdateUserData(updatedUserData);
-      const foundTask = currentDayTasks.find(t => t.id === taskId);
-      const taskName = foundTask?.name || "Tarea";
-      showNotification(`Se actualizó estado de tarea "${taskName}" en la DB.`, "success");
-    } catch (error) {
-      console.error("Error toggling weekly task:", error);
-      setUserData(prevUserData);
-      const currentWeeklyTasks = userData.weeklyTasks || {
-        all: [],
-        monday: [],
-        tuesday: [],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        saturday: [],
-        sunday: []
-      };
-      const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
-      const foundTask = currentDayTasks.find(t => t.id === taskId);
-      const taskName = foundTask?.name || "Tarea";
-      showNotification(`Error al actualizar estado de tarea "${taskName}".`, "error");
-    }
-  }, [userData, activeGeneralTab, setUserData, handleUpdateUserData, showNotification]);
+  const handleReorderWeeklyTasks = useCallback(
+    async (reorderedTasks: GeneralTask[]) => {
+      if (!userData) return;
 
-  const handleReorderWeeklyTasks = useCallback(async (reorderedTasks: GeneralTask[]) => {
-    if (!userData) return;
+      const prevUserData = { ...userData };
+      try {
+        // Asegurar que weeklyTasks esté inicializado
+        const currentWeeklyTasks = userData.weeklyTasks || {
+          all: [],
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+          saturday: [],
+          sunday: [],
+        };
 
-    const prevUserData = { ...userData };
-    try {
-      // Asegurar que weeklyTasks esté inicializado
-      const currentWeeklyTasks = userData.weeklyTasks || {
-        all: [],
-        monday: [],
-        tuesday: [],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        saturday: [],
-        sunday: []
-      };
+        const updatedWeeklyTasks = {
+          ...currentWeeklyTasks,
+          [activeGeneralTab]: reorderedTasks,
+        };
 
-      const updatedWeeklyTasks = {
-        ...currentWeeklyTasks,
-        [activeGeneralTab]: reorderedTasks
-      };
+        const updatedUserData = {
+          ...userData,
+          weeklyTasks: updatedWeeklyTasks,
+        };
 
-      const updatedUserData = {
-        ...userData,
-        weeklyTasks: updatedWeeklyTasks
-      };
-
-      setUserData(updatedUserData);
-      await handleUpdateUserData(updatedUserData);
-    } catch (error) {
-      console.error("Error reordering weekly tasks:", error);
-      setUserData(prevUserData);
-      showNotification("Error al reordenar las tareas.", "error");
-    }
-  }, [userData, activeGeneralTab, setUserData, handleUpdateUserData, showNotification]);
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+      } catch (error) {
+        console.error("Error reordering weekly tasks:", error);
+        setUserData(prevUserData);
+        toast.error("Error al reordenar las tareas.");
+      }
+    },
+    [
+      userData,
+      activeGeneralTab,
+      setUserData,
+      handleUpdateUserData,
+      showNotification,
+    ]
+  );
 
   // Función para guardar tareas contextual según la pestaña activa
   const handleSaveTaskContextual = useCallback(
@@ -300,7 +348,7 @@ export default function DashboardPage() {
               thursday: [],
               friday: [],
               saturday: [],
-              sunday: []
+              sunday: [],
             };
 
             const currentTasks = currentWeeklyTasks[activeGeneralTab] || [];
@@ -308,12 +356,17 @@ export default function DashboardPage() {
 
             if (isEditing) {
               // Editar tarea existente - filtrar y reemplazar para evitar duplicados
-              const filteredTasks = currentTasks.filter(t => t.id !== task.id);
-              const existingTask = currentTasks.find(t => t.id === task.id);
-              updatedTasks = [...filteredTasks, {
-                ...task,
-                completed: existingTask?.completed ?? false
-              } as GeneralTask];
+              const filteredTasks = currentTasks.filter(
+                (t) => t.id !== task.id
+              );
+              const existingTask = currentTasks.find((t) => t.id === task.id);
+              updatedTasks = [
+                ...filteredTasks,
+                {
+                  ...task,
+                  completed: existingTask?.completed ?? false,
+                } as GeneralTask,
+              ];
             } else {
               // Crear nueva tarea - agregar al final con ID único
               const newTask = {
@@ -339,14 +392,18 @@ export default function DashboardPage() {
             await handleUpdateUserData(updatedUserData);
             const taskName = "name" in task ? task.name : "Tarea";
             const action = isEditing ? "actualizó" : "añadió";
-            showNotification(`Se ${action} tarea "${taskName}" en la DB.`, "success");
+            toast.success(
+              `Se ${action} tarea "${taskName}" en la base de datos.`
+            );
             setModalOpen(false);
             setEditingTask(null);
           } catch (error) {
             console.error("Error saving task for day:", error);
             setUserData(prevUserData);
             const taskName = "name" in task ? task.name : "Tarea";
-            showNotification(`Error al guardar tarea "${taskName}". No se guardó en la base de datos.`, "error");
+            toast.error(
+              `Error al guardar tarea "${taskName}". No se guardó en la base de datos.`
+            );
           }
         }
       } else {
@@ -354,7 +411,17 @@ export default function DashboardPage() {
         await handleSaveTask(task);
       }
     },
-    [currentPage, activeGeneralTab, userData, handleSaveTask, handleUpdateUserData, setUserData, showNotification, setModalOpen, setEditingTask]
+    [
+      currentPage,
+      activeGeneralTab,
+      userData,
+      handleSaveTask,
+      handleUpdateUserData,
+      setUserData,
+      showNotification,
+      setModalOpen,
+      setEditingTask,
+    ]
   );
 
   const {
@@ -378,13 +445,12 @@ export default function DashboardPage() {
     try {
       const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
       await handleUpdateUserData(updatedUserData);
-      showNotification("Hora de fin del día actualizada.", "success");
+      toast.success("Hora de fin del día actualizada.");
     } catch (error) {
       console.error("Error en handleSetEndOfDayGeneral:", error);
       await handleUpdateUserData(prevUserData);
-      showNotification(
-        "Error al actualizar la hora de fin del día. Los cambios han sido revertidos.",
-        "error"
+      toast.error(
+        "Error al actualizar la hora de fin del día. Los cambios han sido revertidos."
       );
     }
   }, [userData, tempEndOfDay, handleUpdateUserData, showNotification]);
@@ -450,7 +516,23 @@ export default function DashboardPage() {
         onDismissAiTip={() => setAiTip(null)}
       />
     );
-  }, [userData, isSyncing, aiTip, freeTime, handleShowCloneConfirmation, syncWithAI, handleToggleComplete, handleDeleteTask, handleReorderTasks, handleEditTask, handleUpdateAiDuration, handleSetEndOfDay, tempEndOfDay, setTempEndOfDay, setAiTip]);
+  }, [
+    userData,
+    isSyncing,
+    aiTip,
+    freeTime,
+    handleShowCloneConfirmation,
+    syncWithAI,
+    handleToggleComplete,
+    handleDeleteTask,
+    handleReorderTasks,
+    handleEditTask,
+    handleUpdateAiDuration,
+    handleSetEndOfDay,
+    tempEndOfDay,
+    setTempEndOfDay,
+    setAiTip,
+  ]);
 
   const generalViewComponent = useMemo(() => {
     if (!userData) return null;
@@ -473,16 +555,34 @@ export default function DashboardPage() {
         onTabChange={handleGeneralTabChange}
       />
     );
-  }, [userData, handleSaveTask, handleSaveTaskContextual, handleDeleteTask, handleDeleteWeeklyTask, handleReorderTasks, handleReorderWeeklyTasks, handleEditTask, handleEditWeeklyTask, handleToggleComplete, handleToggleWeeklyTask, handleSetEndOfDayGeneral, tempEndOfDay, setTempEndOfDay, handleGeneralTabChange, confirmDeleteWeekly]);
+  }, [
+    userData,
+    handleSaveTask,
+    handleSaveTaskContextual,
+    handleDeleteTask,
+    handleDeleteWeeklyTask,
+    handleReorderTasks,
+    handleReorderWeeklyTasks,
+    handleEditTask,
+    handleEditWeeklyTask,
+    handleToggleComplete,
+    handleToggleWeeklyTask,
+    handleSetEndOfDayGeneral,
+    tempEndOfDay,
+    setTempEndOfDay,
+    handleGeneralTabChange,
+    confirmDeleteWeekly,
+  ]);
 
   const handleSignOutWithRedirect = useCallback(async () => {
     await handleSignOut();
     router.push("/");
   }, [handleSignOut, router]);
 
-  const profileViewComponent = useMemo(() => (
-    <ProfileView user={user} onSignOut={handleSignOutWithRedirect} />
-  ), [user, handleSignOutWithRedirect]);
+  const profileViewComponent = useMemo(
+    () => <ProfileView user={user} onSignOut={handleSignOutWithRedirect} />,
+    [user, handleSignOutWithRedirect]
+  );
 
   const progressViewComponent = useMemo(() => {
     if (!userData) return null;
@@ -500,7 +600,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
 
   if (authError) {
     return <FirebaseErrorScreen />;
@@ -529,7 +628,10 @@ export default function DashboardPage() {
                 onClick={() => setShowClearConfirmation(true)}
                 className="w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-150 ease-in-out mb-1 md:mb-2 flex items-center justify-center"
               >
-                <Icon name="trash2" className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
+                <Icon
+                  name="trash2"
+                  className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6"
+                />
               </button>
               <span
                 className="w-full mb-2 md:mb-4 bg-red-500 text-white sm:text-xs font-medium px-1 py-0.5 sm:px-2 sm:py-1 rounded-full shadow  text-[10px] text-center"
@@ -567,7 +669,11 @@ export default function DashboardPage() {
             setModalOpen(false);
             setEditingTask(null);
           }}
-          onSubmit={currentPage === Page.General ? handleSaveTaskContextual : handleSaveTask}
+          onSubmit={
+            currentPage === Page.General
+              ? handleSaveTaskContextual
+              : handleSaveTask
+          }
           taskToEdit={editingTask}
         />
       )}
@@ -578,9 +684,9 @@ export default function DashboardPage() {
           onCancel={() => setShowConfirmation(false)}
           onConfirm={() => {
             // Determinar si es una tarea semanal o general/diaria
-            const isWeeklyTask = userData?.weeklyTasks?.[activeGeneralTab]?.some(
-              t => t.id === taskToDelete.id
-            );
+            const isWeeklyTask = userData?.weeklyTasks?.[
+              activeGeneralTab
+            ]?.some((t) => t.id === taskToDelete.id);
 
             if (isWeeklyTask) {
               confirmDeleteWeekly();
@@ -613,14 +719,6 @@ export default function DashboardPage() {
           }}
           title="¿Limpiar todas las tareas del día?"
           message="Esto eliminará permanentemente todas las tareas del día actual. ¿Estás seguro?"
-        />
-      )}
-
-      {notification && (
-        <NotificationToast
-          message={notification.message}
-          type={notification.type}
-          onDismiss={() => setNotification(null)}
         />
       )}
 
