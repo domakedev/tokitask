@@ -202,11 +202,11 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
   ];
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-2 md:p-4 space-y-2 md:space-y-6">
       {/* Task Pills */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-white">Seleccionar Tareas</h2>
-        <div className="flex flex-wrap justify-center mt-6 gap-2">
+      <div className="space-y-2 md:space-y-4">
+        <h2 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Tareas disponibles</h2>
+        <div className="flex flex-wrap justify-center mt-4 md:mt-6 gap-1 md:gap-2">
           {uniqueTasks.map(task => (
             <button
               key={task.id}
@@ -217,10 +217,10 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
                     : [...prev, task.progressId]
                 );
               }}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-colors duration-150 ease-in-out ${
                 selectedTaskProgressIds.includes(task.progressId)
                   ? `${getUniqueTaskColor(task.id)} text-white shadow-lg`
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                  : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white"
               }`}
             >
               {task.name}
@@ -231,29 +231,29 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
 
       {/* Calendar */}
       {selectedTaskProgressIds.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-2 md:space-y-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigateMonth('prev')}
-              className="p-2 text-slate-400 hover:text-white"
+              className="p-2 text-slate-400 hover:text-white transition-colors duration-150 ease-in-out rounded-lg hover:bg-slate-700"
             >
-              <Icon name="chevronLeft" className="h-5 w-5 text-white" />
+              <Icon name="chevronLeft" className="h-5 w-5" />
             </button>
-            <h3 className="text-lg font-semibold text-white">
+            <h3 className="text-sm md:text-lg lg:text-xl font-semibold text-white">
               {monthNames[currentMonth]} {currentYear}
             </h3>
             <button
               onClick={() => navigateMonth('next')}
-              className="p-2 text-slate-400 hover:text-white"
+              className="p-2 text-slate-400 hover:text-white transition-colors duration-150 ease-in-out rounded-lg hover:bg-slate-700"
             >
               <Icon name="chevronRight" className="h-5 w-5" />
             </button>
           </div>
 
           {/* Calendar Grid */}
-          <div className={`grid grid-cols-7 gap-1 transition-opacity duration-150 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
+          <div className={`grid grid-cols-7 gap-1 md:gap-2 transition-opacity duration-150 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
             {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
-              <div key={day} className="p-2 text-center text-sm font-medium text-slate-400">
+              <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-slate-400">
                 {day}
               </div>
             ))}
@@ -262,13 +262,13 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
               return (
                 <div
                   key={`${currentMonth}-${currentYear}-${index}`}
-                  className={`p-2 text-center text-sm rounded-lg relative ${
+                  className={`p-1 md:p-2 text-center text-xs md:text-sm rounded-lg relative transition-colors duration-150 ease-in-out ${
                     day.isCurrentMonth
                       ? day.completedTasks.length > 0
                         ? "text-white"
-                        : "bg-slate-700 text-slate-300"
+                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
                       : "bg-slate-800 text-slate-500"
-                  } ${isToday ? "ring-2 ring-emerald-400 ring-inset" : ""}`}
+                  } ${isToday ? "ring-2 ring-white ring-inset" : ""}`}
                 >
                   {day.completedTasks.length === 0 ? (
                     day.day
@@ -300,42 +300,42 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
 
       {/* Statistics */}
       {statistics && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-white">Estadísticas</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-800 p-4 rounded-lg">
+        <div className="space-y-2 md:space-y-4">
+          <h3 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Estadísticas</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
+            <div className="bg-slate-800 p-3 md:p-4 rounded-lg shadow-lg">
               <div className="flex items-center space-x-2">
-                <Icon name="flame" className="h-6 w-6 text-orange-500" />
+                <Icon name="flame" className="h-5 md:h-6 w-5 md:w-6 text-orange-500" />
                 <div>
-                  <p className="text-2xl font-bold text-white">{statistics.streak}</p>
-                  <p className="text-sm text-slate-400">Días de racha</p>
+                  <p className="text-lg md:text-2xl font-bold text-white">{statistics.streak}</p>
+                  <p className="text-xs md:text-sm text-slate-400">Días de racha</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800 p-4 rounded-lg">
+            <div className="bg-slate-800 p-3 md:p-4 rounded-lg shadow-lg">
               <div className="flex items-center space-x-2">
-                <Icon name="calendar" className="h-6 w-6 text-blue-500" />
+                <Icon name="calendar" className="h-5 md:h-6 w-5 md:w-6 text-blue-500" />
                 <div>
-                  <p className="text-2xl font-bold text-white">{statistics.monthlyCompletions}</p>
-                  <p className="text-sm text-slate-400">Completadas este mes</p>
+                  <p className="text-lg md:text-2xl font-bold text-white">{statistics.monthlyCompletions}</p>
+                  <p className="text-xs md:text-sm text-slate-400">Completadas este mes</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800 p-4 rounded-lg">
+            <div className="bg-slate-800 p-3 md:p-4 rounded-lg shadow-lg col-span-2 md:col-span-1">
               <div className="flex items-center space-x-2">
-                <Icon name="checkCircle" className="h-6 w-6 text-green-500" />
+                <Icon name="checkCircle" className="h-5 md:h-6 w-5 md:w-6 text-emerald-500" />
                 <div>
-                  <p className="text-2xl font-bold text-white">{statistics.totalCompletions}</p>
-                  <p className="text-sm text-slate-400">Total completadas</p>
+                  <p className="text-lg md:text-2xl font-bold text-white">{statistics.totalCompletions}</p>
+                  <p className="text-xs md:text-sm text-slate-400">Total completadas</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <p className="text-white">
+          <div className="bg-slate-800 p-3 md:p-4 rounded-lg shadow-lg">
+            <p className="text-sm md:text-base text-white">
               {statistics.streak > 0 && (
                 <>¡Mantén la racha! Has completado al menos una de estas tareas por {statistics.streak} días consecutivos.</>
               )}
