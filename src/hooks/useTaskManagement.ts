@@ -136,7 +136,11 @@ export const useTaskManagement = (
               // Update completion history by name (persistent)
               if (newCompleted && !wasCompleted) {
                 if (taskName) {
-                  taskCompletionsByName[taskName] = [...(taskCompletionsByName[taskName] || []), now];
+                  const currentCompletions = taskCompletionsByName[taskName] || [];
+                  // Only add if this date doesn't already exist
+                  if (!currentCompletions.includes(now)) {
+                    taskCompletionsByName[taskName] = [...currentCompletions, now];
+                  }
                 }
               } else if (!newCompleted && wasCompleted) {
                 // Remove from name-based completions
@@ -171,7 +175,11 @@ export const useTaskManagement = (
               // Update completion history by name (persistent)
               if (newCompleted && !wasCompleted) {
                 if (taskName) {
-                  taskCompletionsByName[taskName] = [...(taskCompletionsByName[taskName] || []), now];
+                  const currentCompletions = taskCompletionsByName[taskName] || [];
+                  // Only add if this date doesn't already exist
+                  if (!currentCompletions.includes(now)) {
+                    taskCompletionsByName[taskName] = [...currentCompletions, now];
+                  }
                 }
               } else if (!newCompleted && wasCompleted) {
                 // Remove from name-based completions
