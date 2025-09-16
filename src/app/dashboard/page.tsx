@@ -153,7 +153,7 @@ export default function DashboardPage() {
     const prevUserData = { ...userData };
     try {
       const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      const taskCompletions = userData.taskCompletions || {};
+      const taskCompletionsByName = userData.taskCompletionsByName || {};
 
       // Asegurar que weeklyTasks esté inicializado
       const currentWeeklyTasks = userData.weeklyTasks || {
@@ -168,20 +168,28 @@ export default function DashboardPage() {
       };
 
       const currentDayTasks = currentWeeklyTasks[activeGeneralTab] || [];
+      const task = currentDayTasks.find(t => t.id === taskId);
+      const taskName = task?.name || "";
+
       const updatedTasks = currentDayTasks.map(t => {
         if (t.id === taskId) {
           const wasCompleted = t.completed;
           const newCompleted = !t.completed;
 
-          // Update completion history
+          // Update completion history by name (persistent)
           if (newCompleted && !wasCompleted) {
-            taskCompletions[taskId] = [...(taskCompletions[taskId] || []), now];
+            if (taskName) {
+              taskCompletionsByName[taskName] = [...(taskCompletionsByName[taskName] || []), now];
+            }
           } else if (!newCompleted && wasCompleted) {
-            const completions = taskCompletions[taskId] || [];
-            const todayIndex = completions.indexOf(now);
-            if (todayIndex !== -1) {
-              completions.splice(todayIndex, 1);
-              taskCompletions[taskId] = completions;
+            // Remove from name-based completions
+            if (taskName) {
+              const nameCompletions = taskCompletionsByName[taskName] || [];
+              const nameTodayIndex = nameCompletions.indexOf(now);
+              if (nameTodayIndex !== -1) {
+                nameCompletions.splice(nameTodayIndex, 1);
+                taskCompletionsByName[taskName] = nameCompletions;
+              }
             }
           }
 
@@ -198,7 +206,7 @@ export default function DashboardPage() {
       const updatedUserData = {
         ...userData,
         weeklyTasks: updatedWeeklyTasks,
-        taskCompletions
+        taskCompletionsByName,
       };
 
       setUserData(updatedUserData);

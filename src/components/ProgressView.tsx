@@ -8,39 +8,88 @@ interface ProgressViewProps {
 }
 
 const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Get all tasks - only day tasks and weekly tasks (no general tasks)
-  const allTasks = useMemo(() => {
-    const tasks: BaseTask[] = [];
-    // Add day tasks
-    tasks.push(...userData.dayTasks);
-    // Add weekly tasks
-    Object.values(userData.weeklyTasks || {}).forEach(dayTasks => {
-      tasks.push(...dayTasks);
-    });
-    return tasks;
-  }, [userData]);
+  // Usar completions por nombre que son persistentes
+  const taskCompletionsByName = userData.taskCompletionsByName || {};
 
-  // Get unique tasks for pills
+  // Get unique tasks by name (not by ID) to avoid duplicates
   const uniqueTasks = useMemo(() => {
     const taskMap = new Map<string, BaseTask>();
-    allTasks.forEach(task => {
-      if (!taskMap.has(task.id)) {
-        taskMap.set(task.id, task);
+
+    // Add general tasks
+    userData.generalTasks.forEach(task => {
+      if (!taskMap.has(task.name)) {
+        taskMap.set(task.name, task);
       }
     });
-    return Array.from(taskMap.values());
-  }, [allTasks]);
 
-  // Get completion dates for selected task
+    // Add day tasks (these may be clones of general/weekly tasks)
+    userData.dayTasks.forEach(task => {
+      if (!taskMap.has(task.name)) {
+        taskMap.set(task.name, task);
+      }
+    });
+
+    // Add weekly tasks
+    Object.values(userData.weeklyTasks || {}).forEach(dayTasks => {
+      dayTasks.forEach(task => {
+        if (!taskMap.has(task.name)) {
+          taskMap.set(task.name, task);
+        }
+      });
+    });
+
+    return Array.from(taskMap.values());
+  }, [userData]);
+
+  // Get completion dates for selected task (aggregate by task name)
   const completionDates = useMemo(() => {
-    if (!selectedTaskId || !userData.taskCompletions) return [];
-    return userData.taskCompletions[selectedTaskId] || [];
-  }, [selectedTaskId, userData.taskCompletions]);
+    if (!selectedTaskName) return [];
+
+    const selectedTask = uniqueTasks.find(t => t.name === selectedTaskName);
+    if (!selectedTask) return [];
+
+    // Find all tasks with the same name across all sources
+    const allTasksWithSameName: BaseTask[] = [];
+
+    // Check general tasks
+    userData.generalTasks.forEach(task => {
+      if (task.name === selectedTask.name) {
+        allTasksWithSameName.push(task);
+      }
+    });
+
+    // Check day tasks
+    userData.dayTasks.forEach(task => {
+      if (task.name === selectedTask.name) {
+        allTasksWithSameName.push(task);
+      }
+    });
+
+    // Check weekly tasks
+    Object.values(userData.weeklyTasks || {}).forEach(dayTasks => {
+      dayTasks.forEach(task => {
+        if (task.name === selectedTask.name) {
+          allTasksWithSameName.push(task);
+        }
+      });
+    });
+
+    // Aggregate all completion dates from tasks with the same name
+    const allCompletionDates: string[] = [];
+    allTasksWithSameName.forEach(task => {
+      // Usar completions por nombre que son persistentes
+      const taskCompletions = taskCompletionsByName[task.name] || [];
+      allCompletionDates.push(...taskCompletions);
+    });
+
+    // Remove duplicates and sort
+    return [...new Set(allCompletionDates)].sort();
+  }, [selectedTaskName, taskCompletionsByName, userData.generalTasks, userData.dayTasks, userData.weeklyTasks, uniqueTasks]);
 
   // Generate calendar days for current month
   const calendarDays = useMemo(() => {
@@ -73,7 +122,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
 
   // Calculate statistics
   const statistics = useMemo(() => {
-    if (!selectedTaskId) return null;
+    if (!selectedTaskName) return null;
 
     const completions = completionDates;
     const now = new Date();
@@ -115,7 +164,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       daysInMonth,
       totalCompletions: completions.length
     };
-  }, [selectedTaskId, completionDates]);
+  }, [selectedTaskName, completionDates]);
 
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
@@ -165,9 +214,9 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
           {uniqueTasks.map(task => (
             <button
               key={task.id}
-              onClick={() => setSelectedTaskId(selectedTaskId === task.id ? null : task.id)}
+              onClick={() => setSelectedTaskName(selectedTaskName === task.name ? null : task.name)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedTaskId === task.id
+                selectedTaskName === task.name
                   ? `${getPriorityColor(task.priority)} text-white`
                   : "bg-slate-700 text-slate-300 hover:bg-slate-600"
               }`}
@@ -179,7 +228,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
       </div>
 
       {/* Calendar */}
-      {selectedTaskId && (
+      {selectedTaskName && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <button
@@ -207,7 +256,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
               </div>
             ))}
             {calendarDays.map((day, index) => {
-              const selectedTask = uniqueTasks.find(t => t.id === selectedTaskId);
+              const selectedTask = uniqueTasks.find(t => t.name === selectedTaskName);
               return (
                 <div
                   key={`${currentMonth}-${currentYear}-${index}`}

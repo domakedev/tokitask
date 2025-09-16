@@ -68,5 +68,5 @@ export interface UserData {
     generalTasks: GeneralTask[];
     dayTasks: DayTask[];
     weeklyTasks: Record<WeekDay, GeneralTask[]>;
-    taskCompletions?: Record<string, string[]>; // taskId -> array of completion dates (ISO strings)
+    taskCompletionsByName?: Record<string, string[]>; // taskName -> array of completion dates (ISO strings) - PERSISTENT
 }

@@ -115,7 +115,17 @@ export const useTaskManagement = (
       const prevUserData = { ...userData };
       try {
         const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-        const taskCompletions = userData.taskCompletions || {};
+        const taskCompletionsByName = userData.taskCompletionsByName || {};
+
+        // Find the task to get its name
+        let taskName = "";
+        if (currentPage === Page.Day) {
+          const task = userData.dayTasks.find(t => t.id === taskId);
+          taskName = task?.name || "";
+        } else {
+          const task = userData.generalTasks.find(t => t.id === taskId);
+          taskName = task?.name || "";
+        }
 
         if (currentPage === Page.Day) {
           const updatedTasks = userData.dayTasks.map((t) => {
@@ -123,17 +133,20 @@ export const useTaskManagement = (
               const wasCompleted = t.completed;
               const newCompleted = !t.completed;
 
-              // Update completion history
+              // Update completion history by name (persistent)
               if (newCompleted && !wasCompleted) {
-                // Task was just completed, add to history
-                taskCompletions[taskId] = [...(taskCompletions[taskId] || []), now];
+                if (taskName) {
+                  taskCompletionsByName[taskName] = [...(taskCompletionsByName[taskName] || []), now];
+                }
               } else if (!newCompleted && wasCompleted) {
-                // Task was uncompleted, remove from history if it was completed today
-                const completions = taskCompletions[taskId] || [];
-                const todayIndex = completions.indexOf(now);
-                if (todayIndex !== -1) {
-                  completions.splice(todayIndex, 1);
-                  taskCompletions[taskId] = completions;
+                // Remove from name-based completions
+                if (taskName) {
+                  const nameCompletions = taskCompletionsByName[taskName] || [];
+                  const nameTodayIndex = nameCompletions.indexOf(now);
+                  if (nameTodayIndex !== -1) {
+                    nameCompletions.splice(nameTodayIndex, 1);
+                    taskCompletionsByName[taskName] = nameCompletions;
+                  }
                 }
               }
 
@@ -144,7 +157,7 @@ export const useTaskManagement = (
           const updatedUserData = {
             ...userData,
             dayTasks: recalculateCurrentDayTask(updatedTasks),
-            taskCompletions,
+            taskCompletionsByName,
           };
           setUserData(updatedUserData);
           await handleUpdateUserData(updatedUserData);
@@ -155,15 +168,20 @@ export const useTaskManagement = (
               const wasCompleted = t.completed;
               const newCompleted = !t.completed;
 
-              // Update completion history
+              // Update completion history by name (persistent)
               if (newCompleted && !wasCompleted) {
-                taskCompletions[taskId] = [...(taskCompletions[taskId] || []), now];
+                if (taskName) {
+                  taskCompletionsByName[taskName] = [...(taskCompletionsByName[taskName] || []), now];
+                }
               } else if (!newCompleted && wasCompleted) {
-                const completions = taskCompletions[taskId] || [];
-                const todayIndex = completions.indexOf(now);
-                if (todayIndex !== -1) {
-                  completions.splice(todayIndex, 1);
-                  taskCompletions[taskId] = completions;
+                // Remove from name-based completions
+                if (taskName) {
+                  const nameCompletions = taskCompletionsByName[taskName] || [];
+                  const nameTodayIndex = nameCompletions.indexOf(now);
+                  if (nameTodayIndex !== -1) {
+                    nameCompletions.splice(nameTodayIndex, 1);
+                    taskCompletionsByName[taskName] = nameCompletions;
+                  }
                 }
               }
 
@@ -171,7 +189,11 @@ export const useTaskManagement = (
             }
             return t;
           });
-          const updatedUserData = { ...userData, generalTasks: updatedTasks, taskCompletions };
+          const updatedUserData = {
+            ...userData,
+            generalTasks: updatedTasks,
+            taskCompletionsByName,
+          };
           setUserData(updatedUserData);
           await handleUpdateUserData(updatedUserData);
           showNotification("Estado de la tarea actualizado.", "success");
