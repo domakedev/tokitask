@@ -178,6 +178,15 @@ const TaskItem: React.FC<
             >
               {getPriorityLabel(task.priority)}
             </span>
+            <span
+              className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap ${
+                task.flexibleTime
+                  ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                  : "bg-orange-500/20 text-orange-400 border-orange-500/30"
+              }`}
+            >
+              {task.flexibleTime ? "Flexible" : "Fijo"}
+            </span>
           </div>
 
           {showTimer && (

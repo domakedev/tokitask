@@ -69,6 +69,7 @@ export const useTaskManagement = (
                     completed: false,
                     isCurrent: false,
                     aiDuration: "",
+                    flexibleTime: task.flexibleTime ?? true,
                   } as DayTask,
                 ];
           updatedUserData = {
@@ -90,6 +91,7 @@ export const useTaskManagement = (
                     progressId: generateTaskId(), // Nuevo progressId único
                     completed: false,
                     baseDuration: task.baseDuration || "",
+                    flexibleTime: task.flexibleTime ?? true,
                   } as GeneralTask,
                 ];
           updatedUserData = { ...userData, generalTasks: updatedTasks };

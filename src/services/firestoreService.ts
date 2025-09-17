@@ -44,10 +44,24 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
           };
         }
 
+        // Migrar weeklyTasks para agregar flexibleTime
+        if (data.weeklyTasks) {
+          Object.keys(data.weeklyTasks).forEach((day) => {
+            if (Array.isArray(data.weeklyTasks![day as WeekDay])) {
+              data.weeklyTasks![day as WeekDay] = data.weeklyTasks![day as WeekDay].map((t) => ({
+                ...t,
+                baseDuration: t.baseDuration || "",
+                flexibleTime: t.flexibleTime ?? true,
+              }));
+            }
+          });
+        }
+
         if (Array.isArray(data.generalTasks)) {
           data.generalTasks = data.generalTasks.map((t) => ({
             ...t,
             baseDuration: t.baseDuration || "",
+            flexibleTime: t.flexibleTime ?? true,
           }));
         }
         if (Array.isArray(data.dayTasks)) {
@@ -55,6 +69,7 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
             ...t,
             baseDuration: t.baseDuration || "",
             aiDuration: t.aiDuration || "",
+            flexibleTime: t.flexibleTime ?? true,
           }));
         }
       }

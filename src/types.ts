@@ -63,6 +63,7 @@ export interface BaseTask {
     baseDuration: string; // Duración original definida por el usuario
     priority: Priority;
     progressId: string; // UUID único para tracking de progreso (persiste a través de clones)
+    flexibleTime: boolean; // Indica si la IA puede modificar la duración
 }
 
 export interface DayTask extends BaseTask {
