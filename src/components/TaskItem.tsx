@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { BaseTask, DayTask, Priority } from "../types";
+import { BaseTask, DayTask, Priority, getPriorityLabel } from "../types";
 import Icon from "./Icon";
 import { useTimer } from "../hooks/useTimer";
 
@@ -176,7 +176,7 @@ const TaskItem: React.FC<
                 task.priority
               )}`}
             >
-              {task.priority}
+              {getPriorityLabel(task.priority)}
             </span>
           </div>
 

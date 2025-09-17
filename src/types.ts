@@ -1,7 +1,20 @@
 export enum Priority {
-    Low = 'Opcional',
-    Medium = 'Importante',
-    High = 'Muy importante',
+    Low = 0,
+    Medium = 1,
+    High = 2,
+}
+
+export function getPriorityLabel(priority: Priority): string {
+    switch (priority) {
+        case Priority.Low:
+            return 'Opcional';
+        case Priority.Medium:
+            return 'Importante';
+        case Priority.High:
+            return 'Muy importante';
+        default:
+            return 'Desconocido';
+    }
 }
 
 export enum Page {
