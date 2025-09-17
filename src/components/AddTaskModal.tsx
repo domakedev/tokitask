@@ -66,9 +66,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                     <div className="mb-6">
                         <label htmlFor="task-priority" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tan importante es?</label>
                         <select id="task-priority" value={priority} onChange={(e) => setPriority(e.target.value as Priority)} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value={Priority.High}>Muy importante</option>
-                            <option value={Priority.Medium}>Importante</option>
-                            <option value={Priority.Low}>Opcional</option>
+                            <option value={Priority.High}>{Priority.High}</option>
+                            <option value={Priority.Medium}>{Priority.Medium}</option>
+                            <option value={Priority.Low}>{Priority.Low}</option>
                         </select>
                     </div>
                     <div className="flex justify-end space-x-3">

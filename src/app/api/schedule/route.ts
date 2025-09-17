@@ -115,11 +115,11 @@ export async function POST(request: Request) {
       Eres un asistente de productividad experto. Tu tarea es crear un horario detallado desde ahora (${now}) hasta el final del día (${endOfDay}).
       Cada tarea tiene un campo "baseDuration" (el tiempo estimado por el usuario) y debes asignar un campo "aiDuration" (el tiempo que tú organizas para la tarea).
       Reglas:
-      1. Prioriza las tareas de 'Muy importante' prioridad.
+      1. Prioriza las tareas de ${Priority.High} prioridad.
       2. No modifiques el orden de las tareas.
       3. El campo "aiDuration" NUNCA puede ser mayor que "baseDuration". Si sobra tiempo, asígnalo a "freeTime".
       4. Si la suma de "aiDuration" es menor al tiempo disponible, asigna el tiempo sobrante a "freeTime".
-      5. Solo cuando una tarea tiene prioridad "Opcional" y queda poco tiempo, márcala como no realizable añadiendo el texto entre paréntesis y asigna "aiDuration" a "0min", para las demas tareas con prioridades diferentes debes asignarles un tiempo proporcional a su prioridad y tiempo base pero nunca "0".
+      5. Solo cuando una tarea tiene prioridad ${Priority.Low} y queda poco tiempo, márcala como no realizable añadiendo el texto entre paréntesis y asigna "aiDuration" a "0min", para las demas tareas con prioridades diferentes debes asignarles un tiempo proporcional a su prioridad y tiempo base pero nunca "0".
       6. Marca solo la primera tarea de la lista como 'isCurrent: true'. El resto debe ser 'isCurrent: false'.
       7. No modifiques las tareas completadas. El resultado solo debe contener las tareas pendientes, ajustadas y reordenadas.
       8. Si hay varias tareas y el tiempo no sobra, reparte el tiempo disponible proporcionalmente entre todas las tareas considerando su "baseDuration" y la prioridad de cada una.
