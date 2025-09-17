@@ -61,6 +61,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                     <div className="mb-4">
                         <label htmlFor="task-name" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tarea quieres hacer?</label>
                         <input type="text" id="task-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Revisar emails" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
+                        <div className="mt-1 p-3 bg-yellow-500 rounded-md">
+                            <p className="text-xs text-slate-800">
+                                Los hábitos deben tener exactamente el mismo nombre en los diferentes días para agruparse en el Habit Tracker.
+                            </p>
+                        </div>
                     </div>
                     <div className="mb-4">
                         <label htmlFor="task-duration" className="block text-sm font-medium text-slate-300 mb-1">Cuánto tiempo de tu día crees que tomará</label>

@@ -598,7 +598,7 @@ export default function DashboardPage() {
       {currentPage === Page.Progress && progressViewComponent}
       {currentPage === Page.Profile && profileViewComponent}
 
-      {currentPage !== Page.Profile && (
+      {currentPage !== Page.Profile && currentPage !== Page.Progress && (
         <div
           className="fixed bottom-20 md:bottom-24 right-4 md:right-6 flex flex-col items-center z-20"
           style={{ width: "56px" }}
