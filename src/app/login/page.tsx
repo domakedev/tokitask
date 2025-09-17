@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Icon from "../../components/Icon";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../../services/firebase";
@@ -9,11 +9,19 @@ import {
 } from "../../services/firestoreService";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginPage() {
   const [error, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, loading, router]);
 
   const handleGoogleSignIn = async () => {
     if (!auth || !googleProvider) return;

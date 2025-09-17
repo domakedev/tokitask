@@ -307,8 +307,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
       </div>
 
       {/* Calendar */}
-      {selectedTaskProgressIds.length > 0 && (
-        <div className="space-y-2 md:space-y-4">
+      <div className="space-y-2 md:space-y-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigateMonth('prev')}
@@ -373,7 +372,6 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
             })}
           </div>
         </div>
-      )}
 
       {/* Statistics */}
       {statistics && (

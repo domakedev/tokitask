@@ -162,7 +162,7 @@ const TaskItem: React.FC<
 
         {/* Segunda fila: badges y temporizador */}
         <div className="flex items-center justify-between gap-2 mt-1">
-          <div className="flex items-center flex-wrap text-xs text-slate-400 space-x-1 md:space-x-2 flex-1 min-w-0">            
+          <div className="flex items-center flex-wrap text-xs text-slate-400 gap-1 md:gap-2 flex-1 min-w-0">
             <span className="bg-slate-700 rounded px-1 py-0.5 text-xs whitespace-nowrap flex items-center">
               <Icon name="timer" className="h-3 w-3 inline mr-1" />
               {task.baseDuration}
