@@ -1,5 +1,5 @@
 import React from "react";
-import { DayTask, GeneralTask, UserData } from "../types";
+import { DayTask, GeneralTask, UserData, Page } from "../types";
 import CurrentDate from "./CurrentDate";
 import RemainingTime from "./RemainingTime";
 import TaskList from "./TaskList";
@@ -24,6 +24,7 @@ interface DayViewProps {
   tempEndOfDay: string;
   setTempEndOfDay: (value: string) => void;
   onDismissAiTip: () => void;
+  onNavigate: (page: Page) => void;
 }
 
 const DayView: React.FC<DayViewProps> = ({
@@ -39,6 +40,7 @@ const DayView: React.FC<DayViewProps> = ({
   onEdit,
   onUpdateAiDuration,
   onDismissAiTip,
+  onNavigate,
 }) => {
 
   return (
@@ -195,14 +197,14 @@ const DayView: React.FC<DayViewProps> = ({
               Crea tu plantilla primero
             </h2>
             <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
-              Para poder generar un horario, primero necesitas crear una
-              plantilla de tareas en la sección &quot;General&quot;.
+              Para poder clonar un horario, primero necesitas crear uno
+              con sus tareas en la sección &quot;Horario&quot;.
             </p>
             <button
-              onClick={() => {}}
+              onClick={() => onNavigate(Page.General)}
               className="mt-4 md:mt-6 bg-emerald-500 text-white font-semibold py-2 px-4 md:py-3 md:px-6 rounded-lg shadow-lg hover:bg-emerald-600 transition-colors duration-150 ease-in-out"
             >
-              Ir a General para crear plantilla
+              Ir a Horario para crear uno
             </button>
           </div>
         )}

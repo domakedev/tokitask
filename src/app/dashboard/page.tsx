@@ -515,6 +515,7 @@ export default function DashboardPage() {
         tempEndOfDay={tempEndOfDay}
         setTempEndOfDay={setTempEndOfDay}
         onDismissAiTip={() => setAiTip(null)}
+        onNavigate={setCurrentPage}
       />
     );
   }, [
@@ -533,6 +534,7 @@ export default function DashboardPage() {
     tempEndOfDay,
     setTempEndOfDay,
     setAiTip,
+    setCurrentPage,
   ]);
 
   const generalViewComponent = useMemo(() => {
@@ -587,8 +589,8 @@ export default function DashboardPage() {
 
   const progressViewComponent = useMemo(() => {
     if (!userData) return null;
-    return <ProgressView userData={userData} />;
-  }, [userData]);
+    return <ProgressView userData={userData} onNavigate={setCurrentPage} />;
+  }, [userData, setCurrentPage]);
 
   if (loading) {
     return (
@@ -706,7 +708,7 @@ export default function DashboardPage() {
           onCancel={() => setShowConfirmation(false)}
           onConfirm={handleConfirmClone}
           title="¿Clonar horario del día?"
-          message="Esto clonará las tareas de 'Todos los días' y las tareas específicas del día actual desde tu horario general. ¿Deseas continuar?"
+          message="Esto clonará las tareas de 'Todos los días' y el día de hoy desde tu Horario."
         />
       )}
 

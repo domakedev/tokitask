@@ -1,13 +1,15 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { UserData, BaseTask, Priority } from "../types";
+import { UserData, BaseTask, Priority, Page } from "../types";
 import Icon from "./Icon";
+import EmptyProgressState from "./EmptyProgressState";
 
 interface ProgressViewProps {
   userData: UserData;
+  onNavigate: (page: Page) => void;
 }
 
-const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
+const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => {
   const [selectedTaskProgressIds, setSelectedTaskProgressIds] = useState<string[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -200,6 +202,11 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData }) => {
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
+
+  // If no tasks available, show empty state
+  if (uniqueTasks.length === 0) {
+    return <EmptyProgressState onNavigate={onNavigate} />;
+  }
 
   return (
     <div className="p-2 md:p-4 space-y-2 md:space-y-6">

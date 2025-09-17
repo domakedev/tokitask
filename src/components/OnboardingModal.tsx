@@ -11,22 +11,27 @@ interface OnboardingModalProps {
 const steps = [
   {
     title: "¡Bienvenido a TokiTask!",
-    description: "Tu planificador y Habit Tracker diario con IA. Vamos a configurarlo juntos en pocos pasos.",
+    description: "Tu planificador y Habit Tracker diario con IA. Vamos a recorrerlo en pocos pasos.",
     icon: "Sparkles",
   },
   {
     title: "Crea tu primera tarea",
-    description: "Mas adelante toca el botón verde '+' para agregar una tarea que harás hoy o crea tu horario general/diario.",
+    description: "Con el botón verde '+' agrega una tarea donde quieras.",
     icon: "Plus",
   },
   {
-    title: "Configura tu horario diario",
-    description: "En 'Horario General', establece a qué hora terminas el día para que la IA optimice tu tiempo y crea tareas para cada dia de la semana.",
+    title: "Configura tu Horario",
+    description: "En 'Horario' crea tareas para cada dia de la semana y establece a qué hora terminas el día, para que la IA optimice tu tiempo.",
     icon: "Clock",
   },
   {
+    title: "Rastrea tus hábitos",
+    description: "Completa tareas diariamente para construir hábitos saludables. ¡Mantén tus rachas y ve tu progreso en la sección de Progreso!",
+    icon: "Flame",
+  },
+  {
     title: "¡Listo para empezar!",
-    description: "La IA organizará tus tareas automáticamente. ¡Disfruta de días más productivos!",
+    description: "La IA organizará tus tareas automáticamente al indicarlo. ¡Disfruta de días más productivos!",
     icon: "CheckCircle",
   },
 ];

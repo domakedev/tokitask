@@ -8,7 +8,7 @@ interface WeekDayTabsProps {
 
 const WeekDayTabs: React.FC<WeekDayTabsProps> = ({ activeTab, onTabChange }) => {
   return (
-    <div className="flex overflow-x-auto border-b border-slate-700 bg-slate-900/50 pb-2">
+    <div className="flex overflow-x-auto border-b border-slate-700 bg-slate-900/50 pb-2 mb-2 md:mb-4">
       <div className="flex min-w-max">
         {WEEKDAY_ORDER.map((day) => (
           <button
