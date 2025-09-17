@@ -23,7 +23,11 @@ import {
   CheckCircle,
   TrendingUp,
   Settings,
-  LucideInfo
+  LucideInfo,
+  Lock,
+  Bird,
+  TimerIcon,
+  Rotate3D as Orbit
 } from "lucide-react";
 
 interface IconProps {
@@ -56,6 +60,10 @@ const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> 
   trendingup: TrendingUp,
   settings: Settings,
   informationcircle: LucideInfo,
+  lock: Lock,
+  bird: Bird,
+  timer: TimerIcon,
+  orbit: Orbit
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {

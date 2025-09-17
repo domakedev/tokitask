@@ -162,18 +162,29 @@ const TaskItem: React.FC<
 
         {/* Segunda fila: badges y temporizador */}
         <div className="flex items-center justify-between gap-2 mt-1">
-          <div className="flex items-center text-xs text-slate-400 space-x-1 md:space-x-2 flex-1 min-w-0">            
-            <span className="bg-slate-700 rounded px-1 py-0.5 text-xs whitespace-nowrap">
+          <div className="flex items-center flex-wrap text-xs text-slate-400 space-x-1 md:space-x-2 flex-1 min-w-0">            
+            <span className="bg-slate-700 rounded px-1 py-0.5 text-xs whitespace-nowrap flex items-center">
+              <Icon name="timer" className="h-3 w-3 inline mr-1" />
               {task.baseDuration}
             </span>
             <span
-              className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap ${
+              className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap flex items-center ${
                 task.flexibleTime
                   ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
                   : "bg-orange-500/20 text-orange-400 border-orange-500/30"
               }`}
             >
-              {task.flexibleTime ? "Flexible" : "Fijo"}
+              {task.flexibleTime ? (
+                <>
+                  <Icon name="bird" className="h-3 w-3 inline mr-1" />
+                  Flexible
+                </>
+              ) : (
+                <>
+                  <Icon name="lock" className="h-3 w-3 inline mr-1" />
+                  Fijo
+                </>
+              )}
             </span>
             <span
               className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap ${getPriorityClass(
@@ -183,7 +194,8 @@ const TaskItem: React.FC<
               {getPriorityLabel(task.priority)}
             </span> 
             {isDaily && "aiDuration" in task && (
-              <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 py-0.5 text-xs whitespace-nowrap">
+              <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 py-0.5 text-xs whitespace-nowrap flex items-center">
+                <Icon name="orbit" className="h-3 w-3 inline mr-1" />
                 IA recomendación: {task.aiDuration}
               </span>
             )}                       
