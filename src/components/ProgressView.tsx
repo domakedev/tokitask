@@ -1,8 +1,9 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { UserData, BaseTask, Page } from "../types";
 import Icon from "./Icon";
 import EmptyProgressState from "./EmptyProgressState";
+import { generateUniqueId } from "@/utils/idGenerator";
 
 interface ProgressViewProps {
   userData: UserData;
@@ -18,35 +19,60 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
   // Usar completions por progressId que son persistentes
   const taskCompletionsByProgressId = useMemo(() => userData.taskCompletionsByProgressId || {}, [userData.taskCompletionsByProgressId]);
 
-  // Get unique tasks by name (not by ID) to avoid duplicates
-  const uniqueTasks = useMemo(() => {
-    const taskMap = new Map<string, BaseTask>();
+  // Get only tasks that have been completed at least once and still exist in userData
+  const completedTasks = useMemo(() => {
+    const completedProgressIds = Object.keys(taskCompletionsByProgressId);
+    const tasks: BaseTask[] = [];
 
-    // Add general tasks
-    userData.generalTasks.forEach(task => {
-      if (!taskMap.has(task.name)) {
-        taskMap.set(task.name, task);
+    // Helper function to find task by progressId in all task collections
+    const findTaskByProgressId = (progressId: string): BaseTask | null => {
+      // Check general tasks
+      const generalTask = userData.generalTasks.find(t => t.progressId === progressId);
+      if (generalTask) return generalTask;
+
+      // Check day tasks
+      const dayTask = userData.dayTasks.find(t => t.progressId === progressId);
+      if (dayTask) return dayTask;
+
+      // Check weekly tasks
+      for (const dayTasks of Object.values(userData.weeklyTasks || {})) {
+        const weeklyTask = dayTasks.find(t => t.progressId === progressId);
+        if (weeklyTask) return weeklyTask;
+      }
+
+      return null;
+    };
+
+    // Only include progressIds that have both completions AND exist in userData
+    completedProgressIds.forEach(progressId => {
+      const task = findTaskByProgressId(progressId);
+      if (task) {
+        tasks.push(task);
       }
     });
 
-    // Add day tasks (these may be clones of general/weekly tasks)
-    userData.dayTasks.forEach(task => {
-      if (!taskMap.has(task.name)) {
-        taskMap.set(task.name, task);
+    return tasks;
+  }, [userData, taskCompletionsByProgressId]);
+
+  // Group completed tasks by name
+  const completedTaskGroups = useMemo(() => {
+    const groups = new Map<string, BaseTask[]>();
+
+    completedTasks.forEach(task => {
+      const name = task.name.trim().toLowerCase();
+      if (!groups.has(name)) {
+        groups.set(name, []);
       }
+      groups.get(name)!.push(task);
     });
 
-    // Add weekly tasks
-    Object.values(userData.weeklyTasks || {}).forEach(dayTasks => {
-      dayTasks.forEach(task => {
-        if (!taskMap.has(task.name)) {
-          taskMap.set(task.name, task);
-        }
-      });
-    });
+    return groups;
+  }, [completedTasks]);
 
-    return Array.from(taskMap.values());
-  }, [userData]);
+  // Get unique completed task names for display
+  const uniqueCompletedTaskNames = useMemo(() => {
+    return Array.from(completedTaskGroups.keys()).sort();
+  }, [completedTaskGroups]);
 
   // Get completion dates for selected tasks (aggregate by progressId)
   const completionDates = useMemo(() => {
@@ -61,6 +87,25 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
     // Remove duplicates and sort
     return [...new Set(allCompletionDates)].sort();
   }, [selectedTaskProgressIds, taskCompletionsByProgressId]);
+
+  // Get all tasks for a given task name
+  const getTasksForName = (taskName: string): BaseTask[] => {
+    return completedTaskGroups.get(taskName.toLowerCase()) || [];
+  };
+
+  // Get all progressIds for a given task name
+  const getProgressIdsForName = (taskName: string): string[] => {
+    return getTasksForName(taskName).map(task => task.progressId);
+  };
+
+  // Get task name by progressId
+  const getTaskNameByProgressId = (progressId: string): string => {
+    for (const [name, tasks] of completedTaskGroups) {
+      const task = tasks.find(t => t.progressId === progressId);
+      if (task) return task.name;
+    }
+    return "";
+  };
 
   // Generate calendar days for current month
   const calendarDays = useMemo(() => {
@@ -78,9 +123,9 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
       selectedTaskProgressIds.forEach(progressId => {
         const taskCompletions = taskCompletionsByProgressId[progressId] || [];
         if (taskCompletions.includes(dateStr)) {
-          const task = uniqueTasks.find(t => t.progressId === progressId);
-          if (task) {
-            completedTasks.push({name: task.name, progressId});
+          const taskName = getTaskNameByProgressId(progressId);
+          if (taskName) {
+            completedTasks.push({name: taskName, progressId});
           }
         }
       });
@@ -144,9 +189,9 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
     };
   }, [selectedTaskProgressIds, completionDates]);
 
-  // Generate unique color based on task index in uniqueTasks array
-  const getUniqueTaskColor = (taskId: string) => {
-    const taskIndex = uniqueTasks.findIndex(t => t.id === taskId);
+  // Generate unique color based on task name index
+  const getUniqueTaskColor = (taskName: string) => {
+    const taskIndex = uniqueCompletedTaskNames.indexOf(taskName.toLowerCase());
     if (taskIndex === -1) return "bg-slate-600"; // Color por defecto
 
     // Paleta de colores vibrantes con buen contraste para texto blanco
@@ -170,6 +215,15 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
 
     return colorPalette[taskIndex % colorPalette.length];
   };
+
+  //Seleccionar por defecto la primera tarea completada sin que que sea obligatoria siempre
+  useEffect(() => {
+    if (uniqueCompletedTaskNames.length > 0 && selectedTaskProgressIds.length === 0) {
+      const firstTaskName = uniqueCompletedTaskNames[0];  
+      const firstProgressIds = getProgressIdsForName(firstTaskName);
+      setSelectedTaskProgressIds(firstProgressIds);
+    }
+  }, [uniqueCompletedTaskNames]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (isAnimating) return;
@@ -201,8 +255,8 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
 
-  // If no tasks available, show empty state
-  if (uniqueTasks.length === 0) {
+  // If no completed tasks available, show empty state
+  if (uniqueCompletedTaskNames.length === 0) {
     return <EmptyProgressState onNavigate={onNavigate} />;
   }
 
@@ -212,25 +266,41 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
       <div className="space-y-2 md:space-y-4">
         <h2 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Tareas disponibles</h2>
         <div className="flex flex-wrap justify-center mt-4 md:mt-6 gap-1 md:gap-2">
-          {uniqueTasks.map(task => (
-            <button
-              key={task.id}
-              onClick={() => {
-                setSelectedTaskProgressIds(prev =>
-                  prev.includes(task.progressId)
-                    ? prev.filter(id => id !== task.progressId)
-                    : [...prev, task.progressId]
-                );
-              }}
-              className={`px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-colors duration-150 ease-in-out ${
-                selectedTaskProgressIds.includes(task.progressId)
-                  ? `${getUniqueTaskColor(task.id)} text-white shadow-lg`
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white"
-              }`}
-            >
-              {task.name}
-            </button>
-          ))}
+          {uniqueCompletedTaskNames.map(taskName => {
+            const progressIds = getProgressIdsForName(taskName);
+            const isSelected = progressIds.some(id => selectedTaskProgressIds.includes(id));
+            const taskCount = progressIds.length;
+
+            return (
+              <button
+                key={taskName}
+                onClick={() => {
+                  setSelectedTaskProgressIds(prev => {
+                    const hasAnySelected = progressIds.some(id => prev.includes(id));
+                    if (hasAnySelected) {
+                      // Remove all progressIds of this task name
+                      return prev.filter(id => !progressIds.includes(id));
+                    } else {
+                      // Add all progressIds of this task name
+                      return [...prev, ...progressIds];
+                    }
+                  });
+                }}
+                className={`px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-colors duration-150 ease-in-out relative ${
+                  isSelected
+                    ? `${getUniqueTaskColor(taskName)} text-white shadow-lg`
+                    : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white"
+                }`}
+              >
+                {taskName}
+                {taskCount > 1 && (
+                  <span className="ml-1 text-xs opacity-75">
+                    ({taskCount})
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -278,7 +348,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
                   {day.completedTasks.length === 0 ? (
                     day.day
                   ) : day.completedTasks.length === 1 ? (
-                    <div className={`w-full h-full rounded-lg ${getUniqueTaskColor(uniqueTasks.find(t => t.progressId === day.completedTasks[0].progressId)?.id || "")} flex items-center justify-center`}>
+                    <div className={`w-full h-full rounded-lg ${getUniqueTaskColor(day.completedTasks[0].name)} flex items-center justify-center`}>
                       {day.day}
                     </div>
                   ) : (
@@ -286,8 +356,8 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
                       <div className="w-full h-full flex gap-1 flex-wrap">
                         {day.completedTasks.map((task) => (
                           <div
-                            key={task.progressId}
-                            className={`${getUniqueTaskColor(uniqueTasks.find(t => t.progressId === task.progressId)?.id || "")} flex-1 rounded-lg min-w-2.5 min-h-2.5`}
+                            key={generateUniqueId()}
+                            className={`${getUniqueTaskColor(task.name)} flex-1 rounded-lg min-w-2.5 min-h-2.5`}
                           />
                         ))}
                       </div>

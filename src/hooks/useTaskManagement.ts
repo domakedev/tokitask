@@ -59,18 +59,27 @@ export const useTaskManagement = (
               ? userData.dayTasks.map((t) =>
                   t.id === (task as BaseTask).id ? { ...t, ...task } : t
                 )
-              : [
-                  ...userData.dayTasks,
-                  {
-                    ...task,
-                    id: generateTaskId(),
-                    progressId: generateTaskId(), // Nuevo progressId único
-                    completed: false,
-                    isCurrent: false,
-                    aiDuration: "",
-                    flexibleTime: task.flexibleTime ?? true,
-                  } as DayTask,
-                ];
+              : (() => {
+                  // Validar unicidad para nueva tarea
+                  const taskName = task.name.trim().toLowerCase();
+                  const existingTask = userData.dayTasks.find(t => t.name.trim().toLowerCase() === taskName);
+                  if (existingTask) {
+                    toast.error(`Ya existe una tarea con el nombre "${task.name}" en el día actual.`);
+                    throw new Error("Duplicate task name");
+                  }
+                  return [
+                    ...userData.dayTasks,
+                    {
+                      ...task,
+                      id: generateTaskId(),
+                      progressId: generateTaskId(), // Nuevo progressId único
+                      completed: false,
+                      isCurrent: false,
+                      aiDuration: "",
+                      flexibleTime: task.flexibleTime ?? true,
+                    } as DayTask,
+                  ];
+                })();
           updatedUserData = {
             ...userData,
             dayTasks: recalculateCurrentDayTask(updatedTasks as DayTask[]),
@@ -82,17 +91,26 @@ export const useTaskManagement = (
               ? userData.generalTasks.map((t) =>
                   t.id === (task as BaseTask).id ? { ...t, ...task } : t
                 )
-              : [
-                  ...userData.generalTasks,
-                  {
-                    ...task,
-                    id: generateTaskId(),
-                    progressId: generateTaskId(), // Nuevo progressId único
-                    completed: false,
-                    baseDuration: task.baseDuration || "",
-                    flexibleTime: task.flexibleTime ?? true,
-                  } as GeneralTask,
-                ];
+              : (() => {
+                  // Validar unicidad para nueva tarea
+                  const taskName = task.name.trim().toLowerCase();
+                  const existingTask = userData.generalTasks.find(t => t.name.trim().toLowerCase() === taskName);
+                  if (existingTask) {
+                    toast.error(`Ya existe una tarea con el nombre "${task.name}" en tareas generales.`);
+                    throw new Error("Duplicate task name");
+                  }
+                  return [
+                    ...userData.generalTasks,
+                    {
+                      ...task,
+                      id: generateTaskId(),
+                      progressId: generateTaskId(), // Nuevo progressId único
+                      completed: false,
+                      baseDuration: task.baseDuration || "",
+                      flexibleTime: task.flexibleTime ?? true,
+                    } as GeneralTask,
+                  ];
+                })();
           updatedUserData = { ...userData, generalTasks: updatedTasks };
           setUserData(updatedUserData);
         }
