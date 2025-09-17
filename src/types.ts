@@ -1,7 +1,7 @@
 export enum Priority {
-    Low = 'Baja',
-    Medium = 'Media',
-    High = 'Alta',
+    Low = 'Opcional',
+    Medium = 'Importante',
+    High = 'Muy importante',
 }
 
 export enum Page {
@@ -70,4 +70,5 @@ export interface UserData {
     dayTasks: DayTask[];
     weeklyTasks: Record<WeekDay, GeneralTask[]>;
     taskCompletionsByProgressId?: Record<string, string[]>; // progressId -> array of completion dates (ISO strings) - PERSISTENT
+    onboardingCompleted?: boolean;
 }

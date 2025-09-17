@@ -14,6 +14,7 @@ import ProgressView from "../../components/ProgressView";
 import TaskModal from "../../components/AddTaskModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import FirebaseErrorScreen from "../../components/FirebaseErrorScreen";
+import OnboardingModal from "../../components/OnboardingModal";
 import Icon from "../../components/Icon";
 import { generateTaskId } from "../../utils/idGenerator";
 
@@ -721,6 +722,15 @@ export default function DashboardPage() {
           message="Esto eliminará permanentemente todas las tareas del día actual. ¿Estás seguro?"
         />
       )}
+
+      <OnboardingModal
+        isOpen={!userData?.onboardingCompleted}
+        onClose={() => {}}
+        onComplete={async () => {
+          const updatedUserData = { ...userData, onboardingCompleted: true };
+          await handleUpdateUserData(updatedUserData);
+        }}
+      />
 
       {isSyncing && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm">

@@ -22,6 +22,7 @@ import {
   Calendar,
   CheckCircle,
   TrendingUp,
+  Settings,
 } from "lucide-react";
 
 interface IconProps {
@@ -52,6 +53,7 @@ const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> 
   calendar: Calendar,
   checkcircle: CheckCircle,
   trendingup: TrendingUp,
+  settings: Settings,
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {

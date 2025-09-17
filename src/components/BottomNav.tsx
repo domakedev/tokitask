@@ -55,21 +55,21 @@ const BottomNav: React.FC<BottomNavProps> = ({ activePage, onNavigate, profilePh
         <NavLink
           page={Page.Day}
           iconName="CalendarCheck"
-          label="Día"
+          label="Hoy"
           isActive={activePage === Page.Day}
           onClick={onNavigate}
         />
         <NavLink
           page={Page.General}
-          iconName="ListChecks"
-          label="Horario General"
+          iconName="settings"
+          label="Horario"
           isActive={activePage === Page.General}
           onClick={onNavigate}
         />
         <NavLink
           page={Page.Progress}
           iconName="trendingUp"
-          label="Habit Tracker"
+          label="Progreso"
           isActive={activePage === Page.Progress}
           onClick={onNavigate}
         />

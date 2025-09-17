@@ -68,7 +68,7 @@ const TaskItem: React.FC<
   };
 
   const taskClasses = [
-    "p-2 md:p-4",
+    "p-3 md:p-4",
     "rounded-lg",
     "border",
     "flex",
@@ -103,6 +103,11 @@ const TaskItem: React.FC<
           <button
             onClick={() => onToggleComplete?.(task.id)}
             className="flex-shrink-0 h-5 w-5 md:h-7 md:w-7 rounded flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-emerald-400 cursor-pointer"
+            title={
+              task.completed
+                ? "Marcar como pendiente"
+                : "Marcar como completada"
+            }
             aria-label={
               task.completed
                 ? "Marcar tarea como incompleta"
@@ -139,6 +144,7 @@ const TaskItem: React.FC<
             <button
               onClick={() => onEdit?.(task.id)}
               className="p-1 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+              title="Editar tarea"
               aria-label="Editar tarea"
             >
               <Icon name="pencil" className="h-3 w-3 md:h-4 md:w-4" />
@@ -146,6 +152,8 @@ const TaskItem: React.FC<
             <button
               onClick={() => onDelete(task.id)}
               className="p-1 rounded-md hover:bg-red-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+              title="Eliminar tarea"
+              aria-label="Eliminar tarea"
             >
               <Icon name="trash2" className="h-3 w-3 md:h-4 md:w-4" />
             </button>

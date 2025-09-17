@@ -53,27 +53,27 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 className="bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md transition-transform duration-300 transform scale-100"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h2 className="text-xl font-bold text-white mb-4">{isEditing ? 'Editar Tarea' : 'Añadir Nueva Tarea'}</h2>
+                <h2 className="text-xl font-bold text-white mb-4">{isEditing ? 'Editar Tarea' : 'Agrega una Nueva Tarea'}</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
-                        <label htmlFor="task-name" className="block text-sm font-medium text-slate-300 mb-1">Nombre de la Tarea</label>
-                        <input type="text" id="task-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
+                        <label htmlFor="task-name" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tarea quieres hacer?</label>
+                        <input type="text" id="task-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Revisar emails" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
                     </div>
                     <div className="mb-4">
-                        <label htmlFor="task-duration" className="block text-sm font-medium text-slate-300 mb-1">Duración (ej: 30 min, 1 h)</label>
-                        <input type="text" id="task-duration" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
+                        <label htmlFor="task-duration" className="block text-sm font-medium text-slate-300 mb-1">Cuánto tiempo de tu día crees que tomará</label>
+                        <input type="text" id="task-duration" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Ej: 30 min o 1 hora" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
                     </div>
                     <div className="mb-6">
-                        <label htmlFor="task-priority" className="block text-sm font-medium text-slate-300 mb-1">Prioridad</label>
+                        <label htmlFor="task-priority" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tan importante es?</label>
                         <select id="task-priority" value={priority} onChange={(e) => setPriority(e.target.value as Priority)} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value={Priority.High}>Alta</option>
-                            <option value={Priority.Medium}>Media</option>
-                            <option value={Priority.Low}>Baja</option>
+                            <option value={Priority.High}>Muy importante</option>
+                            <option value={Priority.Medium}>Importante</option>
+                            <option value={Priority.Low}>Opcional</option>
                         </select>
                     </div>
                     <div className="flex justify-end space-x-3">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-600 rounded-md hover:bg-slate-500 font-semibold transition-colors">Cancelar</button>
-                        <button type="submit" className="px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-500 font-semibold transition-colors">{isEditing ? 'Guardar Cambios' : 'Añadir Tarea'}</button>
+                        <button type="submit" className="px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-500 font-semibold transition-colors">{isEditing ? 'Guardar Cambios' : 'Agregar Tarea'}</button>
                     </div>
                 </form>
             </div>
