@@ -184,7 +184,7 @@ const TaskItem: React.FC<
             </span> 
             {isDaily && "aiDuration" in task && (
               <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 py-0.5 text-xs whitespace-nowrap">
-                IA recomendación:{task.aiDuration}
+                IA recomendación: {task.aiDuration}
               </span>
             )}                       
           </div>

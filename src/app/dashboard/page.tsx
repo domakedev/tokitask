@@ -15,6 +15,7 @@ import TaskModal from "../../components/AddTaskModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import FirebaseErrorScreen from "../../components/FirebaseErrorScreen";
 import OnboardingModal from "../../components/OnboardingModal";
+import AiSyncOverlay from "../../components/AiSyncOverlay";
 import Icon from "../../components/Icon";
 import { generateTaskId } from "../../utils/idGenerator";
 
@@ -468,27 +469,6 @@ export default function DashboardPage() {
     }
   }, [user, userData, loading, router]);
 
-  // AI Loading Messages
-  const aiLoadingMessages = [
-    "Analizando tus tareas...",
-    "Calculando tiempos óptimos...",
-    "Buscando consejos personalizados...",
-    "Organizando tu día...",
-    "Preparando tu horario ideal...",
-  ];
-  const [aiLoadingIndex, setAiLoadingIndex] = useState(0);
-
-  useEffect(() => {
-    if (isSyncing) {
-      setAiLoadingIndex(0);
-      const interval = setInterval(() => {
-        setAiLoadingIndex((prev) =>
-          prev < aiLoadingMessages.length - 1 ? prev + 1 : 0
-        );
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [isSyncing, aiLoadingMessages.length]);
 
   const dayViewComponent = useMemo(() => {
     if (!userData) return null;
@@ -725,40 +705,12 @@ export default function DashboardPage() {
         }}
       />
 
-      {isSyncing && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-          <Icon
-            name="loader"
-            className="h-16 w-16 animate-spin text-emerald-400 mb-6"
-          />
-          <p className="text-sm text-slate-300 mt-6 text-center">
-            Esto puede tardar hasta un minuto.
-          </p>
-          <div className="relative h-8 w-full flex items-center justify-center overflow-hidden mt-2">
-            <span
-              key={aiLoadingIndex}
-              className="absolute w-full text-lg text-white font-semibold transition-all duration-500 ease-in-out animate-slide-up text-center"
-              style={{
-                animation: "slideUp 0.5s",
-              }}
-            >
-              {aiLoadingMessages[aiLoadingIndex]}
-            </span>
-          </div>
-          <style jsx global>{`
-            @keyframes slideUp {
-              from {
-                opacity: 0;
-                transform: translateY(30px);
-              }
-              to {
-                opacity: 1;
-                transform: translateY(0);
-              }
-            }
-          `}</style>
-        </div>
-      )}
+      <AiSyncOverlay
+        isVisible={isSyncing}
+        showLoader={true}
+        loaderText="Esto puede tardar hasta un minuto."
+        showJarvis={true}
+      />
     </div>
   );
 }
