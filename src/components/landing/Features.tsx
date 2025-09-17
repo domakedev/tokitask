@@ -4,6 +4,16 @@ import { motion } from "framer-motion";
 
 const features = [
   {
+    icon: "⏰",
+    title: "Gestión del Tiempo con IA",
+    description: "La IA calcula automáticamente tu tiempo disponible y te ayuda a distribuirlo eficientemente entre tus tareas."
+  },
+  {
+    icon: "🔥",
+    title: "Seguimiento de Hábitos",
+    description: "Visualiza tu progreso diario con un calendario interactivo, mantén rachas motivadoras y construye hábitos duraderos con estadísticas detalladas."
+  },
+  {
     icon: "⚡",
     title: "Eficiencia Máxima",
     description: "Optimiza tu tiempo con algoritmos de IA que analizan tus patrones y ordenan tus tareas de manera inteligente."
@@ -17,12 +27,7 @@ const features = [
     icon: "🔄",
     title: "Sincronización Inteligente",
     description: "Tus cambios se sincronizan automáticamente en todos tus dispositivos."
-  },
-  {
-    icon: "⏰",
-    title: "Gestión del Tiempo Libre",
-    description: "La IA calcula automáticamente tu tiempo disponible y te ayuda a distribuirlo eficientemente entre tus tareas."
-  }
+  }  
 ];
 
 const Features = () => {
@@ -37,14 +42,14 @@ const Features = () => {
           className="text-center mb-12"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-            Potencia tu <span className="text-cyan-400">productividad</span>
+            Potencia tu <span className="text-cyan-400">productividad y hábitos</span>
           </h2>
           <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-            Descubre cómo la IA revoluciona la gestión de tu tiempo diario
+            Descubre cómo la IA revoluciona la gestión de tu tiempo diario y el seguimiento de hábitos
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
           {features.map((feature, index) => (
             <motion.div
               key={index}

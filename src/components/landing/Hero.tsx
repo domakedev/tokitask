@@ -31,8 +31,8 @@ const Hero = () => {
             className="text-center lg:text-left"
           >
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 mt-24 md:mt-28 sm:mt-20 md:mt-0">
-              Gestiona tu tiempo
-              <span className="block text-cyan-400">con IA</span>
+              Gestiona tu tiempo con IA y
+              <span className="block text-cyan-400">construye Hábitos</span>
             </h1>
 
             <motion.p
@@ -41,8 +41,7 @@ const Hero = () => {
               transition={{ duration: 0.8, delay: 0.6 }}
               className="text-xl sm:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0"
             >
-              Organiza tus tareas diarias con IA que optimiza el orden de tus actividades
-              y maximiza tu tiempo libre con sincronización automática.
+              Organiza tus tareas diarias con IA que optimiza el tiempo de tus actividades, maximiza tu tiempo disponible y construye hábitos duraderos rastreando tu progreso con sincronización automática.
             </motion.p>
 
             <motion.div

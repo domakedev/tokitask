@@ -25,11 +25,11 @@ const CTA = () => {
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
             ¿Listo para revolucionar
-            <span className="block text-cyan-400">tu gestión del tiempo?</span>
+            <span className="block text-cyan-400">tu gestión del tiempo y hábitos?</span>
           </h2>
 
           <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
-            Únete a decenas de usuarios que ya optimizan su día con la ayuda de IA, de forma gratuita y sencilla, descubre el poder de la organización inteligente.
+            Únete a decenas de usuarios que ya optimizan su día con la ayuda de la IA y construyen hábitos duraderos, de forma gratuita y sencilla, descubre el poder de la organización inteligente y el seguimiento de progreso.
           </p>
 
           <motion.div
