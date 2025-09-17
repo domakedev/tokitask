@@ -1,32 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Float, Text } from "@react-three/drei";
-// @ts-expect-error THREE.js types not properly configured
-import * as THREE from "three";
+import React from "react";
+import { Float } from "@react-three/drei";
 
 // Orbe de IA tipo Jarvis - Giroscopio con efectos lineales avanzados
 function JarvisThinkingOrb() {
-  // Mensajes de carga de IA con animación secuencial
-  const aiLoadingMessages = [
-    "Analizando tus tareas...",
-    "Calculando tiempos óptimos...",
-    "Buscando consejos personalizados...",
-    "Organizando tu día...",
-    "Preparando tu horario ideal...",
-  ];
-
-  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentMessageIndex((prev) =>
-        prev < aiLoadingMessages.length - 1 ? prev + 1 : 0
-      );
-    }, 2000); // Cambia cada 2 segundos como en el dashboard
-
-    return () => clearInterval(interval);
-  }, [aiLoadingMessages.length]);
-
   return (
     <group>
       {/* Núcleo principal - Cerebro digital */}
@@ -48,7 +25,10 @@ function JarvisThinkingOrb() {
       {/* Sistema giroscópico - Anillos principales */}
       {Array.from({ length: 5 }, (_, i) => (
         <Float key={`gyro-${i}`} speed={0.2 + i * 0.15} rotationIntensity={0.2}>
-          <mesh position={[0, 0, 0]} rotation={[i * Math.PI / 5, i * Math.PI / 3, i * Math.PI / 4]}>
+          <mesh
+            position={[0, 0, 0]}
+            rotation={[(i * Math.PI) / 5, (i * Math.PI) / 3, (i * Math.PI) / 4]}
+          >
             <torusGeometry args={[1.1 + i * 0.2, 0.015, 8, 32]} />
             <meshStandardMaterial
               color="#00FFFF"
@@ -71,7 +51,11 @@ function JarvisThinkingOrb() {
         const z2 = Math.sin(angle + Math.PI) * radius;
 
         return (
-          <Float key={`orbit-${i}`} speed={0.4 + i * 0.1} rotationIntensity={0.1}>
+          <Float
+            key={`orbit-${i}`}
+            speed={0.4 + i * 0.1}
+            rotationIntensity={0.1}
+          >
             <line>
               <bufferGeometry>
                 <bufferAttribute
@@ -121,7 +105,11 @@ function JarvisThinkingOrb() {
 
       {/* Efectos de energía múltiples */}
       {Array.from({ length: 3 }, (_, i) => (
-        <Float key={`energy-${i}`} speed={0.3 + i * 0.2} rotationIntensity={0.2}>
+        <Float
+          key={`energy-${i}`}
+          speed={0.3 + i * 0.2}
+          rotationIntensity={0.2}
+        >
           <mesh position={[0, 0, 0]}>
             <sphereGeometry args={[1.8 + i * 0.3, 16, 16]} />
             <meshBasicMaterial
@@ -135,8 +123,15 @@ function JarvisThinkingOrb() {
 
       {/* Anillos de estabilización giroscópica */}
       {Array.from({ length: 4 }, (_, i) => (
-        <Float key={`stabilizer-${i}`} speed={0.6 + i * 0.1} rotationIntensity={0.5}>
-          <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, i * Math.PI / 2]}>
+        <Float
+          key={`stabilizer-${i}`}
+          speed={0.6 + i * 0.1}
+          rotationIntensity={0.5}
+        >
+          <mesh
+            position={[0, 0, 0]}
+            rotation={[Math.PI / 2, 0, (i * Math.PI) / 2]}
+          >
             <torusGeometry args={[2.5 + i * 0.2, 0.01, 4, 16]} />
             <meshStandardMaterial
               color="#00FFFF"
@@ -148,7 +143,6 @@ function JarvisThinkingOrb() {
           </mesh>
         </Float>
       ))}
-
     </group>
   );
 }

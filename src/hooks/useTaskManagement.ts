@@ -9,7 +9,6 @@ export const useTaskManagement = (
   user: User | null,
   userData: UserData | null,
   setUserData: (data: UserData | null) => void,
-  showNotification: (message: string, type?: "success" | "error") => void
 ) => {
   const [currentPage, setCurrentPage] = useState<Page>(Page.Day);
   const [isModalOpen, setModalOpen] = useState(false);
@@ -34,7 +33,7 @@ export const useTaskManagement = (
         }
       }
     },
-    [user, userData, setUserData, showNotification]
+    [user, userData, setUserData]
   );
 
   const recalculateCurrentDayTask = useCallback(
@@ -118,7 +117,6 @@ export const useTaskManagement = (
       setUserData,
       recalculateCurrentDayTask,
       handleUpdateUserData,
-      showNotification,
     ]
   );
 
@@ -262,7 +260,6 @@ export const useTaskManagement = (
       setUserData,
       recalculateCurrentDayTask,
       handleUpdateUserData,
-      showNotification,
     ]
   );
 
@@ -329,7 +326,6 @@ export const useTaskManagement = (
     setUserData,
     recalculateCurrentDayTask,
     handleUpdateUserData,
-    showNotification,
   ]);
 
   const handleEditTask = useCallback(
@@ -381,7 +377,6 @@ export const useTaskManagement = (
       setUserData,
       recalculateCurrentDayTask,
       handleUpdateUserData,
-      showNotification,
     ]
   );
 
@@ -408,7 +403,6 @@ export const useTaskManagement = (
     currentPage,
     setUserData,
     handleUpdateUserData,
-    showNotification,
   ]);
 
   return {

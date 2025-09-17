@@ -1,13 +1,11 @@
 "use client";
 import React, { Suspense, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Stars, Float, Text } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import Jarvis from "./Jarvis";
-// @ts-expect-error THREE.js types not properly configured
-import * as THREE from "three";
 
 // Sistema de partículas IA simplificado
 function AIParticles() {

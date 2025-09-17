@@ -60,7 +60,7 @@ export default function DashboardPage() {
     handleReorderTasks,
     handleUpdateUserData,
     handleClearAllDayTasks,
-  } = useTaskManagement(user, userData, setUserData, showNotification);
+  } = useTaskManagement(user, userData, setUserData);
 
   // Función para manejar cambios de pestaña en General
   const handleGeneralTabChange = useCallback((tab: WeekDay) => {
@@ -166,7 +166,6 @@ export default function DashboardPage() {
     activeGeneralTab,
     setUserData,
     handleUpdateUserData,
-    showNotification,
     setShowConfirmation,
     setTaskToDelete,
   ]);
@@ -276,7 +275,6 @@ export default function DashboardPage() {
       activeGeneralTab,
       setUserData,
       handleUpdateUserData,
-      showNotification,
     ]
   );
 
@@ -321,7 +319,6 @@ export default function DashboardPage() {
       activeGeneralTab,
       setUserData,
       handleUpdateUserData,
-      showNotification,
     ]
   );
 
@@ -419,7 +416,6 @@ export default function DashboardPage() {
       handleSaveTask,
       handleUpdateUserData,
       setUserData,
-      showNotification,
       setModalOpen,
       setEditingTask,
     ]
@@ -452,7 +448,7 @@ export default function DashboardPage() {
         "Error al actualizar la hora de fin del día. Los cambios han sido revertidos."
       );
     }
-  }, [userData, tempEndOfDay, handleUpdateUserData, showNotification]);
+  }, [userData, tempEndOfDay, handleUpdateUserData]);
 
   // Función para mostrar el modal de confirmación antes de clonar
   const handleShowCloneConfirmation = useCallback(() => {
@@ -570,7 +566,6 @@ export default function DashboardPage() {
     tempEndOfDay,
     setTempEndOfDay,
     handleGeneralTabChange,
-    confirmDeleteWeekly,
   ]);
 
   const handleSignOutWithRedirect = useCallback(async () => {

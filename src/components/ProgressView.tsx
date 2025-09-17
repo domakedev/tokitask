@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { UserData, BaseTask, Priority, Page } from "../types";
+import { UserData, BaseTask, Page } from "../types";
 import Icon from "./Icon";
 import EmptyProgressState from "./EmptyProgressState";
 
@@ -65,7 +65,6 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
   // Generate calendar days for current month
   const calendarDays = useMemo(() => {
     const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay()); // Start from Sunday
 
@@ -112,7 +111,6 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
     // Current streak (days where at least one selected task was completed)
     let streak = 0;
     const sortedCompletions = [...completions].sort().reverse();
-    const today = now.toISOString().split('T')[0];
 
     for (let i = 0; ; i++) {
       const checkDate = new Date(now);
@@ -131,7 +129,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
 
     // Monthly completions
     const monthlyCompletions = completions.filter(date => {
-      const [year, month, day] = date.split('-').map(Number);
+      const [year, month] = date.split('-').map(Number);
       return month - 1 === currentMonth && year === currentYear;
     }).length;
 

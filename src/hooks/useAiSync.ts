@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { DayTask, UserData, WeekDay, WEEKDAY_LABELS } from "../types";
+import { DayTask, UserData, WEEKDAY_LABELS } from "../types";
 import { getCurrentWeekDay } from "../utils/dateUtils";
 import { generateTaskId } from "../utils/idGenerator";
 import { toast } from "react-toastify";
@@ -127,7 +127,6 @@ export const useAiSync = (
       });
 
       if (!validateFixedTasksTime(tasksToPlan, endOfDayForSync, userTime)) {
-        const fixedTasksCount = tasksToPlan.filter(task => task.flexibleTime === false).length;
         const totalFixedMinutes = tasksToPlan
           .filter(task => task.flexibleTime === false)
           .reduce((total, task) => total + parseDurationToMinutes(task.baseDuration), 0);

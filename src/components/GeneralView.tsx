@@ -25,8 +25,6 @@ interface GeneralViewProps {
 
 const GeneralView: React.FC<GeneralViewProps> = ({
   userData,
-  onSaveTask,
-  onSaveTaskForDay,
   onDelete,
   onDeleteWeekly,
   onReorder,
