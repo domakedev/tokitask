@@ -76,7 +76,7 @@ const Hero = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-center lg:text-left"
           >
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 mt-24 sm:mt-20 md:mt-0">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 mt-24 md:mt-28 sm:mt-20 md:mt-0">
               Gestiona tu tiempo
               <span className="block text-cyan-400">con IA</span>
             </h1>
@@ -133,6 +133,12 @@ const Hero = () => {
                 </motion.p>
               </div>
             </motion.div>
+
+            {/* Capa overlay para permitir scroll */}
+            <div
+              className="absolute inset-0 z-20"
+            />
+
             <Canvas
               camera={{ position: [0, 0, 6], fov: 60 }}
               gl={{ antialias: true, alpha: true }}
