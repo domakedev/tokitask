@@ -66,6 +66,41 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                         <label htmlFor="task-duration" className="block text-sm font-medium text-slate-300 mb-1">Cuánto tiempo de tu día crees que tomará</label>
                         <input type="text" id="task-duration" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Ej: 30 min o 1 hora" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
                     </div>
+                     <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-300 mb-3">
+                            ¿Este tiempo es fijo o flexible?
+                        </label>
+                        <div className="flex justify-around items-center">
+                              <label className="flex items-center">
+                                <input
+                                    type="radio"
+                                    name="timeType"
+                                    checked={flexibleTime}
+                                    onChange={() => setFlexibleTime(true)}
+                                    className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
+                                />
+                                <span className="text-sm font-medium text-slate-300">Flexible</span>
+                            </label>
+                            <label className="flex items-center">
+                                <input
+                                    type="radio"
+                                    name="timeType"
+                                    checked={!flexibleTime}
+                                    onChange={() => setFlexibleTime(false)}
+                                    className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
+                                />
+                                <span className="text-sm font-medium text-slate-300">Fijo</span>
+                            </label>                          
+                        </div>
+                        <div className="mt-3 p-3 bg-slate-700 rounded-md">
+                            <p className="text-xs text-slate-400">
+                                {flexibleTime
+                                    ? "La IA ajustará la duración recomendada."
+                                    : "La IA no te recomendará cambios en la duración."
+                                }
+                            </p>
+                        </div>
+                    </div>
                     <div className="mb-4">
                         <label htmlFor="task-priority" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tan importante es?</label>
                         <select id="task-priority" value={priority.toString()} onChange={(e) => setPriority(Number(e.target.value) as Priority)} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
@@ -73,21 +108,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                             <option value={Priority.Medium.toString()}>{getPriorityLabel(Priority.Medium)}</option>
                             <option value={Priority.Low.toString()}>{getPriorityLabel(Priority.Low)}</option>
                         </select>
-                    </div>
-                    <div className="mb-6">
-                        <label className="flex items-center">
-                            <input
-                                type="checkbox"
-                                checked={flexibleTime}
-                                onChange={(e) => setFlexibleTime(e.target.checked)}
-                                className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600 rounded"
-                            />
-                            <span className="text-sm font-medium text-slate-300">¿Este tiempo es flexible?</span>
-                        </label>
-                        <p className="text-xs text-slate-400 mt-1">
-                            Si desmarcas esta opción, la IA mantendrá exactamente la duración que especificaste.
-                        </p>
-                    </div>
+                    </div>                   
                     <div className="flex justify-end space-x-3">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-600 rounded-md hover:bg-slate-500 font-semibold transition-colors">Cancelar</button>
                         <button type="submit" className="px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-500 font-semibold transition-colors">{isEditing ? 'Guardar Cambios' : 'Agregar Tarea'}</button>

@@ -125,7 +125,7 @@ export async function POST(request: Request) {
       0. Las prioridades son: "2 (alta)", "1 (media)" y "0 (baja)". No debes modificar las prioridades.
       0.1 No debes cambiar: baseDuration, progressId, id, completed.
       0.2 Solo para tareas con flexibleTime: false, mantén exactamente la baseDuration para el tiempo asignado por la IA en aiDuration sin modificaciones.
-      0.2.2 Si una tarea tiene flexibleTime: true, puedes ajustar aiDuration según lo consideres necesario.
+      0.2.1 Si una tarea tiene flexibleTime: true, puedes ajustar aiDuration según lo consideres necesario.
       1. Prioriza las tareas de prioridad "2 (alta)".
       2. No modifiques el orden de las tareas.
       3. El campo "aiDuration" NUNCA puede ser mayor que "baseDuration". Si sobra tiempo, asígnalo a "freeTime".
