@@ -21,7 +21,6 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
 
   // Get only tasks that have been completed at least once and still exist in userData
   const completedTasks = useMemo(() => {
-    const completedProgressIds = Object.keys(taskCompletionsByProgressId);
     const tasks: BaseTask[] = [];
 
     // Helper function to find task by progressId in all task collections
@@ -43,11 +42,14 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
       return null;
     };
 
-    // Only include progressIds that have both completions AND exist in userData
-    completedProgressIds.forEach(progressId => {
-      const task = findTaskByProgressId(progressId);
-      if (task) {
-        tasks.push(task);
+    // Only include progressIds that have at least one completion date AND exist in userData
+    Object.entries(taskCompletionsByProgressId).forEach(([progressId, completionDates]) => {
+      // Only include if there are actual completion dates (not empty array)
+      if (completionDates && completionDates.length > 0) {
+        const task = findTaskByProgressId(progressId);
+        if (task) {
+          tasks.push(task);
+        }
       }
     });
 
