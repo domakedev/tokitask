@@ -371,8 +371,8 @@ export default function DashboardPage() {
               const taskName = task.name.trim().toLowerCase();
               const existingTask = currentTasks.find(t => t.name.trim().toLowerCase() === taskName);
               if (existingTask) {
-                toast.error(`Ya existe una tarea con el nombre "${task.name}" en ${activeGeneralTab}.`);
-                throw new Error("Duplicate task name");
+                toast.error(`Ya existe una tarea con el nombre "${task.name}".`);
+                return;
               }
               // Crear nueva tarea - agregar al final con ID único
               const newTask = {
