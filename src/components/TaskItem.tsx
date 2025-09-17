@@ -162,21 +162,9 @@ const TaskItem: React.FC<
 
         {/* Segunda fila: badges y temporizador */}
         <div className="flex items-center justify-between gap-2 mt-1">
-          <div className="flex items-center text-xs text-slate-400 space-x-1 md:space-x-2 flex-1 min-w-0">
+          <div className="flex items-center text-xs text-slate-400 space-x-1 md:space-x-2 flex-1 min-w-0">            
             <span className="bg-slate-700 rounded px-1 py-0.5 text-xs whitespace-nowrap">
               {task.baseDuration}
-            </span>
-            {isDaily && "aiDuration" in task && (
-              <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 py-0.5 text-xs whitespace-nowrap">
-                IA: {task.aiDuration}
-              </span>
-            )}
-            <span
-              className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap ${getPriorityClass(
-                task.priority
-              )}`}
-            >
-              {getPriorityLabel(task.priority)}
             </span>
             <span
               className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap ${
@@ -187,6 +175,18 @@ const TaskItem: React.FC<
             >
               {task.flexibleTime ? "Flexible" : "Fijo"}
             </span>
+            <span
+              className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap ${getPriorityClass(
+                task.priority
+              )}`}
+            >
+              {getPriorityLabel(task.priority)}
+            </span> 
+            {isDaily && "aiDuration" in task && (
+              <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 py-0.5 text-xs whitespace-nowrap">
+                IA recomendación:{task.aiDuration}
+              </span>
+            )}                       
           </div>
 
           {showTimer && (

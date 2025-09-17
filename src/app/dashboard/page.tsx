@@ -434,8 +434,6 @@ export default function DashboardPage() {
     setTempEndOfDay,
     syncWithAI,
     handleUpdateAiDuration,
-    handleSetEndOfDay,
-    handleStartDay,
     handleCloneDaySchedule,
   } = useAiSync(userData, handleUpdateUserData, showNotification);
 
@@ -511,7 +509,6 @@ export default function DashboardPage() {
         onReorder={handleReorderTasks}
         onEdit={handleEditTask}
         onUpdateAiDuration={handleUpdateAiDuration}
-        onSetEndOfDay={handleSetEndOfDay}
         tempEndOfDay={tempEndOfDay}
         setTempEndOfDay={setTempEndOfDay}
         onDismissAiTip={() => setAiTip(null)}
@@ -530,7 +527,6 @@ export default function DashboardPage() {
     handleReorderTasks,
     handleEditTask,
     handleUpdateAiDuration,
-    handleSetEndOfDay,
     tempEndOfDay,
     setTempEndOfDay,
     setAiTip,

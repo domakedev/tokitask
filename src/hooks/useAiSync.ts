@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { DayTask, UserData, WeekDay, WEEKDAY_LABELS } from "../types";
 import { getCurrentWeekDay } from "../utils/dateUtils";
 import { generateTaskId } from "../utils/idGenerator";
+import { toast } from "react-toastify";
 
 export const useAiSync = (
   userData: UserData | null,
@@ -28,6 +29,56 @@ export const useAiSync = (
       isCurrent: index === firstPendingIndex,
     }));
   }, []);
+
+  // Función para convertir duración string a minutos
+  const parseDurationToMinutes = useCallback((duration: string): number => {
+    if (!duration) return 0;
+
+    const lowerDuration = duration.toLowerCase();
+    let totalMinutes = 0;
+
+    // Buscar horas
+    const hourMatch = lowerDuration.match(/(\d+)\s*h/);
+    if (hourMatch) {
+      totalMinutes += parseInt(hourMatch[1]) * 60;
+    }
+
+    // Buscar minutos
+    const minuteMatch = lowerDuration.match(/(\d+)\s*min/);
+    if (minuteMatch) {
+      totalMinutes += parseInt(minuteMatch[1]);
+    }
+
+    // Si no encuentra formato específico, intentar parsear como número directo
+    if (totalMinutes === 0) {
+      const directMatch = lowerDuration.match(/(\d+)/);
+      if (directMatch) {
+        totalMinutes = parseInt(directMatch[1]);
+      }
+    }
+
+    return totalMinutes;
+  }, []);
+
+  // Función para validar si las tareas fijas exceden el tiempo disponible
+  const validateFixedTasksTime = useCallback((tasks: DayTask[], endOfDay: string, currentTime: string): boolean => {
+    const fixedTasks = tasks.filter(task => !task.completed && task.flexibleTime === false);
+    if (fixedTasks.length === 0) return true; // No hay tareas fijas, continuar
+
+    const totalFixedMinutes = fixedTasks.reduce((total, task) => {
+      return total + parseDurationToMinutes(task.baseDuration);
+    }, 0);
+
+    // Calcular tiempo disponible en minutos
+    const [endHour, endMinute] = endOfDay.split(':').map(Number);
+    const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+
+    const endTotalMinutes = endHour * 60 + endMinute;
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
+    const availableMinutes = endTotalMinutes - currentTotalMinutes;
+
+    return totalFixedMinutes <= availableMinutes;
+  }, [parseDurationToMinutes]);
 
   const syncWithAI = useCallback(
     async (options?: { endOfDay?: string; tasks?: DayTask[] }) => {
@@ -67,14 +118,44 @@ export const useAiSync = (
         return;
       }
 
+      // Validar tiempo de tareas fijas antes de sincronizar
+      const now = new Date();
+      const userTime = now.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+
+      if (!validateFixedTasksTime(tasksToPlan, endOfDayForSync, userTime)) {
+        const fixedTasksCount = tasksToPlan.filter(task => task.flexibleTime === false).length;
+        const totalFixedMinutes = tasksToPlan
+          .filter(task => task.flexibleTime === false)
+          .reduce((total, task) => total + parseDurationToMinutes(task.baseDuration), 0);
+
+        toast.error(
+          `⚠️ No te queda suficiente tiempo para completar las tareas fijas (total de ${Math.floor(totalFixedMinutes / 60)} horas ${totalFixedMinutes % 60} min). \n\n Ajusta la hora de fin del día o modifica las tareas fijas.`,
+          {
+            position: "top-right",
+            autoClose: false,
+            closeOnClick: false,
+            draggable: false,
+            theme: "dark",
+            style: {
+              backgroundColor: "#1f2937",
+              color: "#f87171",
+              border: "1px solid #dc2626",
+              borderRadius: "8px",
+              fontSize: "14px",
+              lineHeight: "1.5",
+              whiteSpace: "pre-line"
+            }
+          }
+        );
+        return;
+      }
+
       setIsSyncing(true);
       try {
-        const now = new Date();
-        const userTime = now.toLocaleTimeString("es-ES", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        });
         const response = await fetch('/api/schedule', {
           method: 'POST',
           headers: {
@@ -135,7 +216,7 @@ export const useAiSync = (
         setIsSyncing(false);
       }
     },
-    [userData, handleUpdateUserData, tempEndOfDay, showNotification, recalculateCurrentDayTask]
+    [userData, handleUpdateUserData, tempEndOfDay, showNotification, recalculateCurrentDayTask, validateFixedTasksTime, parseDurationToMinutes]
   );
 
   const handleUpdateAiDuration = useCallback(
@@ -161,47 +242,7 @@ export const useAiSync = (
     [userData, handleUpdateUserData, showNotification]
   );
 
-  const handleSetEndOfDay = useCallback(
-    async () => {
-      if (!userData || !tempEndOfDay) return;
-      const prevUserData = { ...userData }; // Necesario para rollback si hay error en DB
-      try {
-        const updatedUserData = { ...userData, endOfDay: tempEndOfDay };
-        await handleUpdateUserData(updatedUserData);
-        showNotification("Hora de fin del día actualizada.", "success");
-        syncWithAI({ endOfDay: tempEndOfDay });
-      } catch (error) {
-        console.error("Error en handleSetEndOfDay:", error);
-        // Revertir cambios en UI si hay error en DB
-        await handleUpdateUserData(prevUserData);
-        showNotification(
-          "Error al actualizar la hora de fin del día. Los cambios han sido revertidos.",
-          "error"
-        );
-      }
-    },
-    [userData, tempEndOfDay, handleUpdateUserData, showNotification, syncWithAI]
-  );
-
-  const handleStartDay = useCallback(() => {
-    if (!userData) return;
-    const currentDay = getCurrentWeekDay();
-    const dayTasks = userData.weeklyTasks?.[currentDay] || [];
-
-    // Crear IDs únicos para evitar duplicados, pero mantener progressId
-    const dayTasksAsDay: DayTask[] = dayTasks.map((task) => ({
-      ...task,
-      id: generateTaskId(), // ID único usando UUID v4
-      progressId: task.progressId || generateTaskId(), // Mantener progressId existente o crear uno nuevo
-      completed: false,
-      isCurrent: false,
-      aiDuration: "",
-    }));
-
-    syncWithAI({ tasks: dayTasksAsDay });
-  }, [userData, syncWithAI]);
-
-  // Nueva función que solo clona las tareas sin llamar a la IA
+    // Nueva función que solo clona las tareas sin llamar a la IA
   const handleCloneDaySchedule = useCallback(async () => {
     if (!userData) return;
 
@@ -257,8 +298,6 @@ export const useAiSync = (
     setTempEndOfDay,
     syncWithAI,
     handleUpdateAiDuration,
-    handleSetEndOfDay,
-    handleStartDay,
     handleCloneDaySchedule,
   };
 };

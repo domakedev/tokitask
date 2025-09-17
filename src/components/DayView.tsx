@@ -20,7 +20,6 @@ interface DayViewProps {
   onReorder: (tasks: (DayTask | GeneralTask)[]) => void;
   onEdit: (id: string) => void;
   onUpdateAiDuration: (id: string, duration: string) => void;
-  onSetEndOfDay: () => void;
   tempEndOfDay: string;
   setTempEndOfDay: (value: string) => void;
   onDismissAiTip: () => void;
