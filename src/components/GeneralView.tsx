@@ -3,6 +3,7 @@ import { GeneralTask, UserData, BaseTask, WeekDay } from "../types";
 import TaskList from "./TaskList";
 import WeekDayTabs from "./WeekDayTabs";
 import DayTaskNotice from "./DayTaskNotice";
+import AllDaysTaskNotice from "./AllDaysTaskNotice";
 
 interface GeneralViewProps {
   userData: UserData;
@@ -93,7 +94,7 @@ const GeneralView: React.FC<GeneralViewProps> = ({
 
   return (
     <div>
-      <header className="p-2 md:p-4 space-y-2 md:space-y-4 sticky top-0 bg-slate-800/80 backdrop-blur-sm z-10">
+      <header className="p-2 md:p-4 space-y-2 md:space-y-4 sticky top-0  backdrop-blur-sm z-10">
         <div>
           <h1 className="text-lg md:text-2xl font-bold text-white">Horario General</h1>
           <p className="text-xs md:text-sm text-slate-400">
@@ -123,10 +124,11 @@ const GeneralView: React.FC<GeneralViewProps> = ({
             </button>
           </div>
         </div>
-        <WeekDayTabs activeTab={activeTab} onTabChange={handleTabChange} />
       </header>
-      <main className="px-2 md:px-6 mt-2 md:mt-4">
+      <main className="px-2 md:px-6 mt-2 md:mt-4 bg-slate-800/80 rounded-xl">
+        <WeekDayTabs activeTab={activeTab} onTabChange={handleTabChange} />
         {activeTab !== WeekDay.All && <DayTaskNotice />}
+        {activeTab === WeekDay.All && <AllDaysTaskNotice />}
         <TaskList
           tasks={currentTasks}
           isDaily={false}
