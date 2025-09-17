@@ -16,7 +16,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Usar completions por progressId que son persistentes
-  const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
+  const taskCompletionsByProgressId = useMemo(() => userData.taskCompletionsByProgressId || {}, [userData.taskCompletionsByProgressId]);
 
   // Get unique tasks by name (not by ID) to avoid duplicates
   const uniqueTasks = useMemo(() => {
