@@ -26,7 +26,7 @@ const steps = [
   },
   {
     title: "Rastrea tus hábitos",
-    description: "Completa tareas diariamente para construir hábitos saludables. ¡Mantén tus rachas y ve tu progreso en la sección de Progreso!",
+    description: "Completa tareas(marcadas como hábitos) diariamente para construir hábitos saludables. ¡Mantén tus rachas y ve tu progreso en la sección de Progreso!",
     icon: "Flame",
   },
   {

@@ -17,11 +17,14 @@ const EmptyProgressState: React.FC<EmptyProgressStateProps> = ({ onNavigate }) =
         <h2 className="text-lg md:text-xl font-bold text-white mb-2">
           ¡Comienza tu viaje de hábitos!
         </h2>
-        <p className="text-sm md:text-base text-slate-400 mb-6">
-          Para ver tu progreso, primero necesitas crear tareas en la sección Horario y completarlas diariamente.
-          <br /> <br />
-          <span className="text-sm">Esto te ayudará a construir hábitos saludables y rastrear tu crecimiento.</span>
-        </p>
+        <div className="mb-6">
+          <p className="text-sm md:text-base text-slate-400 mb-3">
+            Para ver tu progreso, necesitas crear tareas y marcarlas como <span className="text-purple-400 font-semibold bg-purple-900/20 px-2 py-1 rounded-full border border-purple-500/30">Hábito</span> al editarlas.
+          </p>
+          <p className="text-sm text-slate-500">
+            Esto te ayudará a construir hábitos saludables y rastrear tu crecimiento a lo largo del tiempo.
+          </p>
+        </div>
         <button
           onClick={() => onNavigate(Page.General)}
           className="bg-emerald-500 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:bg-emerald-600 transition-colors duration-150 ease-in-out"
