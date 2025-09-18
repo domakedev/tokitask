@@ -55,106 +55,110 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
     if (!isOpen) return null;
 
     return (
-        <div 
+        <div
             className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-40 transition-opacity duration-300"
             onClick={onClose}
         >
-            <div 
-                className="bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md transition-transform duration-300 transform scale-100"
+            <div
+                className="bg-slate-800 rounded-lg shadow-xl w-full max-w-md transition-transform duration-300 transform scale-100 max-h-[90vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h2 className="text-xl font-bold text-white mb-4">{isEditing ? 'Editar Tarea' : 'Agrega una Nueva Tarea'}</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label htmlFor="task-name" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tarea quieres hacer?</label>
-                        <input type="text" id="task-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Revisar emails" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
-                        <div className="mt-1 p-3 bg-yellow-500 rounded-md">
-                            <p className="text-xs text-slate-800">
-                                Los hábitos deben tener exactamente el mismo nombre en los diferentes días para agruparse en el Habit Tracker.
-                            </p>
-                        </div>
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="task-duration" className="block text-sm font-medium text-slate-300 mb-1">Cuánto tiempo de tu día crees que tomará</label>
-                        <input type="text" id="task-duration" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Ej: 30 min o 1 hora" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
-                    </div>
-                     <div className="mb-6">
-                        <label className="block text-sm font-medium text-slate-300 mb-3">
-                            ¿Este tiempo es fijo o flexible?
-                        </label>
-                        <div className="flex justify-around items-center">
-                              <label className="flex items-center">
-                                <input
-                                    type="radio"
-                                    name="timeType"
-                                    checked={flexibleTime}
-                                    onChange={() => setFlexibleTime(true)}
-                                    className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
-                                />
-                                <span className="text-sm font-medium text-slate-300">Flexible</span>
-                            </label>
-                            <label className="flex items-center">
-                                <input
-                                    type="radio"
-                                    name="timeType"
-                                    checked={!flexibleTime}
-                                    onChange={() => setFlexibleTime(false)}
-                                    className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
-                                />
-                                <span className="text-sm font-medium text-slate-300">Fijo</span>
-                            </label>                          
-                        </div>
-                        <div className="mt-3 p-3 bg-slate-700 rounded-md">
-                            <p className="text-xs text-slate-400">
-                                {flexibleTime
-                                    ? "La IA ajustará la duración recomendada."
-                                    : "La IA no te recomendará cambios en la duración."
-                                }
-                            </p>
-                        </div>
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="task-priority" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tan importante es?</label>
-                        <select id="task-priority" value={priority.toString()} onChange={(e) => setPriority(Number(e.target.value) as Priority)} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value={Priority.High.toString()}>{getPriorityLabel(Priority.High)}</option>
-                            <option value={Priority.Medium.toString()}>{getPriorityLabel(Priority.Medium)}</option>
-                            <option value={Priority.Low.toString()}>{getPriorityLabel(Priority.Low)}</option>
-                        </select>
-                    </div>
-                    {showDaySelection && !isEditing && (
+                <div className="p-6 flex-shrink-0">
+                    <h2 className="text-xl font-bold text-white mb-4">{isEditing ? 'Editar Tarea' : 'Agrega una Nueva Tarea'}</h2>
+                </div>
+                <div className="px-6 pb-6 overflow-y-auto flex-1">
+                    <form onSubmit={handleSubmit}>
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-300 mb-3">¿En qué días quieres repetir esta tarea?</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {WEEKDAY_ORDER.filter(day => day !== WeekDay.All).map(day => (
-                                    <label key={day} className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedDays.includes(day)}
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                    setSelectedDays([...selectedDays, day]);
-                                                } else {
-                                                    setSelectedDays(selectedDays.filter(d => d !== day));
-                                                }
-                                            }}
-                                            className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
-                                        />
-                                        <span className="text-sm font-medium text-slate-300">{WEEKDAY_LABELS[day]}</span>
-                                    </label>
-                                ))}
-                            </div>
-                            <div className="mt-2 p-2 bg-slate-700 rounded-md">
-                                <p className="text-xs text-slate-400">
-                                    Selecciona uno o más días. La tarea se creará en cada día seleccionado.
+                            <label htmlFor="task-name" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tarea quieres hacer?</label>
+                            <input type="text" id="task-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Revisar emails" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
+                            <div className="mt-1 p-3 bg-yellow-500 rounded-md">
+                                <p className="text-xs text-slate-800">
+                                    Los hábitos deben tener exactamente el mismo nombre en los diferentes días para agruparse en el Habit Tracker.
                                 </p>
                             </div>
                         </div>
-                    )}
-                    <div className="flex justify-end space-x-3">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-600 rounded-md hover:bg-slate-500 font-semibold transition-colors">Cancelar</button>
-                        <button type="submit" className="px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-500 font-semibold transition-colors">{isEditing ? 'Guardar Cambios' : 'Agregar Tarea'}</button>
-                    </div>
-                </form>
+                        <div className="mb-4">
+                            <label htmlFor="task-duration" className="block text-sm font-medium text-slate-300 mb-1">Cuánto tiempo de tu día crees que tomará</label>
+                            <input type="text" id="task-duration" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Ej: 30 min o 1 hora" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
+                        </div>
+                         <div className="mb-6">
+                            <label className="block text-sm font-medium text-slate-300 mb-3">
+                                ¿Este tiempo es fijo o flexible?
+                            </label>
+                            <div className="flex justify-around items-center">
+                                  <label className="flex items-center">
+                                    <input
+                                        type="radio"
+                                        name="timeType"
+                                        checked={flexibleTime}
+                                        onChange={() => setFlexibleTime(true)}
+                                        className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
+                                    />
+                                    <span className="text-sm font-medium text-slate-300">Flexible</span>
+                                </label>
+                                <label className="flex items-center">
+                                    <input
+                                        type="radio"
+                                        name="timeType"
+                                        checked={!flexibleTime}
+                                        onChange={() => setFlexibleTime(false)}
+                                        className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
+                                    />
+                                    <span className="text-sm font-medium text-slate-300">Fijo</span>
+                                </label>
+                            </div>
+                            <div className="mt-3 p-3 bg-slate-700 rounded-md">
+                                <p className="text-xs text-slate-400">
+                                    {flexibleTime
+                                        ? "La IA ajustará la duración recomendada."
+                                        : "La IA no te recomendará cambios en la duración."
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mb-4">
+                            <label htmlFor="task-priority" className="block text-sm font-medium text-slate-300 mb-1">¿Qué tan importante es?</label>
+                            <select id="task-priority" value={priority.toString()} onChange={(e) => setPriority(Number(e.target.value) as Priority)} className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value={Priority.High.toString()}>{getPriorityLabel(Priority.High)}</option>
+                                <option value={Priority.Medium.toString()}>{getPriorityLabel(Priority.Medium)}</option>
+                                <option value={Priority.Low.toString()}>{getPriorityLabel(Priority.Low)}</option>
+                            </select>
+                        </div>
+                        {showDaySelection && !isEditing && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-300 mb-3">¿En qué días quieres repetir esta tarea?</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {WEEKDAY_ORDER.filter(day => day !== WeekDay.All).map(day => (
+                                        <label key={day} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedDays.includes(day)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedDays([...selectedDays, day]);
+                                                    } else {
+                                                        setSelectedDays(selectedDays.filter(d => d !== day));
+                                                    }
+                                                }}
+                                                className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
+                                            />
+                                            <span className="text-sm font-medium text-slate-300">{WEEKDAY_LABELS[day]}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <div className="mt-2 p-2 bg-slate-700 rounded-md">
+                                    <p className="text-xs text-slate-400">
+                                        Selecciona uno o más días. La tarea se creará en cada día seleccionado.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                        <div className="flex justify-end space-x-3 mt-6">
+                            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-600 rounded-md hover:bg-slate-500 font-semibold transition-colors">Cancelar</button>
+                            <button type="submit" className="px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-500 font-semibold transition-colors">{isEditing ? 'Guardar Cambios' : 'Agregar Tarea'}</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );
