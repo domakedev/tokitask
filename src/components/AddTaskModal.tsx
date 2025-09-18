@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { BaseTask, Priority, getPriorityLabel } from '../types';
+import { BaseTask, Priority, getPriorityLabel, WeekDay, WEEKDAY_LABELS, WEEKDAY_ORDER } from '../types';
 import { generateUniqueId } from '../utils/idGenerator';
 
 interface TaskModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (task: Omit<BaseTask, 'id'> | BaseTask) => void;
+    onSubmit: (task: Omit<BaseTask, 'id'> | BaseTask, selectedDays?: WeekDay[]) => void;
     taskToEdit?: BaseTask | null;
+    showDaySelection?: boolean;
+    currentDay?: WeekDay;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskToEdit }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskToEdit, showDaySelection = false, currentDay }) => {
     const [name, setName] = useState('');
     const [duration, setDuration] = useState('');
     const [priority, setPriority] = useState<Priority>(Priority.High);
     const [flexibleTime, setFlexibleTime] = useState(true);
+    const [selectedDays, setSelectedDays] = useState<WeekDay[]>([]);
     const isEditing = !!taskToEdit;
 
     useEffect(() => {
@@ -23,15 +26,19 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 setDuration(taskToEdit.baseDuration);
                 setPriority(taskToEdit.priority);
                 setFlexibleTime(taskToEdit.flexibleTime ?? true);
+                // For editing, don't show day selection or preselect days
+                setSelectedDays([]);
             } else {
                 // Reset form for adding a new task
                 setName('');
                 setDuration('');
                 setPriority(Priority.High);
                 setFlexibleTime(true);
+                // Preselect current day if provided
+                setSelectedDays(currentDay ? [currentDay] : []);
             }
         }
-    }, [isOpen, taskToEdit, isEditing]);
+    }, [isOpen, taskToEdit, isEditing, currentDay]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,7 +47,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
         if (isEditing) {
             onSubmit({ ...taskToEdit, name, baseDuration: duration, priority, flexibleTime });
         } else {
-            onSubmit({ name, baseDuration: duration, priority, progressId: generateUniqueId(), flexibleTime });
+            onSubmit({ name, baseDuration: duration, priority, progressId: generateUniqueId(), flexibleTime }, showDaySelection ? selectedDays : undefined);
         }
         onClose();
     };
@@ -113,7 +120,36 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                             <option value={Priority.Medium.toString()}>{getPriorityLabel(Priority.Medium)}</option>
                             <option value={Priority.Low.toString()}>{getPriorityLabel(Priority.Low)}</option>
                         </select>
-                    </div>                   
+                    </div>
+                    {showDaySelection && !isEditing && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-slate-300 mb-3">¿En qué días quieres repetir esta tarea?</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {WEEKDAY_ORDER.filter(day => day !== WeekDay.All).map(day => (
+                                    <label key={day} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedDays.includes(day)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedDays([...selectedDays, day]);
+                                                } else {
+                                                    setSelectedDays(selectedDays.filter(d => d !== day));
+                                                }
+                                            }}
+                                            className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
+                                        />
+                                        <span className="text-sm font-medium text-slate-300">{WEEKDAY_LABELS[day]}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="mt-2 p-2 bg-slate-700 rounded-md">
+                                <p className="text-xs text-slate-400">
+                                    Selecciona uno o más días. La tarea se creará en cada día seleccionado.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex justify-end space-x-3">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-600 rounded-md hover:bg-slate-500 font-semibold transition-colors">Cancelar</button>
                         <button type="submit" className="px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-500 font-semibold transition-colors">{isEditing ? 'Guardar Cambios' : 'Agregar Tarea'}</button>

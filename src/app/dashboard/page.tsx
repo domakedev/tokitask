@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Page, WeekDay, BaseTask, GeneralTask } from "../../types";
+import { Page, WeekDay, BaseTask, GeneralTask, WEEKDAY_LABELS } from "../../types";
 import { useAuth } from "../../hooks/useAuth";
 import { useTaskManagement } from "../../hooks/useTaskManagement";
 import { useAiSync } from "../../hooks/useAiSync";
@@ -325,13 +325,13 @@ export default function DashboardPage() {
 
   // Función para guardar tareas contextual según la pestaña activa
   const handleSaveTaskContextual = useCallback(
-    async (task: BaseTask | Omit<BaseTask, "id">) => {
+    async (task: BaseTask | Omit<BaseTask, "id">, selectedDays?: WeekDay[]) => {
       if (currentPage === Page.General) {
         if (activeGeneralTab === WeekDay.All) {
           // Guardar en generalTasks
           await handleSaveTask(task);
         } else {
-          // Guardar en weeklyTasks para el día específico
+          // Guardar en weeklyTasks para el día específico o múltiples días
           if (!userData) return;
 
           const isEditing = "id" in task;
@@ -350,57 +350,67 @@ export default function DashboardPage() {
               sunday: [],
             };
 
-            const currentTasks = currentWeeklyTasks[activeGeneralTab] || [];
-            let updatedTasks: GeneralTask[];
+            // Determinar en qué días guardar la tarea
+            const daysToSave = selectedDays && selectedDays.length > 0 ? selectedDays : [activeGeneralTab];
 
-            if (isEditing) {
-              // Editar tarea existente - filtrar y reemplazar para evitar duplicados
-              const filteredTasks = currentTasks.filter(
-                (t) => t.id !== task.id
-              );
-              const existingTask = currentTasks.find((t) => t.id === task.id);
-              updatedTasks = [
-                ...filteredTasks,
-                {
+            const updatedWeeklyTasks = { ...currentWeeklyTasks };
+            const successfulDays: WeekDay[] = [];
+
+            for (const day of daysToSave) {
+              const currentTasks = currentWeeklyTasks[day] || [];
+              let updatedTasks: GeneralTask[];
+
+              if (isEditing) {
+                // Editar tarea existente - filtrar y reemplazar para evitar duplicados
+                const filteredTasks = currentTasks.filter(
+                  (t) => t.id !== task.id
+                );
+                const existingTask = currentTasks.find((t) => t.id === task.id);
+                updatedTasks = [
+                  ...filteredTasks,
+                  {
+                    ...task,
+                    completed: existingTask?.completed ?? false,
+                  } as GeneralTask,
+                ];
+                successfulDays.push(day);
+              } else {
+                // Validar unicidad para nueva tarea en cada día
+                const taskName = task.name.trim().toLowerCase();
+                const existingTask = currentTasks.find(t => t.name.trim().toLowerCase() === taskName);
+                if (existingTask) {
+                  toast.error(`Ya existe una tarea con el nombre "${task.name}" en ${WEEKDAY_LABELS[day]}.`);
+                  continue; // Skip this day
+                }
+                // Crear nueva tarea - agregar al final con ID único y progressId único
+                const newTask = {
                   ...task,
-                  completed: existingTask?.completed ?? false,
-                } as GeneralTask,
-              ];
-            } else {
-              // Validar unicidad para nueva tarea
-              const taskName = task.name.trim().toLowerCase();
-              const existingTask = currentTasks.find(t => t.name.trim().toLowerCase() === taskName);
-              if (existingTask) {
-                toast.error(`Ya existe una tarea con el nombre "${task.name}".`);
-                return;
+                  id: generateTaskId(),
+                  progressId: generateTaskId(), // Único para cada tarea
+                  completed: false,
+                } as GeneralTask;
+                updatedTasks = [...currentTasks, newTask];
+                successfulDays.push(day);
               }
-              // Crear nueva tarea - agregar al final con ID único
-              const newTask = {
-                ...task,
-                id: generateTaskId(),
-                progressId: generateTaskId(), // Nuevo progressId único
-                completed: false,
-              } as GeneralTask;
-              updatedTasks = [...currentTasks, newTask];
+
+              updatedWeeklyTasks[day] = updatedTasks;
             }
 
-            const updatedWeeklyTasks = {
-              ...currentWeeklyTasks,
-              [activeGeneralTab]: updatedTasks,
-            };
+            if (successfulDays.length > 0) {
+              const updatedUserData = {
+                ...userData,
+                weeklyTasks: updatedWeeklyTasks,
+              };
 
-            const updatedUserData = {
-              ...userData,
-              weeklyTasks: updatedWeeklyTasks,
-            };
-
-            setUserData(updatedUserData);
-            await handleUpdateUserData(updatedUserData);
-            const taskName = "name" in task ? task.name : "Tarea";
-            const action = isEditing ? "actualizó" : "añadió";
-            toast.success(
-              `Se ${action} tarea "${taskName}" en la base de datos.`
-            );
+              setUserData(updatedUserData);
+              await handleUpdateUserData(updatedUserData);
+              const taskName = "name" in task ? task.name : "Tarea";
+              const action = isEditing ? "actualizó" : "añadió";
+              const daysText = successfulDays.length > 1 ? ` en ${successfulDays.length} días` : ` en ${WEEKDAY_LABELS[successfulDays[0]]}`;
+              toast.success(
+                `Se ${action} tarea "${taskName}"${daysText} en la base de datos.`
+              );
+            }
             setModalOpen(false);
             setEditingTask(null);
           } catch (error) {
@@ -516,13 +526,18 @@ export default function DashboardPage() {
     setCurrentPage,
   ]);
 
+  const handleSaveTaskForDayWrapper = useCallback((task: BaseTask | Omit<BaseTask, "id">, day: WeekDay) => {
+    // Wrapper to maintain compatibility, but since we now use selectedDays, this might not be called
+    handleSaveTaskContextual(task, [day]);
+  }, [handleSaveTaskContextual]);
+
   const generalViewComponent = useMemo(() => {
     if (!userData) return null;
     return (
       <GeneralView
         userData={userData}
         onSaveTask={handleSaveTask}
-        onSaveTaskForDay={handleSaveTaskContextual}
+        onSaveTaskForDay={handleSaveTaskForDayWrapper}
         onDelete={handleDeleteTask}
         onDeleteWeekly={handleDeleteWeeklyTask}
         onReorder={handleReorderTasks}
@@ -540,7 +555,7 @@ export default function DashboardPage() {
   }, [
     userData,
     handleSaveTask,
-    handleSaveTaskContextual,
+    handleSaveTaskForDayWrapper,
     handleDeleteTask,
     handleDeleteWeeklyTask,
     handleReorderTasks,
@@ -656,6 +671,8 @@ export default function DashboardPage() {
               : handleSaveTask
           }
           taskToEdit={editingTask}
+          showDaySelection={currentPage === Page.General && activeGeneralTab !== WeekDay.All && !editingTask}
+          currentDay={currentPage === Page.General ? activeGeneralTab : undefined}
         />
       )}
 
