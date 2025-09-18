@@ -64,7 +64,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="p-6 flex-shrink-0">
-                    <h2 className="text-xl font-bold text-white mb-4">{isEditing ? 'Editar Tarea' : 'Agrega una Nueva Tarea'}</h2>
+                    <h2 className="text-xl font-bold text-white">{isEditing ? 'Editar Tarea' : 'Agrega una Nueva Tarea'}</h2>
                 </div>
                 <div className="px-6 pb-6 overflow-y-auto flex-1">
                     <form onSubmit={handleSubmit}>
