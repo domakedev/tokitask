@@ -256,15 +256,25 @@ export const useAiSync = (
     }
 
     try {
+      const now = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+      const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
+
       // Crear IDs únicos para evitar duplicados, pero mantener progressId
-      const allTasksAsDay: DayTask[] = allTasks.map((task) => ({
-        ...task,
-        id: generateTaskId(), // ID único usando UUID v4
-        progressId: task.progressId || generateTaskId(), // Mantener progressId existente o crear uno nuevo
-        completed: false,
-        isCurrent: false,
-        aiDuration: "",
-      }));
+      const allTasksAsDay: DayTask[] = allTasks.map((task) => {
+        const taskProgressId = task.progressId || generateTaskId();
+        // Verificar si la tarea ya fue completada hoy según la DB
+        const taskCompletions = taskCompletionsByProgressId[taskProgressId] || [];
+        const isCompletedToday = taskCompletions.includes(now);
+
+        return {
+          ...task,
+          id: generateTaskId(), // ID único usando UUID v4
+          progressId: taskProgressId, // Mantener progressId existente o crear uno nuevo
+          completed: isCompletedToday, // Verificar completitud según DB
+          isCurrent: false,
+          aiDuration: "",
+        };
+      });
 
       // Calcular cuál es la primera tarea pendiente
       const firstPendingIndex = allTasksAsDay.findIndex((task) => !task.completed);
