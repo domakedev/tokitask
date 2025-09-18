@@ -192,10 +192,14 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
     };
   }, [selectedTaskProgressIds, completionDates]);
 
-  // Generate unique color based on task name index
+  // Generate unique color based on task name hash
   const getUniqueTaskColor = (taskName: string) => {
-    const taskIndex = uniqueCompletedTaskNames.indexOf(taskName.toLowerCase());
-    if (taskIndex === -1) return "bg-slate-600"; // Color por defecto
+    // Simple hash function for consistent color assignment
+    let hash = 0;
+    const name = taskName.toLowerCase();
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
 
     // Paleta de colores vibrantes con buen contraste para texto blanco
     const colorPalette = [
@@ -216,7 +220,8 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
       "bg-yellow-600",    // Amarillo (más oscuro para mejor contraste)
     ];
 
-    return colorPalette[taskIndex % colorPalette.length];
+    const index = Math.abs(hash) % colorPalette.length;
+    return colorPalette[index];
   };
 
   //Seleccionar por defecto la primera tarea completada sin que que sea obligatoria siempre
