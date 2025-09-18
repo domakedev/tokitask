@@ -3,12 +3,14 @@ import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth, firebaseInitializationError } from "../services/firebase";
 import { getUserData } from "../services/firestoreService";
 import { UserData } from "../types";
+import { useAuthStore } from "../stores/authStore";
+import { useScheduleStore } from "../stores/scheduleStore";
+import { useProgressStore } from "../stores/progressStore";
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const { user, userData, loading, authError, setUser, setUserData, setLoading, setAuthError, handleSignOut } = useAuthStore();
+  const { setEndOfDay, setDayTasks, setGeneralTasks, setWeeklyTasks } = useScheduleStore();
+  const { setTaskCompletionsByProgressId, setOnboardingCompleted } = useProgressStore();
 
   useEffect(() => {
     if (firebaseInitializationError) {
@@ -29,6 +31,15 @@ export const useAuth = () => {
         try {
           const data = await getUserData(currentUser.uid);
           setUserData(data);
+          // Inicializar stores con userData
+          if (data) {
+            setEndOfDay(data.endOfDay);
+            setDayTasks(data.dayTasks);
+            setGeneralTasks(data.generalTasks);
+            setWeeklyTasks(data.weeklyTasks);
+            setTaskCompletionsByProgressId(data.taskCompletionsByProgressId || {});
+            setOnboardingCompleted(data.onboardingCompleted || false);
+          }
         } catch (error) {
           console.error("Error fetching user data:", error);
           setAuthError("No se pudieron cargar los datos del usuario.");
@@ -43,17 +54,6 @@ export const useAuth = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleSignOut = async () => {
-    if (!auth) {
-      console.error("Sign Out Error: Firebase auth is not initialized.");
-      return;
-    }
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Sign Out Error:", error);
-    }
-  };
 
   return {
     user,

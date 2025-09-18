@@ -50,6 +50,9 @@ importers:
       uuid:
         specifier: ^13.0.0
         version: 13.0.0
+      zustand:
+        specifier: ^5.0.8
+        version: 5.0.8(@types/react@19.1.12)(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0))
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3
