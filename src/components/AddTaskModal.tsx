@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BaseTask, Priority, getPriorityLabel, WeekDay, WEEKDAY_LABELS, WEEKDAY_ORDER } from '../types';
 import { generateUniqueId } from '../utils/idGenerator';
+import Badge from './Badge';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -85,54 +86,54 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                             <input type="text" id="task-duration" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Ej: 30 min o 1 hora" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
                         </div>
                          <div className="mb-6">
-                            <label className="block text-sm font-medium text-slate-300 mb-3">
-                                ¿Este tiempo es fijo o flexible?
-                            </label>
-                            <div className="flex justify-around items-center">
-                                  <label className="flex items-center">
-                                    <input
-                                        type="radio"
-                                        name="timeType"
-                                        checked={flexibleTime}
-                                        onChange={() => setFlexibleTime(true)}
-                                        className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
-                                    />
-                                    <span className="text-sm font-medium text-slate-300">Flexible</span>
-                                </label>
-                                <label className="flex items-center">
-                                    <input
-                                        type="radio"
-                                        name="timeType"
-                                        checked={!flexibleTime}
-                                        onChange={() => setFlexibleTime(false)}
-                                        className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
-                                    />
-                                    <span className="text-sm font-medium text-slate-300">Fijo</span>
-                                </label>
-                            </div>
-                            <div className="mt-3 p-3 bg-slate-700 rounded-md">
-                                <p className="text-xs text-slate-400">
-                                    {flexibleTime
-                                        ? "La IA ajustará la duración recomendada."
-                                        : "La IA no te recomendará cambios en la duración."
-                                    }
-                                </p>
-                            </div>
-                        </div>
+                             <label className="block text-sm font-medium text-slate-300 mb-3">
+                                 ¿Este tiempo es fijo o flexible?
+                             </label>
+                             <div className="flex items-center gap-4">
+                                 <div className="flex flex-col gap-2 min-w-20">
+                                     <Badge
+                                         label="Flexible"
+                                         icon="bird"
+                                         variant="flexible"
+                                         selected={flexibleTime}
+                                         onClick={() => setFlexibleTime(true)}
+                                     />
+                                     <Badge
+                                         label="Fijo"
+                                         icon="lock"
+                                         variant="fixed"
+                                         selected={!flexibleTime}
+                                         onClick={() => setFlexibleTime(false)}
+                                     />
+                                 </div>
+                                 <div className="flex-1 p-3 bg-slate-700 rounded-md">
+                                     <p className="text-xs text-slate-400">
+                                         {flexibleTime
+                                             ? "La IA ajustará la duración recomendada."
+                                             : "La IA no te recomendará cambios en la duración."
+                                         }
+                                     </p>
+                                 </div>
+                             </div>
+                         </div>
                         <div className="mb-4">
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    checked={isHabit}
-                                    onChange={(e) => setIsHabit(e.target.checked)}
-                                    className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
-                                />
-                                <span className="text-sm font-medium text-slate-300">Marcar como hábito</span>
-                            </label>
-                            <div className="mt-2 p-2 bg-slate-700 rounded-md">
-                                <p className="text-xs text-slate-400">
-                                    Los hábitos se mostrarán en la vista de Progreso para seguimiento continuo.
-                                </p>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">¿Es un hábito?</label>
+                            <div className="flex items-center gap-4">
+                                <div className="min-w-20">
+
+                                <Badge
+                                    label="Hábito"
+                                    icon="repeat"
+                                    variant="habit"
+                                    selected={isHabit}
+                                    onClick={() => setIsHabit(!isHabit)}
+                                    />
+                                    </div>
+                                <div className="flex-1 p-2 bg-slate-700 rounded-md">
+                                    <p className="text-xs text-slate-400">
+                                        Los hábitos se mostrarán en la vista de Progreso para seguimiento continuo.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         <div className="mb-4">

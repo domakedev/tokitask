@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { BaseTask, DayTask, Priority, getPriorityLabel } from "../types";
 import Icon from "./Icon";
+import Badge from "./Badge";
 import { useTimer } from "../hooks/useTimer";
 
 interface TaskItemProps {
@@ -167,44 +168,23 @@ const TaskItem: React.FC<
               <Icon name="timer" className="h-3 w-3 inline mr-1" />
               {task.baseDuration}
             </span>
-            <span
-              className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap flex items-center ${
-                task.flexibleTime
-                  ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                  : "bg-orange-500/20 text-orange-400 border-orange-500/30"
-              }`}
-            >
-              {task.flexibleTime ? (
-                <>
-                  <Icon name="bird" className="h-3 w-3 inline mr-1" />
-                  Flexible
-                </>
-              ) : (
-                <>
-                  <Icon name="lock" className="h-3 w-3 inline mr-1" />
-                  Fijo
-                </>
-              )}
-            </span>
-            <span
-              className={`font-medium px-1 py-0.5 rounded-full border text-xs whitespace-nowrap ${getPriorityClass(
-                task.priority
-              )}`}
-            >
-              {getPriorityLabel(task.priority)}
-            </span>
-            {task.isHabit && (
-              <span className="bg-purple-500/20 text-purple-400 rounded-full px-1 py-0.5 text-xs whitespace-nowrap flex items-center border border-purple-500/30">
-                <Icon name="repeat" className="h-3 w-3 inline mr-1" />
-                Hábito
-              </span>
-            )}
+            <Badge
+              label={task.flexibleTime ? 'Flexible' : 'Fijo'}
+              icon={task.flexibleTime ? 'bird' : 'lock'}
+              variant={task.flexibleTime ? 'flexible' : 'fixed'}
+            />
+            <Badge
+              label={getPriorityLabel(task.priority)}
+              variant={task.priority === Priority.High ? 'high' : task.priority === Priority.Medium ? 'medium' : 'low'}
+            />
+            {task.isHabit && <Badge label="Hábito" icon="repeat" variant="habit" />}
             {isDaily && "aiDuration" in task && (
-              <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 py-0.5 text-xs whitespace-nowrap flex items-center">
-                <Icon name="orbit" className="h-3 w-3 inline mr-1" />
-                IA recomendación: {task.aiDuration}
-              </span>
-            )}                       
+              <Badge
+                label={`IA recomendación: ${task.aiDuration}`}
+                icon="orbit"
+                variant="ai"
+              />
+            )}
           </div>
 
           {showTimer && (
