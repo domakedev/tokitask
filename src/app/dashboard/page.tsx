@@ -61,6 +61,7 @@ export default function DashboardPage() {
     handleReorderTasks,
     handleUpdateUserData,
     handleClearAllDayTasks,
+    handleUpdateHabitForAllTasks,
   } = useTaskManagement(user, userData, setUserData);
 
   // Función para manejar cambios de pestaña en General
@@ -338,6 +339,23 @@ export default function DashboardPage() {
           const prevUserData = { ...userData };
 
           try {
+            // Verificar si se está cambiando isHabit
+            let isHabitChanged = false;
+            let originalTask;
+
+            if (isEditing) {
+              // Buscar la tarea original para comparar isHabit
+              const allTasks = [
+                ...userData.dayTasks,
+                ...userData.generalTasks,
+                ...Object.values(userData.weeklyTasks || {}).flat(),
+              ];
+              originalTask = allTasks.find((t) => t.id === task.id);
+              if (originalTask && 'isHabit' in task && originalTask.isHabit !== task.isHabit) {
+                isHabitChanged = true;
+              }
+            }
+
             // Asegurar que weeklyTasks esté inicializado
             const currentWeeklyTasks = userData.weeklyTasks || {
               all: [],
@@ -404,6 +422,12 @@ export default function DashboardPage() {
 
               setUserData(updatedUserData);
               await handleUpdateUserData(updatedUserData);
+
+              // Si se cambió isHabit, actualizar todas las tareas con el mismo nombre
+              if (isHabitChanged && isEditing && 'isHabit' in task) {
+                await handleUpdateHabitForAllTasks(task.id, task.isHabit!);
+              }
+
               const taskName = "name" in task ? task.name : "Tarea";
               const action = isEditing ? "actualizó" : "añadió";
               const daysText = successfulDays.length > 1 ? ` en ${successfulDays.length} días` : ` en ${WEEKDAY_LABELS[successfulDays[0]]}`;
@@ -436,6 +460,7 @@ export default function DashboardPage() {
       setUserData,
       setModalOpen,
       setEditingTask,
+      handleUpdateHabitForAllTasks,
     ]
   );
 

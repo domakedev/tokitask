@@ -273,6 +273,7 @@ export const useAiSync = (
           completed: isCompletedToday, // Verificar completitud según DB
           isCurrent: false,
           aiDuration: "",
+          isHabit: task.isHabit ?? false, // Asegurar que isHabit se copie correctamente
         };
       });
 

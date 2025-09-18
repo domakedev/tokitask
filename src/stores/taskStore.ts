@@ -23,6 +23,7 @@ interface TaskState {
   handleEditTask: (taskId: string) => void;
   handleReorderTasks: (reorderedTasks: (DayTask | GeneralTask)[]) => Promise<void>;
   handleClearAllDayTasks: () => Promise<void>;
+  handleUpdateHabitForAllTasks: (taskId: string, isHabit: boolean) => Promise<void>;
   recalculateCurrentDayTask: (tasks: DayTask[]) => DayTask[];
 }
 
@@ -55,8 +56,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     const prevUserData = { ...userData };
     try {
+      // Verificar si es una edición y si se está cambiando isHabit
+      const isEditing = 'id' in task;
+      let isHabitChanged = false;
+      let originalTask;
+
+      if (isEditing) {
+        // Buscar la tarea original para comparar isHabit
+        const allTasks = [...dayTasks, ...generalTasks, ...Object.values(userData.weeklyTasks || {}).flat()];
+        originalTask = allTasks.find((t) => t.id === (task as BaseTask).id);
+        if (originalTask && 'isHabit' in task && originalTask.isHabit !== task.isHabit) {
+          isHabitChanged = true;
+        }
+      }
+
       if (currentPage === Page.Day) {
-        const updatedTasks = 'id' in task
+        const updatedTasks = isEditing
           ? dayTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
           : (() => {
               const taskName = task.name.trim().toLowerCase();
@@ -75,6 +90,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                   isCurrent: false,
                   aiDuration: '',
                   flexibleTime: task.flexibleTime ?? true,
+                  isHabit: task.isHabit ?? false,
                 } as DayTask,
               ];
             })();
@@ -87,7 +103,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         await updateUserData(user.uid, updatedUserData);
         useAuthStore.getState().setUserData(updatedUserData);
       } else {
-        const updatedTasks = 'id' in task
+        const updatedTasks = isEditing
           ? generalTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
           : (() => {
               const taskName = task.name.trim().toLowerCase();
@@ -105,6 +121,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                   completed: false,
                   baseDuration: task.baseDuration || '',
                   flexibleTime: task.flexibleTime ?? true,
+                  isHabit: task.isHabit ?? false,
                 } as GeneralTask,
               ];
             })();
@@ -113,9 +130,15 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         await updateUserData(user.uid, updatedUserData);
         useAuthStore.getState().setUserData(updatedUserData);
       }
+
+      // Si se cambió isHabit, actualizar todas las tareas con el mismo nombre
+      if (isHabitChanged && isEditing && 'isHabit' in task) {
+        await get().handleUpdateHabitForAllTasks((task as BaseTask).id, task.isHabit!);
+      }
+
       set({ isModalOpen: false, editingTask: null });
       const taskName = 'name' in task ? task.name : 'Tarea';
-      const action = 'id' in task ? 'actualizada' : 'añadida';
+      const action = isEditing ? 'actualizada' : 'añadida';
       toast.success(`Se ${action} tarea "${taskName}" en la base de datos.`);
     } catch (error) {
       console.error('Error en handleSaveTask:', error);
@@ -360,6 +383,69 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.error('Error en handleClearAllDayTasks:', error);
       useAuthStore.getState().setUserData(prevUserData);
       toast.error('Error al eliminar las tareas. No se guardó en la base de datos.');
+    }
+  },
+
+  handleUpdateHabitForAllTasks: async (taskId: string, isHabit: boolean) => {
+    const { user } = useAuthStore.getState();
+    const { userData } = useAuthStore.getState();
+    const { dayTasks, generalTasks, weeklyTasks, setDayTasks, setGeneralTasks, setWeeklyTasks } = useScheduleStore.getState();
+
+    if (!user || !userData) return;
+
+    // Encontrar la tarea original para obtener su nombre
+    const allTasks = [
+      ...dayTasks,
+      ...generalTasks,
+      ...Object.values(weeklyTasks).flat(),
+    ];
+    const originalTask = allTasks.find((t) => t.id === taskId);
+    if (!originalTask) return;
+
+    const taskName = originalTask.name.trim().toLowerCase();
+    const prevUserData = { ...userData };
+
+    try {
+      // Actualizar dayTasks
+      const updatedDayTasks = dayTasks.map((task) =>
+        task.name.trim().toLowerCase() === taskName ? { ...task, isHabit } : task
+      );
+
+      // Actualizar generalTasks
+      const updatedGeneralTasks = generalTasks.map((task) =>
+        task.name.trim().toLowerCase() === taskName ? { ...task, isHabit } : task
+      );
+
+      // Actualizar weeklyTasks
+      const updatedWeeklyTasks = { ...weeklyTasks };
+      (Object.keys(updatedWeeklyTasks) as (keyof typeof updatedWeeklyTasks)[]).forEach((day) => {
+        updatedWeeklyTasks[day] = updatedWeeklyTasks[day].map((task: GeneralTask) =>
+          task.name.trim().toLowerCase() === taskName ? { ...task, isHabit } : task
+        );
+      });
+
+      // Actualizar Zustand stores
+      setDayTasks(updatedDayTasks);
+      setGeneralTasks(updatedGeneralTasks);
+      setWeeklyTasks(updatedWeeklyTasks);
+
+      // Actualizar userData y base de datos
+      const updatedUserData = {
+        ...userData,
+        dayTasks: updatedDayTasks,
+        generalTasks: updatedGeneralTasks,
+        weeklyTasks: updatedWeeklyTasks,
+      };
+
+      await updateUserData(user.uid, updatedUserData);
+      useAuthStore.getState().setUserData(updatedUserData);
+
+      const habitText = isHabit ? 'marcada como hábito' : 'desmarcada como hábito';
+      toast.success(`Tarea "${originalTask.name}" ${habitText} en todos los horarios.`);
+    } catch (error) {
+      console.error('Error en handleUpdateHabitForAllTasks:', error);
+      useAuthStore.getState().setUserData(prevUserData);
+      toast.error(`Error al actualizar el hábito de "${originalTask.name}". No se guardó en la base de datos.`);
     }
   },
 }));

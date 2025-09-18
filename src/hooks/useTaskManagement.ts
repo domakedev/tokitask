@@ -14,7 +14,9 @@ export const useTaskManagement = (
   setUserData: (data: UserData | null) => void,
 ) => {
   const { currentPage, setCurrentPage } = useScheduleStore();
-  const { isModalOpen, setModalOpen, editingTask, setEditingTask, showConfirmation, setShowConfirmation, taskToDelete, setTaskToDelete, handleSaveTask, handleToggleComplete, handleDeleteTask, confirmDelete, handleEditTask, handleReorderTasks, handleClearAllDayTasks } = useTaskStore();
+  const { isModalOpen, setModalOpen, editingTask, setEditingTask, showConfirmation, setShowConfirmation, taskToDelete, setTaskToDelete, handleSaveTask, handleToggleComplete, handleDeleteTask, confirmDelete, handleEditTask, handleReorderTasks, handleClearAllDayTasks, handleUpdateHabitForAllTasks } = useTaskStore();
+
+  const { setDayTasks, setGeneralTasks, setWeeklyTasks, setEndOfDay } = useScheduleStore();
 
   const handleUpdateUserData = useCallback(
     async (newUserData: Partial<UserData>) => {
@@ -22,10 +24,38 @@ export const useTaskManagement = (
         const prevUserData = { ...userData };
         const updatedData = { ...userData, ...newUserData } as UserData;
         setUserData(updatedData);
+
+        // Sincronizar con useScheduleStore
+        if (newUserData.dayTasks !== undefined) {
+          setDayTasks(newUserData.dayTasks);
+        }
+        if (newUserData.generalTasks !== undefined) {
+          setGeneralTasks(newUserData.generalTasks);
+        }
+        if (newUserData.weeklyTasks !== undefined) {
+          setWeeklyTasks(newUserData.weeklyTasks);
+        }
+        if (newUserData.endOfDay !== undefined) {
+          setEndOfDay(newUserData.endOfDay);
+        }
+
         try {
           await updateUserData(user.uid, updatedData);
         } catch {
           setUserData(prevUserData);
+          // Revertir cambios en useScheduleStore también
+          if (newUserData.dayTasks !== undefined) {
+            setDayTasks(prevUserData.dayTasks);
+          }
+          if (newUserData.generalTasks !== undefined) {
+            setGeneralTasks(prevUserData.generalTasks);
+          }
+          if (newUserData.weeklyTasks !== undefined) {
+            setWeeklyTasks(prevUserData.weeklyTasks);
+          }
+          if (newUserData.endOfDay !== undefined) {
+            setEndOfDay(prevUserData.endOfDay);
+          }
           toast.error(
             "Error al actualizar los datos. No se guardó en la base de datos."
           );
@@ -33,7 +63,7 @@ export const useTaskManagement = (
         }
       }
     },
-    [user, userData, setUserData]
+    [user, userData, setUserData, setDayTasks, setGeneralTasks, setWeeklyTasks, setEndOfDay]
   );
 
   return {
@@ -55,5 +85,6 @@ export const useTaskManagement = (
     handleReorderTasks,
     handleUpdateUserData,
     handleClearAllDayTasks,
+    handleUpdateHabitForAllTasks,
   };
 };

@@ -192,7 +192,13 @@ const TaskItem: React.FC<
               )}`}
             >
               {getPriorityLabel(task.priority)}
-            </span> 
+            </span>
+            {task.isHabit && (
+              <span className="bg-purple-500/20 text-purple-400 rounded-full px-1 py-0.5 text-xs whitespace-nowrap flex items-center border border-purple-500/30">
+                <Icon name="repeat" className="h-3 w-3 inline mr-1" />
+                Hábito
+              </span>
+            )}
             {isDaily && "aiDuration" in task && (
               <span className="bg-emerald-900/40 text-emerald-300 rounded px-1 py-0.5 text-xs whitespace-nowrap flex items-center">
                 <Icon name="orbit" className="h-3 w-3 inline mr-1" />

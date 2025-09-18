@@ -42,12 +42,12 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
       return null;
     };
 
-    // Only include progressIds that have at least one completion date AND exist in userData
+    // Only include progressIds that have at least one completion date AND exist in userData AND are habits
     Object.entries(taskCompletionsByProgressId).forEach(([progressId, completionDates]) => {
       // Only include if there are actual completion dates (not empty array)
       if (completionDates && completionDates.length > 0) {
         const task = findTaskByProgressId(progressId);
-        if (task) {
+        if (task && task.isHabit) {
           tasks.push(task);
         }
       }
@@ -266,7 +266,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
     <div className="p-2 md:p-4 space-y-2 md:space-y-6">
       {/* Task Pills */}
       <div className="space-y-2 md:space-y-4">
-        <h2 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Tareas disponibles</h2>
+        <h2 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Hábitos disponibles</h2>
         <div className="flex flex-wrap justify-center mt-4 md:mt-6 gap-1 md:gap-2">
           {uniqueCompletedTaskNames.map(taskName => {
             const progressIds = getProgressIdsForName(taskName);

@@ -16,6 +16,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
     const [duration, setDuration] = useState('');
     const [priority, setPriority] = useState<Priority>(Priority.High);
     const [flexibleTime, setFlexibleTime] = useState(true);
+    const [isHabit, setIsHabit] = useState(false);
     const [selectedDays, setSelectedDays] = useState<WeekDay[]>([]);
     const isEditing = !!taskToEdit;
 
@@ -26,6 +27,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 setDuration(taskToEdit.baseDuration);
                 setPriority(taskToEdit.priority);
                 setFlexibleTime(taskToEdit.flexibleTime ?? true);
+                setIsHabit(taskToEdit.isHabit ?? false);
                 // For editing, don't show day selection or preselect days
                 setSelectedDays([]);
             } else {
@@ -34,6 +36,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 setDuration('');
                 setPriority(Priority.High);
                 setFlexibleTime(true);
+                setIsHabit(false);
                 // Preselect current day if provided
                 setSelectedDays(currentDay ? [currentDay] : []);
             }
@@ -45,9 +48,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
         if (!name.trim() || !duration.trim()) return;
 
         if (isEditing) {
-            onSubmit({ ...taskToEdit, name, baseDuration: duration, priority, flexibleTime });
+            onSubmit({ ...taskToEdit, name, baseDuration: duration, priority, flexibleTime, isHabit });
         } else {
-            onSubmit({ name, baseDuration: duration, priority, progressId: generateUniqueId(), flexibleTime }, showDaySelection ? selectedDays : undefined);
+            onSubmit({ name, baseDuration: duration, priority, progressId: generateUniqueId(), flexibleTime, isHabit }, showDaySelection ? selectedDays : undefined);
         }
         onClose();
     };
@@ -113,6 +116,22 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                         ? "La IA ajustará la duración recomendada."
                                         : "La IA no te recomendará cambios en la duración."
                                     }
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mb-4">
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={isHabit}
+                                    onChange={(e) => setIsHabit(e.target.checked)}
+                                    className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-600"
+                                />
+                                <span className="text-sm font-medium text-slate-300">Marcar como hábito</span>
+                            </label>
+                            <div className="mt-2 p-2 bg-slate-700 rounded-md">
+                                <p className="text-xs text-slate-400">
+                                    Los hábitos se mostrarán en la vista de Progreso para seguimiento continuo.
                                 </p>
                             </div>
                         </div>
