@@ -376,7 +376,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
       {/* Statistics */}
       {statistics && (
         <div className="space-y-2 md:space-y-4">
-          <h3 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Estadísticas</h3>
+          <h3 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Estadísticas Individuales</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
             <div className="bg-slate-800 p-3 md:p-4 rounded-lg shadow-lg">
               <div className="flex items-center space-x-2">
