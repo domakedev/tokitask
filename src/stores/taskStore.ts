@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { BaseTask, DayTask, GeneralTask, Page } from '../types';
+import { BaseTask, DayTask, GeneralTask, Page, WeekDay, WEEKDAY_LABELS } from '../types';
 import { updateUserData } from '../services/firestoreService';
 import { generateTaskId } from '../utils/idGenerator';
 import { toast } from 'react-toastify';
@@ -13,11 +13,15 @@ interface TaskState {
   editingTask: BaseTask | null;
   showConfirmation: boolean;
   taskToDelete: BaseTask | null;
+  copiedTask: BaseTask | null;
   setModalOpen: (open: boolean) => void;
   setEditingTask: (task: BaseTask | null) => void;
   setShowConfirmation: (show: boolean) => void;
   setTaskToDelete: (task: BaseTask | null) => void;
-  handleSaveTask: (task: BaseTask | Omit<BaseTask, 'id'>) => Promise<void>;
+  setCopiedTask: (task: BaseTask | null) => void;
+  clearCopiedTask: () => void;
+  handleSaveTask: (task: BaseTask | Omit<BaseTask, 'id' | 'progressId'>, activeTab?: WeekDay) => Promise<void>;
+  handlePasteTask: (activeTab?: WeekDay) => Promise<void>;
   handleToggleComplete: (taskId: string) => Promise<void>;
   handleDeleteTask: (taskId: string) => void;
   confirmDelete: () => Promise<void>;
@@ -33,11 +37,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   editingTask: null,
   showConfirmation: false,
   taskToDelete: null,
+  copiedTask: null,
 
   setModalOpen: (isModalOpen) => set({ isModalOpen }),
   setEditingTask: (editingTask) => set({ editingTask }),
   setShowConfirmation: (showConfirmation) => set({ showConfirmation }),
   setTaskToDelete: (taskToDelete) => set({ taskToDelete }),
+  setCopiedTask: (copiedTask) => set({ copiedTask }),
+  clearCopiedTask: () => set({ copiedTask: null }),
 
   recalculateCurrentDayTask: (tasks: DayTask[]) => {
     const firstPendingIndex = tasks.findIndex((task) => !task.completed);
@@ -47,10 +54,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }));
   },
 
-  handleSaveTask: async (task) => {
+  handleSaveTask: async (task, activeTab) => {
     const { user } = useAuthStore.getState();
     const { userData } = useAuthStore.getState();
-    const { currentPage, dayTasks, generalTasks, setDayTasks, setGeneralTasks } = useScheduleStore.getState();
+    const scheduleState = useScheduleStore.getState();
+    const { currentPage, dayTasks, generalTasks, setDayTasks, setGeneralTasks } = scheduleState;
+    const { weeklyTasks, setWeeklyTasks } = scheduleState;
     const { taskCompletionsByProgressId, setTaskCompletionsByProgressId } = useProgressStore.getState();
 
     if (!user || !userData) return;
@@ -104,32 +113,65 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         await updateUserData(user.uid, updatedUserData);
         useAuthStore.getState().setUserData(updatedUserData);
       } else {
-        const updatedTasks = isEditing
-          ? generalTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
-          : (() => {
-              const taskName = task.name.trim().toLowerCase();
-              const existingTask = generalTasks.find(t => t.name.trim().toLowerCase() === taskName);
-              if (existingTask) {
-                toast.error(`Ya existe una tarea con el nombre "${task.name}" en tareas generales.`);
-                throw new Error('Duplicate task name');
-              }
-              return [
-                ...generalTasks,
-                {
-                  ...task,
-                  id: generateTaskId(),
-                  progressId: generateTaskId(),
-                  completed: false,
-                  baseDuration: task.baseDuration || '',
-                  flexibleTime: task.flexibleTime ?? true,
-                  isHabit: task.isHabit ?? false,
-                } as GeneralTask,
-              ];
-            })();
-        setGeneralTasks(updatedTasks);
-        const updatedUserData = { ...userData, generalTasks: updatedTasks };
-        await updateUserData(user.uid, updatedUserData);
-        useAuthStore.getState().setUserData(updatedUserData);
+        if (activeTab && activeTab !== WeekDay.All) {
+          // Guardar en weeklyTasks
+          const currentWeeklyTasks = weeklyTasks[activeTab] || [];
+          const updatedTasks = isEditing
+            ? currentWeeklyTasks.map((t: GeneralTask) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
+            : (() => {
+                const taskName = task.name.trim().toLowerCase();
+                const existingTask = currentWeeklyTasks.find((t: GeneralTask) => t.name.trim().toLowerCase() === taskName);
+                if (existingTask) {
+                  toast.error(`Ya existe una tarea con el nombre "${task.name}" en ${WEEKDAY_LABELS[activeTab]}.`);
+                  throw new Error('Duplicate task name');
+                }
+                return [
+                  ...currentWeeklyTasks,
+                  {
+                    ...task,
+                    id: generateTaskId(),
+                    progressId: generateTaskId(),
+                    completed: false,
+                    baseDuration: task.baseDuration || '',
+                    flexibleTime: task.flexibleTime ?? true,
+                    isHabit: task.isHabit ?? false,
+                  } as GeneralTask,
+                ];
+              })();
+          const updatedWeeklyTasks = { ...weeklyTasks, [activeTab]: updatedTasks };
+          setWeeklyTasks(updatedWeeklyTasks);
+          const updatedUserData = { ...userData, weeklyTasks: updatedWeeklyTasks };
+          await updateUserData(user.uid, updatedUserData);
+          useAuthStore.getState().setUserData(updatedUserData);
+        } else {
+          // Guardar en generalTasks
+          const updatedTasks = isEditing
+            ? generalTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
+            : (() => {
+                const taskName = task.name.trim().toLowerCase();
+                const existingTask = generalTasks.find(t => t.name.trim().toLowerCase() === taskName);
+                if (existingTask) {
+                  toast.error(`Ya existe una tarea con el nombre "${task.name}" en tareas generales.`);
+                  throw new Error('Duplicate task name');
+                }
+                return [
+                  ...generalTasks,
+                  {
+                    ...task,
+                    id: generateTaskId(),
+                    progressId: generateTaskId(),
+                    completed: false,
+                    baseDuration: task.baseDuration || '',
+                    flexibleTime: task.flexibleTime ?? true,
+                    isHabit: task.isHabit ?? false,
+                  } as GeneralTask,
+                ];
+              })();
+          setGeneralTasks(updatedTasks);
+          const updatedUserData = { ...userData, generalTasks: updatedTasks };
+          await updateUserData(user.uid, updatedUserData);
+          useAuthStore.getState().setUserData(updatedUserData);
+        }
       }
 
       // Si se cambió isHabit, actualizar todas las tareas con el mismo nombre
@@ -294,7 +336,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const { user } = useAuthStore.getState();
     const { userData } = useAuthStore.getState();
     const { taskToDelete } = get();
-    const { currentPage, dayTasks, generalTasks, setDayTasks, setGeneralTasks } = useScheduleStore.getState();
+    const { currentPage, dayTasks, generalTasks, weeklyTasks, setDayTasks, setGeneralTasks, setWeeklyTasks } = useScheduleStore.getState();
 
     if (!user || !userData || !taskToDelete) return;
 
@@ -469,6 +511,31 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.error('Error en handleUpdateHabitForAllTasks:', error);
       useAuthStore.getState().setUserData(prevUserData);
       toast.error(`Error al actualizar el hábito de "${originalTask.name}". No se guardó en la base de datos.`);
+    }
+  },
+
+  handlePasteTask: async (activeTab) => {
+    const { copiedTask } = get();
+    if (!copiedTask) {
+      toast.error('No hay tarea copiada.');
+      return;
+    }
+    // Crear una copia sin id y progressId, excluyendo campos undefined
+    const taskToPaste: Omit<BaseTask, 'id' | 'progressId'> = {
+      name: copiedTask.name,
+      baseDuration: copiedTask.baseDuration,
+      priority: copiedTask.priority,
+      flexibleTime: copiedTask.flexibleTime,
+      isHabit: copiedTask.isHabit,
+      ...(copiedTask.startTime && { startTime: copiedTask.startTime }),
+      ...(copiedTask.endTime && { endTime: copiedTask.endTime }),
+      ...(copiedTask.scheduledDate && { scheduledDate: copiedTask.scheduledDate }),
+    };
+    try {
+      await get().handleSaveTask(taskToPaste, activeTab);
+      // El toast de éxito se muestra en handleSaveTask
+    } catch (error) {
+      // Error ya mostrado en handleSaveTask, no hacer nada
     }
   },
 }));

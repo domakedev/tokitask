@@ -8,6 +8,7 @@ import AiTipCard from "./AiTipCard";
 import FreeTimeCard from "./FreeTimeCard";
 import Icon from "./Icon";
 import { getCurrentWeekDayName, getCurrentWeekDay } from "../utils/dateUtils";
+import CopyPasteButtons from "./CopyPasteButtons";
 
 interface DayViewProps {
   userData: UserData;
@@ -164,8 +165,12 @@ const DayView: React.FC<DayViewProps> = ({
             }
           `}</style>
         </div>
+
+        
       </header>
       <main className="px-2 md:px-6 mt-2 md:mt-4">
+        {/* Botones de copiar/pegar */}
+        <CopyPasteButtons />
         {userData.dayTasks.length > 0 ? (
           <>
             {aiTip && (

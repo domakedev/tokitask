@@ -29,7 +29,9 @@ import {
   TimerIcon,
   Rotate3D as Orbit,
   ListTodoIcon,
-  GripVerticalIcon
+  GripVerticalIcon,
+  Copy,
+  Clipboard
 } from "lucide-react";
 
 interface IconProps {
@@ -67,7 +69,9 @@ const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> 
   timer: TimerIcon,
   orbit: Orbit,
   list: ListTodoIcon,
-  gripvertical: GripVerticalIcon
+  gripvertical: GripVerticalIcon,
+  copy: Copy,
+  clipboard: Clipboard
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {

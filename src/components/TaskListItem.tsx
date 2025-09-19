@@ -4,6 +4,8 @@ import Icon from "./Icon";
 import Badge from "./Badge";
 import { useTimer } from "../hooks/useTimer";
 import { calculateTimeDifferenceInMinutes, parseDurationToMinutes } from "../utils/dateUtils";
+import { useTaskStore } from "../stores/taskStore";
+import { toast } from "react-toastify";
 
 interface TaskListItemProps {
   task: DayTask | (BaseTask & { completed?: boolean; isCurrent?: boolean });
@@ -212,6 +214,23 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
               )}
             </div>
           )}
+        </div>
+
+        {/* Tercera fila: botón de copiar */}
+        <div className="flex justify-end mt-1">
+          <button
+            onClick={() => {
+              const { setCopiedTask } = useTaskStore.getState();
+              setCopiedTask(task);
+              toast.success(`Tarea "${task.name}" copiada.`);
+            }}
+            className="flex items-center space-x-1 p-1 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+            title="Copiar tarea"
+            aria-label="Copiar tarea"
+          >
+            <Icon name="copy" className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="text-xs">Copiar</span>
+          </button>
         </div>
       </div>
     </div>

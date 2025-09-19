@@ -4,6 +4,7 @@ import TaskList from "./TaskList";
 import WeekDayTabs from "./WeekDayTabs";
 import DayTaskNotice from "./DayTaskNotice";
 import AllDaysTaskNotice from "./AllDaysTaskNotice";
+import CopyPasteButtons from "./CopyPasteButtons";
 
 interface GeneralViewProps {
   userData: UserData;
@@ -92,7 +93,7 @@ const GeneralView: React.FC<GeneralViewProps> = ({
 
   return (
     <div>
-      <header className="p-2 md:p-4 space-y-2 md:space-y-4 sticky top-0  backdrop-blur-sm z-10">
+      <header className="p-2 md:p-4 space-y-2 md:space-y-4 backdrop-blur-sm z-10">
         <div>
           <h1 className="text-lg md:text-2xl font-bold text-white">Horario General</h1>
           <p className="text-xs md:text-sm text-slate-400">
@@ -127,6 +128,10 @@ const GeneralView: React.FC<GeneralViewProps> = ({
         <WeekDayTabs activeTab={activeTab} onTabChange={handleTabChange} />
         {activeTab !== WeekDay.All && <DayTaskNotice />}
         {activeTab === WeekDay.All && <AllDaysTaskNotice />}
+
+        {/* Botones de copiar/pegar */}
+        <CopyPasteButtons activeTab={activeTab} />
+
         <TaskList
           tasks={currentTasks}
           isDaily={false}
