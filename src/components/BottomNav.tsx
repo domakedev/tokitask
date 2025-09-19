@@ -44,7 +44,7 @@ const NavLink: React.FC<{
         className={`h-4 w-4 ${isActive ? "text-emerald-400" : "text-white"}`}
       />
     )}
-    <span className="text-xs font-medium mt-1">{label}</span>
+    <span className="text-xs font-medium mt-1 text-center">{label}</span>
   </a>
 );
 
@@ -62,7 +62,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activePage, onNavigate, profilePh
         <NavLink
           page={Page.General}
           iconName="settings"
-          label="Horario"
+          label="Configurar Horario"
           isActive={activePage === Page.General}
           onClick={onNavigate}
         />
