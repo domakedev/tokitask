@@ -693,7 +693,14 @@ export default function DashboardPage() {
           onSubmit={
             currentPage === Page.General
               ? handleSaveTaskContextual
-              : handleSaveTask
+              : (task: BaseTask | Omit<BaseTask, "id">, selectedDays?: WeekDay[]) => {
+                  if ('id' in task) {
+                    handleSaveTask(task, selectedDays ? selectedDays[0] : undefined);
+                  } else {
+                    const { progressId, ...taskWithoutProgressId } = task;
+                    handleSaveTask(taskWithoutProgressId, selectedDays ? selectedDays[0] : undefined);
+                  }
+                }
           }
           taskToEdit={editingTask}
           showDaySelection={currentPage === Page.General && activeGeneralTab !== WeekDay.All && !editingTask}
