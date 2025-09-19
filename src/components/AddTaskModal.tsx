@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BaseTask, Priority, getPriorityLabel, WeekDay, WEEKDAY_LABELS, WEEKDAY_ORDER } from '../types';
 import { generateUniqueId } from '../utils/idGenerator';
+import { parseDurationToMinutes, calculateTimeDifferenceInMinutes } from '../utils/dateUtils';
 import Badge from './Badge';
 
 interface TaskModalProps {
@@ -19,16 +20,24 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
     const [flexibleTime, setFlexibleTime] = useState(true);
     const [isHabit, setIsHabit] = useState(false);
     const [selectedDays, setSelectedDays] = useState<WeekDay[]>([]);
+    const [startTime, setStartTime] = useState('');
+    const [endTime, setEndTime] = useState('');
+    const [scheduledDate, setScheduledDate] = useState('');
+    const [validationError, setValidationError] = useState('');
     const isEditing = !!taskToEdit;
 
     useEffect(() => {
         if (isOpen) {
+            setValidationError(''); // Reset error on open
             if (isEditing) {
                 setName(taskToEdit.name);
                 setDuration(taskToEdit.baseDuration);
                 setPriority(taskToEdit.priority);
                 setFlexibleTime(taskToEdit.flexibleTime ?? true);
                 setIsHabit(taskToEdit.isHabit ?? false);
+                setStartTime(taskToEdit.startTime || '');
+                setEndTime(taskToEdit.endTime || '');
+                setScheduledDate(taskToEdit.scheduledDate || '');
                 // For editing, don't show day selection or preselect days
                 setSelectedDays([]);
             } else {
@@ -38,6 +47,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 setPriority(Priority.High);
                 setFlexibleTime(true);
                 setIsHabit(false);
+                setStartTime('');
+                setEndTime('');
+                setScheduledDate('');
                 // Preselect current day if provided
                 setSelectedDays(currentDay ? [currentDay] : []);
             }
@@ -48,10 +60,41 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
         e.preventDefault();
         if (!name.trim() || !duration.trim()) return;
 
+        // Validación: si hay startTime y endTime y el tiempo es fijo, la duración base no puede exceder la diferencia
+        if (startTime && endTime && !flexibleTime) {
+            console.log('Validando:', { duration, startTime, endTime, flexibleTime });
+            const durationMinutes = parseDurationToMinutes(duration);
+            const timeDiffMinutes = calculateTimeDifferenceInMinutes(startTime, endTime);
+            console.log('Cálculos:', { durationMinutes, timeDiffMinutes });
+
+            if (timeDiffMinutes <= 0) {
+                setValidationError('La hora de fin debe ser posterior a la hora de inicio.');
+                return;
+            }
+
+            if (durationMinutes > timeDiffMinutes) {
+                setValidationError(`La duración de ${duration} no puede ser mayor que el tiempo disponible entre ${startTime} y ${endTime} (${Math.floor(timeDiffMinutes / 60)}h ${timeDiffMinutes % 60}min) ya que el tiempo es fijo.`);
+                return;
+            }
+        }
+
+        setValidationError(''); // Limpiar error si pasa validación
+
+        const taskData = {
+            name,
+            baseDuration: duration,
+            priority,
+            flexibleTime,
+            isHabit,
+            ...(startTime && { startTime }),
+            ...(endTime && { endTime }),
+            scheduledDate: scheduledDate || "", // Guardar como string vacío si no hay fecha
+        };
+
         if (isEditing) {
-            onSubmit({ ...taskToEdit, name, baseDuration: duration, priority, flexibleTime, isHabit });
+            onSubmit({ ...taskToEdit, ...taskData });
         } else {
-            onSubmit({ name, baseDuration: duration, priority, progressId: generateUniqueId(), flexibleTime, isHabit }, showDaySelection ? selectedDays : undefined);
+            onSubmit({ ...taskData, progressId: generateUniqueId() }, showDaySelection ? selectedDays : undefined);
         }
         onClose();
     };
@@ -60,7 +103,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
 
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-40 transition-opacity duration-300"
+            className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 transition-opacity duration-300"
             onClick={onClose}
         >
             <div
@@ -85,6 +128,47 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                             <label htmlFor="task-duration" className="block text-sm font-medium text-slate-300 mb-1">Cuánto tiempo de tu día crees que tomará</label>
                             <input type="text" id="task-duration" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Ej: 30 min o 1 hora" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
                         </div>
+
+                        {/* Campos de horario opcionales */}
+                        <div className="mb-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="start-time" className="block text-sm font-medium text-slate-300 mb-1">Hora de inicio (opcional)</label>
+                                <input
+                                    type="time"
+                                    id="start-time"
+                                    value={startTime}
+                                    onChange={(e) => setStartTime(e.target.value)}
+                                    min="00:01"
+                                    max="23:59"
+                                    className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="end-time" className="block text-sm font-medium text-slate-300 mb-1">Hora de fin (opcional)</label>
+                                <input
+                                    type="time"
+                                    id="end-time"
+                                    value={endTime}
+                                    onChange={(e) => setEndTime(e.target.value)}
+                                    min="00:01"
+                                    max="23:59"
+                                    className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mb-4">
+                            <label htmlFor="scheduled-date" className="block text-sm font-medium text-slate-300 mb-1">Fecha específica (opcional)</label>
+                            <input
+                                type="date"
+                                id="scheduled-date"
+                                value={scheduledDate}
+                                onChange={(e) => setScheduledDate(e.target.value)}
+                                className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                            <p className="text-xs text-slate-400 mt-1">Deja vacío para tareas recurrentes o del día actual</p>
+                        </div>
+
                          <div className="mb-6">
                              <label className="block text-sm font-medium text-slate-300 mb-3">
                                  ¿Este tiempo es fijo o flexible?
@@ -171,6 +255,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                         Selecciona uno o más días. La tarea se creará en cada día seleccionado.
                                     </p>
                                 </div>
+                            </div>
+                        )}
+                        {validationError && (
+                            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-md">
+                                <p className="text-sm text-red-400">{validationError}</p>
                             </div>
                         )}
                         <div className="flex justify-end space-x-3 mt-6">

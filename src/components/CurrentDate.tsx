@@ -17,8 +17,15 @@ const CurrentDate: React.FC = () => {
         minute: "2-digit",
         second: "2-digit",
       };
-      const dateString = now.toLocaleDateString("es-ES", dateOptions);
-      const timeString = now.toLocaleTimeString("es-ES", timeOptions);
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const dateString = now.toLocaleDateString("es-ES", {
+        ...dateOptions,
+        timeZone: userTimeZone
+      });
+      const timeString = now.toLocaleTimeString("es-ES", {
+        ...timeOptions,
+        timeZone: userTimeZone
+      });
       setDateTime(`${dateString} | ${timeString}`);
     }, 1000);
 

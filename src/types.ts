@@ -65,6 +65,9 @@ export interface BaseTask {
     progressId: string; // UUID único para tracking de progreso (persiste a través de clones)
     flexibleTime: boolean; // Indica si la IA puede modificar la duración
     isHabit: boolean; // Indica si la tarea es un hábito
+    startTime?: string; // Hora de inicio opcional (formato HH:MM)
+    endTime?: string; // Hora de fin opcional (formato HH:MM)
+    scheduledDate?: string; // Fecha específica opcional (formato YYYY-MM-DD)
 }
 
 export interface DayTask extends BaseTask {

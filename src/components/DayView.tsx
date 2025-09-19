@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { DayTask, GeneralTask, UserData, Page } from "../types";
 import CurrentDate from "./CurrentDate";
 import RemainingTime from "./RemainingTime";
 import TaskList from "./TaskList";
+import CalendarView from "./CalendarView";
 import AiTipCard from "./AiTipCard";
 import FreeTimeCard from "./FreeTimeCard";
 import Icon from "./Icon";
@@ -41,10 +42,11 @@ const DayView: React.FC<DayViewProps> = ({
   onDismissAiTip,
   onNavigate,
 }) => {
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   return (
     <div>
-      <header className="p-2 md:p-4 space-y-2 md:space-y-4 sticky top-0 bg-slate-900/80 backdrop-blur-sm z-10">
+      <header className="p-2 md:p-4 space-y-2 md:space-y-4 bg-slate-900/80 backdrop-blur-sm z-10">
         <div>
           <div className="flex justify-between items-start">
             <div>
@@ -68,6 +70,35 @@ const DayView: React.FC<DayViewProps> = ({
               </div>
             </div>
           </div>
+          {/* Toggle de vista */}
+          {userData.dayTasks.length > 0 && (
+            <div className="flex justify-center mt-4">
+              <div className="bg-slate-800 rounded-lg p-1 flex">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <Icon name="list" className="inline mr-2 h-4 w-4" />
+                  Lista
+                </button>
+                <button
+                  onClick={() => setViewMode('calendar')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'calendar'
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <Icon name="calendar" className="inline mr-2 h-4 w-4" />
+                  Calendario
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row justify-center items-center sm:space-x-2 md:space-x-3 gap-2">
           <button
@@ -142,15 +173,24 @@ const DayView: React.FC<DayViewProps> = ({
                 <AiTipCard tip={aiTip} onDismiss={onDismissAiTip} />
               </div>
             )}
-            <TaskList
-              tasks={userData.dayTasks}
-              isDaily={true}
-              onToggleComplete={onToggleComplete}
-              onDelete={onDelete}
-              onReorder={onReorder}
-              onEdit={onEdit}
-              onUpdateAiDuration={onUpdateAiDuration}
-            />
+            {viewMode === 'list' ? (
+              <TaskList
+                tasks={userData.dayTasks}
+                isDaily={true}
+                onToggleComplete={onToggleComplete}
+                onDelete={onDelete}
+                onReorder={onReorder}
+                onEdit={onEdit}
+                onUpdateAiDuration={onUpdateAiDuration}
+              />
+            ) : (
+              <CalendarView
+                tasks={userData.dayTasks}
+                onToggleComplete={onToggleComplete}
+                onDelete={onDelete}
+                onEdit={onEdit}
+              />
+            )}
             {freeTime ? (
               <FreeTimeCard duration={freeTime} />
             ) : (

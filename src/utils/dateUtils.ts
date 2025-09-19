@@ -139,3 +139,54 @@ export const isValidTime = (time: string): boolean => {
   const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
   return timeRegex.test(time);
 };
+
+/**
+ * Formatea una hora en formato HH:MM a formato 12 horas con AM/PM
+ */
+export const formatTimeTo12Hour = (time: string): string => {
+  const [hour, minute] = time.split(':').map(Number);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12; // Convierte 0 a 12 para medianoche
+  return `${hour12}:${minute.toString().padStart(2, '0')} ${period}`;
+};
+
+/**
+ * Convierte una duración en string a minutos
+ * Soporta formatos como "30 min", "1 hora", "2 horas", "45 minutos", "1h", "30m"
+ */
+export const parseDurationToMinutes = (duration: string): number => {
+  const trimmed = duration.trim().toLowerCase();
+  const match = trimmed.match(/^(\d+)\s*(min|minutos|m|hora|horas?|h)?$/);
+
+  if (!match) {
+    console.log('No match for duration:', trimmed);
+    return 0;
+  }
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  console.log('Parsed duration:', { value, unit });
+
+  if (!unit || unit === 'min' || unit === 'minutos' || unit === 'm') {
+    return value;
+  } else if (unit === 'hora' || unit === 'horas' || unit === 'h') {
+    return value * 60;
+  }
+
+  console.log('Unknown unit:', unit);
+  return 0;
+};
+
+/**
+ * Calcula la diferencia en minutos entre dos horas (formato HH:MM)
+ */
+export const calculateTimeDifferenceInMinutes = (startTime: string, endTime: string): number => {
+  const start = startTime.split(':').map(Number);
+  const end = endTime.split(':').map(Number);
+
+  const startMinutes = start[0] * 60 + start[1];
+  const endMinutes = end[0] * 60 + end[1];
+
+  return endMinutes - startMinutes;
+};
