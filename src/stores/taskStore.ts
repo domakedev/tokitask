@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { useAuthStore } from './authStore';
 import { useProgressStore } from './progressStore';
 import { useScheduleStore } from './scheduleStore';
+import { useTimerStore } from './timerStore';
 
 interface TaskState {
   isModalOpen: boolean;
@@ -176,6 +177,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             const wasCompleted = t.completed;
             const newCompleted = !t.completed;
 
+            // Detener temporizador si la tarea se está completando
+            if (newCompleted && !wasCompleted) {
+              const { activeTimer, clearActiveTimer } = useTimerStore.getState();
+              if (activeTimer && activeTimer.taskId === taskId) {
+                clearActiveTimer();
+              }
+            }
+
             if (newCompleted && !wasCompleted && taskProgressId) {
               const currentCompletions = completions[taskProgressId] || [];
               if (!currentCompletions.includes(now)) {
@@ -212,6 +221,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           if (t.id === taskId) {
             const wasCompleted = t.completed;
             const newCompleted = !t.completed;
+
+            // Detener temporizador si la tarea se está completando
+            if (newCompleted && !wasCompleted) {
+              const { activeTimer, clearActiveTimer } = useTimerStore.getState();
+              if (activeTimer && activeTimer.taskId === taskId) {
+                clearActiveTimer();
+              }
+            }
 
             if (newCompleted && !wasCompleted && taskProgressId) {
               const currentCompletions = completions[taskProgressId] || [];
@@ -283,6 +300,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     const prevUserData = { ...userData };
     try {
+      // Detener temporizador si la tarea lo tenía activo
+      const { activeTimer, clearActiveTimer } = useTimerStore.getState();
+      if (activeTimer && activeTimer.taskId === taskToDelete.id) {
+        clearActiveTimer();
+      }
+
       if (currentPage === Page.Day) {
         const updatedTasks = dayTasks.filter((t) => t.id !== taskToDelete.id);
         const recalculatedTasks = get().recalculateCurrentDayTask(updatedTasks);

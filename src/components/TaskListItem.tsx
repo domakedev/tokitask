@@ -58,16 +58,18 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
     handleResumeTimer,
     handleStopTimer,
     formatSecondsToAiDuration,
-  } = useTimer(initialAiDuration, onUpdateAiDuration, task.id);
+    effectiveDuration,
+    isUsingBaseDuration,
+  } = useTimer(initialAiDuration, task.baseDuration, onUpdateAiDuration, task.id);
 
-  // Mostrar temporizador solo para tareas diarias y con tiempo IA
-  const shouldShowTimer = showTimer && isDaily && "aiDuration" in task && !task.completed;
+  // Mostrar temporizador para tareas diarias con duración (IA o base) y no completadas
+  const shouldShowTimer = showTimer && isDaily && (effectiveDuration) && !task.completed;
 
   const handleStartTimerClick = useCallback(() => {
-    if ("aiDuration" in task) {
+    if (effectiveDuration) {
       handleStartTimer();
     }
-  }, [handleStartTimer, task]);
+  }, [handleStartTimer, effectiveDuration]);
 
   return (
     <div className={`p-3 md:p-4 rounded-lg border flex items-center space-x-2 md:space-x-4 transition-all duration-300 shadow-sm group cursor-grab bg-slate-800 border-slate-600 ${className}`}>
@@ -98,7 +100,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           </button>
         ) : (
           <div className="flex-shrink-0 cursor-grab">
-            <Icon name="grip-vertical" className="text-slate-500 h-4 w-4 md:h-5 md:w-5" />
+            <Icon name="gripvertical" className="text-slate-200 h-4 w-4 md:h-5 md:w-5" />
           </div>
         )}
       </div>
@@ -175,9 +177,9 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
 
           {shouldShowTimer && (
             <div className="flex items-center gap-1 flex-shrink-0">
-              <Icon name="clock" className="inline-block h-3 w-3 md:h-4 md:w-4 text-emerald-400" />
+              <Icon name="clock" className={`inline-block h-3 w-3 md:h-4 md:w-4 ${isUsingBaseDuration ? 'text-slate-400' : 'text-emerald-400'}`} />
               <span
-                className="text-xs md:text-sm font-mono text-emerald-400 bg-slate-900 border border-slate-700 rounded px-1 md:px-2 py-0.5"
+                className={`text-xs md:text-sm font-mono ${isUsingBaseDuration ? 'text-slate-400' : 'text-emerald-400'} bg-slate-900 border border-slate-700 rounded px-1 md:px-2 py-0.5`}
                 style={{
                   minWidth: "50px",
                   maxWidth: "80px",
@@ -186,11 +188,11 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
               >
                 {remainingSeconds !== null
                   ? formatSecondsToAiDuration(remainingSeconds)
-                  : task.aiDuration}
+                  : effectiveDuration}
               </span>
               {!timerActive && (
                 <button onClick={handleStartTimerClick} className="ml-1">
-                  <Icon name="play" className="h-3 w-3 md:h-4 md:w-4 text-emerald-500" />
+                  <Icon name="play" className={`h-3 w-3 md:h-4 md:w-4 ${isUsingBaseDuration ? 'text-slate-500' : 'text-emerald-500'}`} />
                 </button>
               )}
               {timerActive && !paused && (
@@ -200,7 +202,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
               )}
               {timerActive && paused && (
                 <button onClick={handleResumeTimer} className="ml-1">
-                  <Icon name="play" className="h-3 w-3 md:h-4 md:w-4 text-emerald-500" />
+                  <Icon name="play" className={`h-3 w-3 md:h-4 md:w-4 ${isUsingBaseDuration ? 'text-slate-500' : 'text-emerald-500'}`} />
                 </button>
               )}
               {timerActive && (

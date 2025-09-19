@@ -1,13 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTimerStore } from "../stores/timerStore";
 
 export const useTimer = (
   aiDuration: string | undefined,
+  baseDuration: string | undefined,
   onUpdateAiDuration?: (id: string, duration: string) => void,
   taskId?: string
 ) => {
-  const [timerActive, setTimerActive] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const { activeTimer, setActiveTimer, clearActiveTimer, updateRemainingSeconds, pauseTimer, resumeTimer } = useTimerStore();
+
+  // Estado local para sincronización
+  const [localTimerActive, setLocalTimerActive] = useState(false);
+  const [localPaused, setLocalPaused] = useState(false);
+  const [localRemainingSeconds, setLocalRemainingSeconds] = useState<number | null>(null);
+
   const startTimestamp = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -44,64 +50,133 @@ export const useTimer = (
     audio.play();
   }, []);
 
+  const effectiveDuration = aiDuration || baseDuration;
+
   const handleStartTimer = useCallback(() => {
-    if (!aiDuration) return;
-    startTimestamp.current = Date.now();
-    setTimerActive(true);
-    setPaused(false);
-  }, [aiDuration]);
+    if (!effectiveDuration || !taskId) return;
+
+    // Si hay otro temporizador activo, lo detenemos primero
+    if (activeTimer && activeTimer.taskId !== taskId) {
+      clearActiveTimer();
+    }
+
+    const now = Date.now();
+    startTimestamp.current = now;
+
+    setActiveTimer({
+      taskId,
+      startTimestamp: now,
+      paused: false,
+      remainingSeconds: null,
+      effectiveDuration,
+      isUsingBaseDuration: !aiDuration && !!baseDuration,
+    });
+
+    setLocalTimerActive(true);
+    setLocalPaused(false);
+    setLocalRemainingSeconds(null);
+
+    console.log(`[Timer] Temporizador iniciado a las ${new Date().toISOString()}`);
+  }, [effectiveDuration, taskId, activeTimer, setActiveTimer, clearActiveTimer, aiDuration, baseDuration]);
 
   const handlePauseTimer = useCallback(() => {
-    setPaused(true);
-  }, []);
+    if (activeTimer && activeTimer.taskId === taskId) {
+      pauseTimer();
+      setLocalPaused(true);
+    }
+  }, [activeTimer, taskId, pauseTimer]);
 
   const handleResumeTimer = useCallback(() => {
-    setPaused(false);
-  }, []);
+    if (activeTimer && activeTimer.taskId === taskId) {
+      resumeTimer();
+      setLocalPaused(false);
+    }
+  }, [activeTimer, taskId, resumeTimer]);
 
   const handleStopTimer = useCallback(() => {
-    setTimerActive(false);
-    setPaused(false);
-    setRemainingSeconds(null);
-  }, []);
+    if (activeTimer && activeTimer.taskId === taskId) {
+      clearActiveTimer();
+      setLocalTimerActive(false);
+      setLocalPaused(false);
+      setLocalRemainingSeconds(null);
+      startTimestamp.current = null;
+    }
+  }, [activeTimer, taskId, clearActiveTimer]);
 
   useEffect(() => {
-    if (!timerActive || paused || startTimestamp.current === null) return;
+    if (!activeTimer || activeTimer.taskId !== taskId || activeTimer.paused || activeTimer.startTimestamp === null) return;
+
     intervalRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTimestamp.current!) / 1000);
-      const durationSeconds = getSecondsFromAiDuration(aiDuration);
+      const elapsed = Math.floor((Date.now() - activeTimer.startTimestamp!) / 1000);
+      const durationSeconds = getSecondsFromAiDuration(activeTimer.effectiveDuration);
       const remaining = Math.max(durationSeconds - elapsed, 0);
-      setRemainingSeconds(remaining);
+
+      updateRemainingSeconds(remaining);
+      setLocalRemainingSeconds(remaining);
+
       if (remaining <= 0) {
         playSoftSound();
-        setTimerActive(false);
-        setPaused(false);
+        clearActiveTimer();
+        setLocalTimerActive(false);
+        setLocalPaused(false);
+        setLocalRemainingSeconds(null);
         startTimestamp.current = null;
-        setRemainingSeconds(null);
         clearInterval(intervalRef.current!);
-        console.log("[Timer] Temporizador finalizado");
+        console.log(`[Timer] Temporizador finalizado a las ${new Date().toISOString()}`);
       }
     }, 1000);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [timerActive, paused, aiDuration, getSecondsFromAiDuration, playSoftSound]);
+  }, [activeTimer, taskId, updateRemainingSeconds, clearActiveTimer, getSecondsFromAiDuration, playSoftSound]);
 
+  // Sincronizar estado local con el store global
   useEffect(() => {
-    setRemainingSeconds(null);
-    setTimerActive(false);
-    setPaused(false);
+    if (activeTimer && activeTimer.taskId === taskId) {
+      setLocalTimerActive(true);
+      setLocalPaused(activeTimer.paused);
+      setLocalRemainingSeconds(activeTimer.remainingSeconds);
+      startTimestamp.current = activeTimer.startTimestamp;
+    } else {
+      setLocalTimerActive(false);
+      setLocalPaused(false);
+      setLocalRemainingSeconds(null);
+      startTimestamp.current = null;
+    }
+  }, [activeTimer, taskId]);
+
+  // Limpiar cuando cambie la duración o el taskId
+  useEffect(() => {
+    if (activeTimer && activeTimer.taskId === taskId) {
+      // Si hay un temporizador activo para esta tarea, mantenerlo
+      return;
+    }
+    setLocalRemainingSeconds(null);
+    setLocalTimerActive(false);
+    setLocalPaused(false);
     startTimestamp.current = null;
-  }, [aiDuration, taskId]);
+  }, [effectiveDuration, taskId, activeTimer]);
+
+  // Limpiar intervalo al desmontar
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   return {
-    timerActive,
-    paused,
-    remainingSeconds,
+    timerActive: localTimerActive,
+    paused: localPaused,
+    remainingSeconds: localRemainingSeconds,
     handleStartTimer,
     handlePauseTimer,
     handleResumeTimer,
     handleStopTimer,
     formatSecondsToAiDuration,
+    effectiveDuration: activeTimer?.effectiveDuration || effectiveDuration,
+    isUsingBaseDuration: activeTimer?.isUsingBaseDuration || (!aiDuration && !!baseDuration),
   };
 };

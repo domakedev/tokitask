@@ -28,7 +28,8 @@ import {
   Bird,
   TimerIcon,
   Rotate3D as Orbit,
-  ListTodoIcon
+  ListTodoIcon,
+  GripVerticalIcon
 } from "lucide-react";
 
 interface IconProps {
@@ -65,7 +66,8 @@ const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> 
   bird: Bird,
   timer: TimerIcon,
   orbit: Orbit,
-  list: ListTodoIcon
+  list: ListTodoIcon,
+  gripvertical: GripVerticalIcon
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {
