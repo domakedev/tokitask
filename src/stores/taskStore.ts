@@ -158,7 +158,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     const prevUserData = { ...userData };
     try {
-      const now = new Date().toISOString().split('T')[0];
+      const now = new Date().toLocaleDateString('en-CA');
       const completions = taskCompletionsByProgressId || {};
 
       let taskProgressId = '';

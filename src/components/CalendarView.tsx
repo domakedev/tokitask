@@ -37,7 +37,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     // Si no hay tareas, mostrar un rango por defecto (ej. 6 AM a 11 PM)
     if (scheduledTasks.length === 0) {
-      return Array.from({ length: 18 }, (_, i) => i + 6);
+      return Array.from({ length: 3 }, (_, i) => i + 6);
     }
 
     // Encontrar la hora de inicio más temprana y la hora de fin más tardía

@@ -178,7 +178,7 @@ export default function DashboardPage() {
 
       const prevUserData = { ...userData };
       try {
-        const now = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+        const now = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
         const taskCompletionsByProgressId =
           userData.taskCompletionsByProgressId || {};
 

@@ -108,7 +108,7 @@ export const useAiSync = (
                 // Asignar fecha actual si no tiene scheduledDate o está vacío
                 scheduledDate: t.scheduledDate && t.scheduledDate.trim() !== ""
                   ? t.scheduledDate
-                  : new Date().toLocaleDateString('sv-SE', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }), // YYYY-MM-DD format en zona horaria del usuario
+                  : new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format in local time
               }))
           : [];
 
@@ -260,7 +260,7 @@ export const useAiSync = (
     }
 
     try {
-      const now = new Date().toLocaleDateString('sv-SE', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }); // YYYY-MM-DD format en zona horaria del usuario
+      const now = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
       const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
 
       // Crear IDs únicos para evitar duplicados, pero mantener progressId
