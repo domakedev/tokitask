@@ -124,6 +124,9 @@ exports.dailyCalendarTaskReminder = onSchedule(
               };
               
               // Enviar notificación a todos los tokens del usuario
+              const validTokens = [];
+              const invalidTokens = [];
+
               for (const token of tokens) {
                 try {
                   await admin.messaging().send({
@@ -131,8 +134,32 @@ exports.dailyCalendarTaskReminder = onSchedule(
                     token: token
                   });
                   logger.info(`✅ Notificación enviada a token: ${token.substring(0, 20)}...`);
+                  validTokens.push(token);
                 } catch (error) {
-                  logger.error(`❌ Error enviando a token ${token.substring(0, 20)}...:`, error);
+                  // Verificar si es un token inválido
+                  if (error.code === 'messaging/registration-token-not-registered') {
+                    logger.warn(`🧹 Token inválido detectado y será eliminado: ${token.substring(0, 20)}...`);
+                    invalidTokens.push(token);
+                  } else {
+                    logger.error(`❌ Error enviando a token ${token.substring(0, 20)}...:`, error);
+                    // Para otros errores, mantener el token (podría ser temporal)
+                    validTokens.push(token);
+                  }
+                }
+              }
+
+              // Limpiar tokens inválidos si hay alguno
+              if (invalidTokens.length > 0) {
+                try {
+                  const updatedTokens = validTokens;
+                  await userTokensDoc.ref.update({
+                    fcmTokens: updatedTokens,
+                    lastCleanup: admin.firestore.FieldValue.serverTimestamp(),
+                    invalidTokensRemoved: admin.firestore.FieldValue.increment(invalidTokens.length)
+                  });
+                  logger.info(`🧹 Eliminados ${invalidTokens.length} tokens inválidos para usuario ${userId}`);
+                } catch (cleanupError) {
+                  logger.error(`❌ Error limpiando tokens inválidos para usuario ${userId}:`, cleanupError);
                 }
               }
               

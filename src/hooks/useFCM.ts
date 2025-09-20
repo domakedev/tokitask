@@ -9,6 +9,7 @@ interface FCMHookReturn {
   error: string | null;
   requestPermission: () => Promise<void>;
   revokeToken: () => Promise<void>;
+  refreshToken: () => Promise<void>;
 }
 
 export const useFCM = (): FCMHookReturn => {
@@ -81,11 +82,43 @@ export const useFCM = (): FCMHookReturn => {
     }
   }, [user, token]);
 
+  // Función para refrescar token si es inválido
+  const refreshToken = useCallback(async () => {
+    if (!user) return;
+
+    console.log('🔄 Refrescando token FCM...');
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Intentar obtener un nuevo token
+      const newToken = await getFCMToken();
+
+      if (newToken && newToken !== token) {
+        // Si conseguimos un token diferente, guardarlo
+        await saveFCMToken(user.uid, newToken);
+        setToken(newToken);
+        console.log('✅ Token FCM refrescado:', newToken.substring(0, 20) + '...');
+      } else if (newToken) {
+        console.log('ℹ️ Token FCM sigue siendo válido');
+      } else {
+        throw new Error('No se pudo obtener un nuevo token');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error refrescando token';
+      setError(errorMessage);
+      console.error('❌ Error refrescando token FCM:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, token]);
+
   return {
     token,
     loading,
     error,
     requestPermission,
-    revokeToken
+    revokeToken,
+    refreshToken
   };
 };
