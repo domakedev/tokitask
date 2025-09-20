@@ -86,7 +86,7 @@ const DayView: React.FC<DayViewProps> = ({
                   }`}
                 >
                   <Icon name="list" className="inline mr-2 h-4 w-4" />
-                  Lista de hoy
+                  Hoy modo Lista
                 </button>
                 <button
                   onClick={() => setViewMode("calendar")}
@@ -97,7 +97,7 @@ const DayView: React.FC<DayViewProps> = ({
                   }`}
                 >
                   <Icon name="calendar" className="inline mr-2 h-4 w-4" />
-                  Calendario de hoy
+                  Hoy modo Calendario
                 </button>
               </div>
             </div>
