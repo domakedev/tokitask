@@ -10,7 +10,7 @@ const DayTaskNotice: React.FC = () => {
           className="h-5 w-5 text-slate-400 mr-3 flex-shrink-0"
         />
         <p className="text-sm text-slate-300">
-          Estas tareas son únicas para este día.
+          Estas tareas son únicas para este día y se repetirán cada día igual a este.
         </p>
       </div>
     </div>

@@ -28,6 +28,7 @@ interface GeneralViewProps {
   onTabChange?: (tab: WeekDay) => void;
   onViewModeChange?: (mode: 'week' | 'calendar') => void;
   onSelectedDateChange?: (date: string) => void;
+  viewMode?: 'week' | 'calendar';
 }
 
 const GeneralView: React.FC<GeneralViewProps> = ({
@@ -48,9 +49,16 @@ const GeneralView: React.FC<GeneralViewProps> = ({
   onTabChange,
   onViewModeChange,
   onSelectedDateChange,
+  viewMode: externalViewMode = 'week',
 }) => {
   const [activeTab, setActiveTab] = useState<WeekDay>(WeekDay.All);
-  const [viewMode, setViewMode] = useState<'week' | 'calendar'>('week');
+  // Usar el estado externo si está disponible, sino usar estado local
+  const [internalViewMode, setInternalViewMode] = useState<'week' | 'calendar'>('week');
+  const viewMode = externalViewMode || internalViewMode;
+  const setViewMode = (mode: 'week' | 'calendar') => {
+    setInternalViewMode(mode);
+    onViewModeChange?.(mode);
+  };
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -265,7 +273,7 @@ const GeneralView: React.FC<GeneralViewProps> = ({
               >
                 {day.day}
                 {day.hasSpecificTasks && (
-                  <div className="absolute bottom-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full"></div>
+                  <div className={`absolute bottom-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ${isToday && "animate-pulse"}`}></div>
                 )}
               </div>
             );

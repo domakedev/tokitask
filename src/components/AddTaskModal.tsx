@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BaseTask, Priority, getPriorityLabel, WeekDay, WEEKDAY_LABELS, WEEKDAY_ORDER } from '../types';
 import { generateUniqueId } from '../utils/idGenerator';
-import { parseDurationToMinutes, calculateTimeDifferenceInMinutes } from '../utils/dateUtils';
+import { parseDurationToMinutes, calculateTimeDifferenceInMinutes, formatDateString } from '../utils/dateUtils';
 import Badge from './Badge';
 import Icon from './Icon';
 
@@ -178,8 +178,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                 <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                                     <p className="text-sm text-amber-300">
                                         <Icon name="informationcircle" className="inline mr-2 h-4 w-4" />
-                                        Esta tarea tiene una fecha programada ({new Date(taskToEdit.scheduledDate).toLocaleDateString('es-ES')}).
-                                        Para cambiar la fecha, ve a <strong>Configurar Horario → Calendario</strong> y edítala desde ahí.
+                                        Esta tarea tiene una fecha programada &quot;{taskToEdit.scheduledDate}.&quot; 
+                                        Para cambiarla, ve a <strong>Configurar Horario → Calendario</strong>.
                                     </p>
                                 </div>
                             )

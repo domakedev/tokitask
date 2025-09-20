@@ -190,3 +190,16 @@ export const calculateTimeDifferenceInMinutes = (startTime: string, endTime: str
 
   return endMinutes - startMinutes;
 };
+
+/**
+ * Formatea una fecha en formato YYYY-MM-DD como fecha local
+ * Trata la fecha como UTC para evitar problemas de zona horaria
+ */
+export const formatDateString = (dateString: string, locale: string = 'es-ES'): string => {
+  if (!dateString) return '';
+
+  // Añadir tiempo UTC explícito para evitar interpretación local
+  const utcDate = new Date(dateString + 'T00:00:00.000Z');
+
+  return utcDate.toLocaleDateString(locale);
+};

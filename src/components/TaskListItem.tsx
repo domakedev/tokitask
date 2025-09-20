@@ -45,6 +45,14 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   }, [userData, task.name]);
   console.log("🚀 ~ TaskListItem ~ isFromGeneralTasks:", isFromGeneralTasks)
 
+//isFromWeeklyTasks
+  const isFromWeeklyTasks = useMemo(() => {
+    if (!userData?.weeklyTasks) return false;
+    return Object.values(userData.weeklyTasks).some(weekTasks =>
+      weekTasks.some(wt => wt.name === task.name)
+    );
+  }, [userData, task.name]);
+  console.log("🚀 ~ TaskListItem ~ isFromWeeklyTasks:", isFromWeeklyTasks)
   const initialAiDuration =
     isDaily && "aiDuration" in task ? (task as DayTask).aiDuration : undefined;
 
@@ -170,7 +178,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
                 <Icon name="trash2" className="h-3 w-3 md:h-4 md:w-4" />
               </button>
             )}
-            {isDaily && !isFromGeneralTasks && (
+            {isDaily && !isFromGeneralTasks && !isFromWeeklyTasks && (
               <button
                 onClick={handleMoveClick}
                 className="p-1 rounded-md hover:bg-slate-800 bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"

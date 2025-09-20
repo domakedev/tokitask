@@ -81,6 +81,12 @@ export default function DashboardPage() {
     setActiveGeneralTab(tab);
   }, []);
 
+  // Función para navegar al calendario de General
+  const handleNavigateToGeneralCalendar = useCallback(() => {
+    setCurrentPage(Page.General);
+    setGeneralViewMode('calendar');
+  }, [setCurrentPage]);
+
   // Funciones específicas para manejar tareas de calendarTasks
   const handleEditCalendarTask = useCallback(
     (taskId: string) => {
@@ -673,6 +679,7 @@ export default function DashboardPage() {
         setTempEndOfDay={setTempEndOfDay}
         onDismissAiTip={() => setAiTip(null)}
         onNavigate={setCurrentPage}
+        onNavigateToGeneralCalendar={handleNavigateToGeneralCalendar}
       />
     );
   }, [
@@ -691,6 +698,7 @@ export default function DashboardPage() {
     setTempEndOfDay,
     setAiTip,
     setCurrentPage,
+    handleNavigateToGeneralCalendar,
   ]);
 
   const handleSaveTaskForDayWrapper = useCallback((task: BaseTask | Omit<BaseTask, "id">, day: WeekDay) => {
@@ -721,6 +729,7 @@ export default function DashboardPage() {
         onTabChange={handleGeneralTabChange}
         onViewModeChange={setGeneralViewMode}
         onSelectedDateChange={setSelectedCalendarDate}
+        viewMode={generalViewMode}
       />
     );
   }, [
@@ -739,6 +748,7 @@ export default function DashboardPage() {
     tempEndOfDay,
     setTempEndOfDay,
     handleGeneralTabChange,
+    generalViewMode,
   ]);
 
   const handleSignOutWithRedirect = useCallback(async () => {
@@ -900,7 +910,7 @@ export default function DashboardPage() {
           onCancel={() => setShowConfirmation(false)}
           onConfirm={handleConfirmClone}
           title="¿Clonar horario del día?"
-          message="Esto clonará tus tareas para hoy."
+          message="Esto clonará todas tus tareas para hoy: repetitivas según el día de la semana y específicas por día en el calendario."
         />
       )}
 

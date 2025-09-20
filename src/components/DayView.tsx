@@ -26,6 +26,7 @@ interface DayViewProps {
   setTempEndOfDay: (value: string) => void;
   onDismissAiTip: () => void;
   onNavigate: (page: Page) => void;
+  onNavigateToGeneralCalendar: () => void;
 }
 
 const DayView: React.FC<DayViewProps> = ({
@@ -42,8 +43,9 @@ const DayView: React.FC<DayViewProps> = ({
   onUpdateAiDuration,
   onDismissAiTip,
   onNavigate,
+  onNavigateToGeneralCalendar,
 }) => {
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   return (
     <div>
@@ -76,35 +78,51 @@ const DayView: React.FC<DayViewProps> = ({
             <div className="flex justify-center mt-4">
               <div className="bg-slate-800 rounded-lg p-1 flex">
                 <button
-                  onClick={() => setViewMode('list')}
+                  onClick={() => setViewMode("list")}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-emerald-600 text-white'
-                      : 'text-slate-300 hover:text-white'
+                    viewMode === "list"
+                      ? "bg-emerald-600 text-white"
+                      : "text-slate-300 hover:text-white"
                   }`}
                 >
                   <Icon name="list" className="inline mr-2 h-4 w-4" />
-                  Lista
+                  Lista de hoy
                 </button>
                 <button
-                  onClick={() => setViewMode('calendar')}
+                  onClick={() => setViewMode("calendar")}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'calendar'
-                      ? 'bg-emerald-600 text-white'
-                      : 'text-slate-300 hover:text-white'
+                    viewMode === "calendar"
+                      ? "bg-emerald-600 text-white"
+                      : "text-slate-300 hover:text-white"
                   }`}
                 >
                   <Icon name="calendar" className="inline mr-2 h-4 w-4" />
-                  Calendario
+                  Calendario de hoy
                 </button>
               </div>
             </div>
           )}
         </div>
+
+        {/* Botón para ir al calendario de General */}
+        <div className="flex justify-center mt-2">
+          <button
+            onClick={onNavigateToGeneralCalendar}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm font-medium"
+          >
+            <Icon name="calendar" className="h-4 w-4" />
+            Ver Calendario General
+          </button>
+        </div>
+
         <div className="flex flex-col sm:flex-row justify-center items-center sm:space-x-2 md:space-x-3 gap-2">
           <button
             onClick={onStartDay}
-            disabled={isSyncing || (!userData.generalTasks?.length && !userData.weeklyTasks?.[getCurrentWeekDay()]?.length)}
+            disabled={
+              isSyncing ||
+              (!userData.generalTasks?.length &&
+                !userData.weeklyTasks?.[getCurrentWeekDay()]?.length)
+            }
             className="flex-1 w-full bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Clonar horario del día
@@ -171,11 +189,12 @@ const DayView: React.FC<DayViewProps> = ({
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
             <p className="text-sm text-blue-300">
               <Icon name="info" className="inline mr-2 h-4 w-4" />
-              Esta es tu día de hoy. Aquí se mostraran tus tareas programadas: <br /> <strong>semanales repetitivas</strong> + <strong>las de calendario de día específico.</strong>
+              Esta es tu día de hoy. Aquí se mostraran tus tareas programadas:{" "}
+              <br /> <strong>semanales repetitivas</strong> +{" "}
+              <strong>las de calendario de día específico.</strong>
             </p>
           </div>
         </div>
-
       </header>
       <main className="px-2 md:px-6 mt-2 md:mt-4">
         {/* Botones de copiar/pegar */}
@@ -187,7 +206,7 @@ const DayView: React.FC<DayViewProps> = ({
                 <AiTipCard tip={aiTip} onDismiss={onDismissAiTip} />
               </div>
             )}
-            {viewMode === 'list' ? (
+            {viewMode === "list" ? (
               <TaskList
                 tasks={userData.dayTasks}
                 isDaily={true}
@@ -210,11 +229,16 @@ const DayView: React.FC<DayViewProps> = ({
             ) : (
               <div className="mt-2 md:mt-4 p-2 md:p-4 rounded-lg border border-dashed border-slate-500/30 bg-slate-800/20 flex items-center space-x-2 md:space-x-4">
                 <div className="flex-shrink-0">
-                  <Icon name="clock" className="h-4 w-4 md:h-6 md:w-6 text-slate-400" />
+                  <Icon
+                    name="clock"
+                    className="h-4 w-4 md:h-6 md:w-6 text-slate-400"
+                  />
                 </div>
                 <div className="flex-grow">
                   <p className="font-semibold text-white">Sin tiempo libre</p>
-                  <p className="text-xs md:text-sm text-slate-300">No hay tiempo libre disponible para hoy</p>
+                  <p className="text-xs md:text-sm text-slate-300">
+                    No hay tiempo libre disponible para hoy
+                  </p>
                 </div>
               </div>
             )}
@@ -233,10 +257,13 @@ const DayView: React.FC<DayViewProps> = ({
               <span className="font-semibold text-emerald-400">
                 Clonar horario del día
               </span>{" "}
-              para usar tu plantilla de &quot;Horario General&quot; y
-              generar tu plan de hoy con IA. <br /> <br /> O crea tareas independientes.
+              para usar tu plantilla de &quot;Horario General&quot; y generar tu
+              plan de hoy con IA. <br /> <br /> O crea tareas independientes.
               <span className="inline-flex items-center justify-center rounded-full bg-emerald-500 w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 ml-1 md:ml-2">
-                <Icon name="plus" className="text-slate-100 w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5" />
+                <Icon
+                  name="plus"
+                  className="text-slate-100 w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5"
+                />
               </span>
             </p>
           </div>
@@ -250,8 +277,8 @@ const DayView: React.FC<DayViewProps> = ({
               Crea tu plantilla primero
             </h2>
             <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
-              Para poder clonar un horario, primero necesitas crear uno
-              con sus tareas en la sección &quot;Horario&quot;.
+              Para poder clonar un horario, primero necesitas crear uno con sus
+              tareas en la sección &quot;Horario&quot;.
             </p>
             <button
               onClick={() => onNavigate(Page.General)}
