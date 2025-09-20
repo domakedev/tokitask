@@ -1,5 +1,6 @@
 import React from "react";
 import { User } from "firebase/auth";
+import NotificationSettings from "./NotificationSettings";
 
 interface ProfileViewProps {
   user: User | null;
@@ -21,6 +22,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onSignOut }) => {
             </p>
           </div>
         )}
+
+        {/* Configuración de Notificaciones */}
+        <NotificationSettings userId={user?.uid || null} />
+
         <button
           onClick={onSignOut}
           className="w-full bg-rose-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-opacity-75 transition-colors"

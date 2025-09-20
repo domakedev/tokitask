@@ -444,6 +444,10 @@ const GeneralView: React.FC<GeneralViewProps> = ({
                 Aquí puedes programar tareas para fechas específicas. Selecciona un día del calendario
                 para ver y gestionar las tareas de esa fecha.
               </p>
+              <p className="text-xs text-emerald-400 mt-2">
+                <Icon name="bell" className="inline mr-1 h-3 w-3" />
+                Las tareas programadas te avisarán automáticamente a las 6:00 AM
+              </p>
             </div>
           )}
         </div>

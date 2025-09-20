@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { user, loading } = useAuth();
+  console.log("🚀 ~ LoginPage ~ user:", user)
 
   useEffect(() => {
     if (!loading && user) {

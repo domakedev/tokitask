@@ -193,6 +193,10 @@ const DayView: React.FC<DayViewProps> = ({
               <br /> <strong>semanales repetitivas</strong> +{" "}
               <strong>las de calendario de día específico.</strong>
             </p>
+            <p className="text-xs text-blue-400 mt-2">
+              <Icon name="bell" className="inline mr-1 h-3 w-3" />
+              Las tareas de calendario te avisarán automáticamente a las 6:00 AM
+            </p>
           </div>
         </div>
       </header>

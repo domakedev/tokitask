@@ -789,6 +789,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-2xl mx-auto pb-28">
+
       {currentPage === Page.Day && dayViewComponent}
       {currentPage === Page.General && generalViewComponent}
       {currentPage === Page.Progress && progressViewComponent}

@@ -43,7 +43,6 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   const isFromGeneralTasks = useMemo(() => {
     return userData?.generalTasks?.some(gt => gt.name === task.name) ?? false;
   }, [userData, task.name]);
-  console.log("🚀 ~ TaskListItem ~ isFromGeneralTasks:", isFromGeneralTasks)
 
 //isFromWeeklyTasks
   const isFromWeeklyTasks = useMemo(() => {
@@ -52,7 +51,6 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
       weekTasks.some(wt => wt.name === task.name)
     );
   }, [userData, task.name]);
-  console.log("🚀 ~ TaskListItem ~ isFromWeeklyTasks:", isFromWeeklyTasks)
   const initialAiDuration =
     isDaily && "aiDuration" in task ? (task as DayTask).aiDuration : undefined;
 

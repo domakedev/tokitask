@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { UserData, WeekDay, GeneralTask, DayTask } from "../types";
 import { FirebaseError, ErrorLogger, withErrorHandling } from "../utils/errorHandler";
@@ -143,4 +143,89 @@ export const updateUserData = async (uid: string, data: Partial<UserData>) => {
     };
     await updateDoc(userDocRef, dataToUpdate);
   }, { component: 'FirestoreService', operation: 'updateUserData', uid });
+};
+
+// Funciones para manejar tokens FCM
+export const saveFCMToken = async (uid: string, token: string) => {
+  return withErrorHandling(async () => {
+    if (!db) {
+      throw new FirebaseError("Firebase database not initialized", undefined, {
+        component: 'FirestoreService',
+        operation: 'saveFCMToken',
+        uid
+      });
+    }
+
+    const userTokensRef = doc(db, "userTokens", uid);
+    const tokenDoc = await getDoc(userTokensRef);
+
+    if (tokenDoc.exists()) {
+      const existingTokens = tokenDoc.data().fcmTokens || [];
+      // Agregar token si no existe ya
+      if (!existingTokens.includes(token)) {
+        await updateDoc(userTokensRef, {
+          fcmTokens: [...existingTokens, token],
+          lastUpdated: new Date().toISOString()
+        });
+      }
+    } else {
+      // Crear nuevo documento de tokens
+      await setDoc(userTokensRef, {
+        fcmTokens: [token],
+        createdAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString()
+      });
+    }
+  }, { component: 'FirestoreService', operation: 'saveFCMToken', uid });
+};
+
+export const removeFCMToken = async (uid: string, token: string) => {
+  return withErrorHandling(async () => {
+    if (!db) {
+      throw new FirebaseError("Firebase database not initialized", undefined, {
+        component: 'FirestoreService',
+        operation: 'removeFCMToken',
+        uid
+      });
+    }
+
+    const userTokensRef = doc(db, "userTokens", uid);
+    const tokenDoc = await getDoc(userTokensRef);
+
+    if (tokenDoc.exists()) {
+      const existingTokens = tokenDoc.data().fcmTokens || [];
+      const updatedTokens = existingTokens.filter((t: string) => t !== token);
+
+      if (updatedTokens.length === 0) {
+        // Si no quedan tokens, eliminar el documento
+        await deleteDoc(userTokensRef);
+      } else {
+        await updateDoc(userTokensRef, {
+          fcmTokens: updatedTokens,
+          lastUpdated: new Date().toISOString()
+        });
+      }
+    }
+  }, { component: 'FirestoreService', operation: 'removeFCMToken', uid });
+};
+
+export const getUserFCMTokens = async (uid: string): Promise<string[]> => {
+  return withErrorHandling(async () => {
+    if (!db) {
+      throw new FirebaseError("Firebase database not initialized", undefined, {
+        component: 'FirestoreService',
+        operation: 'getUserFCMTokens',
+        uid
+      });
+    }
+
+    const userTokensRef = doc(db, "userTokens", uid);
+    const tokenDoc = await getDoc(userTokensRef);
+
+    if (tokenDoc.exists()) {
+      return tokenDoc.data().fcmTokens || [];
+    }
+
+    return [];
+  }, { component: 'FirestoreService', operation: 'getUserFCMTokens', uid });
 };
