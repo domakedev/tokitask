@@ -1,10 +1,12 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import { BaseTask, DayTask, Priority, getPriorityLabel } from "../types";
 import Icon from "./Icon";
 import Badge from "./Badge";
+import ConfirmationModal from "./ConfirmationModal";
 import { useTimer } from "../hooks/useTimer";
 import { calculateTimeDifferenceInMinutes, parseDurationToMinutes } from "../utils/dateUtils";
 import { useTaskStore } from "../stores/taskStore";
+import { useAuthStore } from "../stores/authStore";
 import { toast } from "react-toastify";
 
 interface TaskListItemProps {
@@ -34,6 +36,15 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   showEditButton = true,
   showDeleteButton = true,
 }) => {
+  const [showMoveModal, setShowMoveModal] = useState(false);
+
+  const { userData } = useAuthStore.getState();
+
+  const isFromGeneralTasks = useMemo(() => {
+    return userData?.generalTasks?.some(gt => gt.name === task.name) ?? false;
+  }, [userData, task.name]);
+  console.log("🚀 ~ TaskListItem ~ isFromGeneralTasks:", isFromGeneralTasks)
+
   const initialAiDuration =
     isDaily && "aiDuration" in task ? (task as DayTask).aiDuration : undefined;
 
@@ -78,6 +89,20 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
       handleStartTimer();
     }
   }, [handleStartTimer, effectiveDuration]);
+
+  const handleMoveClick = useCallback(() => {
+    setShowMoveModal(true);
+  }, []);
+
+  const handleConfirmMove = useCallback(async () => {
+    const { handleMoveTaskToTomorrow } = useTaskStore.getState();
+    await handleMoveTaskToTomorrow(task.id);
+    setShowMoveModal(false);
+  }, [task.id]);
+
+  const handleCancelMove = useCallback(() => {
+    setShowMoveModal(false);
+  }, []);
 
   return (
     <div className={`p-3 md:p-4 rounded-lg border flex items-center space-x-2 md:space-x-4 transition-all duration-300 shadow-sm group cursor-grab bg-slate-800 border-slate-600 ${className}`}>
@@ -143,6 +168,16 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
                 aria-label="Eliminar tarea"
               >
                 <Icon name="trash2" className="h-3 w-3 md:h-4 md:w-4" />
+              </button>
+            )}
+            {isDaily && !isFromGeneralTasks && (
+              <button
+                onClick={handleMoveClick}
+                className="p-1 rounded-md hover:bg-slate-800 bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+                title="Pasar para mañana"
+                aria-label="Pasar tarea para mañana"
+              >
+                <Icon name="arrowbigrightdash" className="h-3 w-3 md:h-4 md:w-4" />
               </button>
             )}
           </div>
@@ -245,6 +280,14 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showMoveModal}
+        title="Pasar tarea para mañana"
+        message="¿Deseas pasar esta tarea para mañana?"
+        onConfirm={handleConfirmMove}
+        onCancel={handleCancelMove}
+      />
     </div>
   );
 };

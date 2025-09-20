@@ -29,6 +29,7 @@ interface TaskState {
   handleReorderTasks: (reorderedTasks: (DayTask | GeneralTask)[]) => Promise<void>;
   handleClearAllDayTasks: () => Promise<void>;
   handleUpdateHabitForAllTasks: (taskId: string, isHabit: boolean) => Promise<void>;
+  handleMoveTaskToTomorrow: (taskId: string) => Promise<void>;
   recalculateCurrentDayTask: (tasks: DayTask[]) => DayTask[];
 }
 
@@ -628,6 +629,72 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.error('Error en handleUpdateHabitForAllTasks:', error);
       useAuthStore.getState().setUserData(prevUserData);
       toast.error(`Error al actualizar el hábito de "${originalTask.name}". No se guardó en la base de datos.`);
+    }
+  },
+
+  handleMoveTaskToTomorrow: async (taskId) => {
+    const { user } = useAuthStore.getState();
+    const { userData } = useAuthStore.getState();
+    const { dayTasks, setDayTasks, setCalendarTasks } = useScheduleStore.getState();
+
+    if (!user || !userData) return;
+
+    const prevUserData = { ...userData };
+    try {
+      const task = dayTasks.find((t) => t.id === taskId);
+      if (!task) return;
+
+      // Calcular fecha de mañana
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      const calendarTasks = userData.calendarTasks || [];
+      let updatedCalendarTasks;
+      if (task.scheduledDate) {
+        // Es una tarea programada, cambiar su fecha (buscar por nombre y fecha actual)
+        updatedCalendarTasks = calendarTasks.map(t =>
+          t.name === task.name && t.scheduledDate === task.scheduledDate ? { ...t, scheduledDate: tomorrowStr } : t
+        );
+      } else {
+        // No programada, crear nueva
+        const newCalendarTask: GeneralTask = {
+          id: task.id, // Mantener el mismo id
+          name: task.name,
+          baseDuration: task.baseDuration,
+          priority: task.priority,
+          progressId: task.progressId,
+          flexibleTime: task.flexibleTime,
+          isHabit: task.isHabit,
+          scheduledDate: tomorrowStr,
+          completed: false,
+          ...(task.startTime && { startTime: task.startTime }),
+          ...(task.endTime && { endTime: task.endTime }),
+        };
+        updatedCalendarTasks = [...calendarTasks, newCalendarTask];
+      }
+      setCalendarTasks(updatedCalendarTasks);
+
+      // Eliminar de dayTasks
+      const updatedDayTasks = dayTasks.filter((t) => t.id !== taskId);
+      const recalculatedDayTasks = get().recalculateCurrentDayTask(updatedDayTasks);
+      setDayTasks(recalculatedDayTasks);
+
+      // Actualizar userData
+      const updatedUserData = {
+        ...userData,
+        dayTasks: recalculatedDayTasks,
+        calendarTasks: updatedCalendarTasks,
+      };
+      await updateUserData(user.uid, updatedUserData);
+      useAuthStore.getState().setUserData(updatedUserData);
+      console.log('userData updated in store');
+
+      toast.success(`Tarea "${task.name}" movida para mañana.`);
+    } catch (error) {
+      console.error('Error en handleMoveTaskToTomorrow:', error);
+      useAuthStore.getState().setUserData(prevUserData);
+      toast.error('Error al mover la tarea para mañana. No se guardó en la base de datos.');
     }
   },
 

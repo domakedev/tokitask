@@ -900,7 +900,7 @@ export default function DashboardPage() {
           onCancel={() => setShowConfirmation(false)}
           onConfirm={handleConfirmClone}
           title="¿Clonar horario del día?"
-          message="Esto clonará las tareas de 'Todos los días' y el día de hoy desde tu Horario."
+          message="Esto clonará tus tareas para hoy."
         />
       )}
 

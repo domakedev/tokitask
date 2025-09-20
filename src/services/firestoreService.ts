@@ -133,12 +133,13 @@ export const updateUserData = async (uid: string, data: Partial<UserData>) => {
     }
 
     const userDocRef = doc(db, "users", uid);
-    // Asegurar que weeklyTasks esté incluido si se está actualizando
+    // Asegurar que weeklyTasks y calendarTasks estén incluidos si se están actualizando
     const dataToUpdate = {
       ...data,
       weeklyTasks: data.weeklyTasks,
       generalTasks: data.generalTasks?.map(t => ({ ...t })),
       dayTasks: data.dayTasks?.map(t => ({ ...t })),
+      calendarTasks: data.calendarTasks?.map(t => ({ ...t })),
     };
     await updateDoc(userDocRef, dataToUpdate);
   }, { component: 'FirestoreService', operation: 'updateUserData', uid });
