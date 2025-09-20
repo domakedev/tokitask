@@ -90,4 +90,7 @@ export interface UserData {
     calendarTasks?: GeneralTask[]; // Tareas programadas específicamente para fechas
     taskCompletionsByProgressId?: Record<string, string[]>; // progressId -> array of completion dates (ISO strings) - PERSISTENT
     onboardingCompleted?: boolean;
+    phoneNumber?: string; // Número de teléfono para WhatsApp
+    whatsappConfigured?: boolean; // Si WhatsApp está configurado
+    whatsappConfiguredAt?: Date; // Fecha de configuración
 }
