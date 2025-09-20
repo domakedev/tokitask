@@ -3,6 +3,7 @@
 // Script simplificado para configurar Cloud Scheduler
 // No requiere dependencias externas
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { execSync } = require('child_process');
 
 // Configuración
