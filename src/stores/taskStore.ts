@@ -59,7 +59,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const { userData } = useAuthStore.getState();
     const scheduleState = useScheduleStore.getState();
     const { currentPage, dayTasks, generalTasks, setDayTasks, setGeneralTasks } = scheduleState;
-    const { weeklyTasks, setWeeklyTasks } = scheduleState;
+    const { weeklyTasks, setWeeklyTasks, calendarTasks, setCalendarTasks } = scheduleState;
     const { taskCompletionsByProgressId, setTaskCompletionsByProgressId } = useProgressStore.getState();
 
     if (!user || !userData) return;
@@ -73,12 +73,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       if (isEditing) {
         // Buscar la tarea original para comparar isHabit
-        const allTasks = [...dayTasks, ...generalTasks, ...Object.values(userData.weeklyTasks || {}).flat()];
+        const allTasks = [
+          ...dayTasks,
+          ...generalTasks,
+          ...Object.values(userData.weeklyTasks || {}).flat(),
+          ...(userData.calendarTasks || [])
+        ];
         originalTask = allTasks.find((t) => t.id === (task as BaseTask).id);
         if (originalTask && 'isHabit' in task && originalTask.isHabit !== task.isHabit) {
           isHabitChanged = true;
         }
       }
+
+      // Determinar dónde guardar la tarea basado en si tiene scheduledDate y desde dónde se está guardando
+      const hasScheduledDate = task.scheduledDate && task.scheduledDate.trim() !== "";
+      const isFromCalendarView = currentPage === Page.General && activeTab === undefined; // Cuando viene del calendario
 
       if (currentPage === Page.Day) {
         const updatedTasks = isEditing
@@ -110,6 +119,35 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           ...userData,
           dayTasks: recalculatedTasks,
         };
+        await updateUserData(user.uid, updatedUserData);
+        useAuthStore.getState().setUserData(updatedUserData);
+      } else if (hasScheduledDate && isFromCalendarView) {
+        // Guardar en calendarTasks cuando tiene fecha programada y viene del calendario
+        const currentCalendarTasks = calendarTasks || [];
+        const updatedTasks = isEditing
+          ? currentCalendarTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
+          : (() => {
+              const taskName = task.name.trim().toLowerCase();
+              const existingTask = currentCalendarTasks.find(t => t.name.trim().toLowerCase() === taskName && t.scheduledDate === task.scheduledDate);
+              if (existingTask) {
+                toast.error(`Ya existe una tarea con el nombre "${task.name}" programada para esta fecha.`);
+                throw new Error('Duplicate task name');
+              }
+              return [
+                ...currentCalendarTasks,
+                {
+                  ...task,
+                  id: generateTaskId(),
+                  progressId: generateTaskId(),
+                  completed: false,
+                  baseDuration: task.baseDuration || '',
+                  flexibleTime: task.flexibleTime ?? true,
+                  isHabit: task.isHabit ?? false,
+                } as GeneralTask,
+              ];
+            })();
+        setCalendarTasks(updatedTasks);
+        const updatedUserData = { ...userData, calendarTasks: updatedTasks };
         await updateUserData(user.uid, updatedUserData);
         useAuthStore.getState().setUserData(updatedUserData);
       } else {
@@ -194,7 +232,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   handleToggleComplete: async (taskId) => {
     const { user } = useAuthStore.getState();
     const { userData } = useAuthStore.getState();
-    const { currentPage, dayTasks, generalTasks, setDayTasks, setGeneralTasks } = useScheduleStore.getState();
+    const { currentPage, dayTasks, generalTasks, calendarTasks, setDayTasks, setGeneralTasks, setCalendarTasks } = useScheduleStore.getState();
     const { taskCompletionsByProgressId, setTaskCompletionsByProgressId } = useProgressStore.getState();
 
     if (!user || !userData) return;
@@ -209,7 +247,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         const task = dayTasks.find((t) => t.id === taskId);
         taskProgressId = task?.progressId || '';
       } else {
-        const task = generalTasks.find((t) => t.id === taskId);
+        // Buscar en generalTasks primero
+        let task = generalTasks.find((t) => t.id === taskId);
+        if (!task && calendarTasks) {
+          // Si no está en generalTasks, buscar en calendarTasks
+          task = calendarTasks.find((t) => t.id === taskId);
+        }
         taskProgressId = task?.progressId || '';
       }
 
@@ -259,49 +302,98 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         const taskName = task?.name || 'Tarea';
         toast.success(`Se actualizó estado de tarea "${taskName}" en la base de datos.`);
       } else {
-        const updatedTasks = generalTasks.map((t) => {
-          if (t.id === taskId) {
-            const wasCompleted = t.completed;
-            const newCompleted = !t.completed;
+        // Verificar si la tarea está en calendarTasks
+        const isCalendarTask = calendarTasks?.some(t => t.id === taskId);
 
-            // Detener temporizador si la tarea se está completando
-            if (newCompleted && !wasCompleted) {
-              const { activeTimer, clearActiveTimer } = useTimerStore.getState();
-              if (activeTimer && activeTimer.taskId === taskId) {
-                clearActiveTimer();
+        if (isCalendarTask && calendarTasks) {
+          const updatedTasks = calendarTasks.map((t) => {
+            if (t.id === taskId) {
+              const wasCompleted = t.completed;
+              const newCompleted = !t.completed;
+
+              // Detener temporizador si la tarea se está completando
+              if (newCompleted && !wasCompleted) {
+                const { activeTimer, clearActiveTimer } = useTimerStore.getState();
+                if (activeTimer && activeTimer.taskId === taskId) {
+                  clearActiveTimer();
+                }
               }
+
+              if (newCompleted && !wasCompleted && taskProgressId) {
+                const currentCompletions = completions[taskProgressId] || [];
+                if (!currentCompletions.includes(now)) {
+                  completions[taskProgressId] = [...currentCompletions, now];
+                }
+              } else if (!newCompleted && wasCompleted && taskProgressId) {
+                const progressIdCompletions = completions[taskProgressId] || [];
+                const todayIndex = progressIdCompletions.indexOf(now);
+                if (todayIndex !== -1) {
+                  progressIdCompletions.splice(todayIndex, 1);
+                  completions[taskProgressId] = progressIdCompletions;
+                }
+              }
+
+              return { ...t, completed: newCompleted };
             }
+            return t;
+          });
+          setCalendarTasks(updatedTasks);
+          const updatedUserData = {
+            ...userData,
+            calendarTasks: updatedTasks,
+            taskCompletionsByProgressId: completions,
+          };
+          await updateUserData(user.uid, updatedUserData);
+          useAuthStore.getState().setUserData(updatedUserData);
+          setTaskCompletionsByProgressId(completions);
+          const task = calendarTasks.find((t) => t.id === taskId);
+          const taskName = task?.name || 'Tarea';
+          toast.success(`Se actualizó estado de tarea "${taskName}" en la base de datos.`);
+        } else {
+          const updatedTasks = generalTasks.map((t) => {
+            if (t.id === taskId) {
+              const wasCompleted = t.completed;
+              const newCompleted = !t.completed;
 
-            if (newCompleted && !wasCompleted && taskProgressId) {
-              const currentCompletions = completions[taskProgressId] || [];
-              if (!currentCompletions.includes(now)) {
-                completions[taskProgressId] = [...currentCompletions, now];
+              // Detener temporizador si la tarea se está completando
+              if (newCompleted && !wasCompleted) {
+                const { activeTimer, clearActiveTimer } = useTimerStore.getState();
+                if (activeTimer && activeTimer.taskId === taskId) {
+                  clearActiveTimer();
+                }
               }
-            } else if (!newCompleted && wasCompleted && taskProgressId) {
-              const progressIdCompletions = completions[taskProgressId] || [];
-              const todayIndex = progressIdCompletions.indexOf(now);
-              if (todayIndex !== -1) {
-                progressIdCompletions.splice(todayIndex, 1);
-                completions[taskProgressId] = progressIdCompletions;
+
+              if (newCompleted && !wasCompleted && taskProgressId) {
+                const currentCompletions = completions[taskProgressId] || [];
+                if (!currentCompletions.includes(now)) {
+                  completions[taskProgressId] = [...currentCompletions, now];
+                }
+              } else if (!newCompleted && wasCompleted && taskProgressId) {
+                const progressIdCompletions = completions[taskProgressId] || [];
+                const todayIndex = progressIdCompletions.indexOf(now);
+                if (todayIndex !== -1) {
+                  progressIdCompletions.splice(todayIndex, 1);
+                  completions[taskProgressId] = progressIdCompletions;
+                }
               }
+
+              return { ...t, completed: newCompleted };
             }
-
-            return { ...t, completed: newCompleted };
-          }
-          return t;
-        });
-        setGeneralTasks(updatedTasks);
-        const updatedUserData = {
-          ...userData,
-          generalTasks: updatedTasks,
-          taskCompletionsByProgressId: completions,
-        };
-        await updateUserData(user.uid, updatedUserData);
-        useAuthStore.getState().setUserData(updatedUserData);
-        setTaskCompletionsByProgressId(completions);
-        const task = generalTasks.find((t) => t.id === taskId);
-        const taskName = task?.name || 'Tarea';
-        toast.success(`Se actualizó estado de tarea "${taskName}" en la base de datos.`);
+            return t;
+          });
+          setGeneralTasks(updatedTasks);
+          const updatedUserData = {
+            ...userData,
+            generalTasks: updatedTasks,
+            taskCompletionsByProgressId: completions,
+          };
+          await updateUserData(user.uid, updatedUserData);
+          useAuthStore.getState().setUserData(updatedUserData);
+          setTaskCompletionsByProgressId(completions);
+          const task = generalTasks.find((t) => t.id === taskId);
+          const taskName = task?.name || 'Tarea';
+          toast.success(`Se actualizó estado de tarea "${taskName}" en la base de datos.`);
+        }
       }
     } catch (error) {
       console.error('Error en handleToggleComplete:', error);
@@ -311,7 +403,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         const task = dayTasks.find((t) => t.id === taskId);
         taskName = task?.name || 'Tarea';
       } else {
-        const task = generalTasks.find((t) => t.id === taskId);
+        // Buscar en generalTasks primero
+        let task = generalTasks.find((t) => t.id === taskId);
+        if (!task && calendarTasks) {
+          // Si no está en generalTasks, buscar en calendarTasks
+          task = calendarTasks.find((t) => t.id === taskId);
+        }
         taskName = task?.name || 'Tarea';
       }
       toast.error(`Error al actualizar estado de tarea "${taskName}". No se guardó en la base de datos.`);
@@ -320,12 +417,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   handleDeleteTask: (taskId) => {
     const { userData } = useAuthStore.getState();
-    const { dayTasks, generalTasks, weeklyTasks } = useScheduleStore.getState();
+    const { dayTasks, generalTasks, weeklyTasks, calendarTasks } = useScheduleStore.getState();
 
     const task = [
       ...dayTasks,
       ...generalTasks,
       ...Object.values(weeklyTasks).flat(),
+      ...(calendarTasks || []),
     ].find((t) => t.id === taskId);
     if (task) {
       set({ taskToDelete: task, showConfirmation: true });
@@ -336,7 +434,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const { user } = useAuthStore.getState();
     const { userData } = useAuthStore.getState();
     const { taskToDelete } = get();
-    const { currentPage, dayTasks, generalTasks, weeklyTasks, setDayTasks, setGeneralTasks, setWeeklyTasks } = useScheduleStore.getState();
+    const { currentPage, dayTasks, generalTasks, weeklyTasks, calendarTasks, setDayTasks, setGeneralTasks, setWeeklyTasks, setCalendarTasks } = useScheduleStore.getState();
 
     if (!user || !userData || !taskToDelete) return;
 
@@ -362,11 +460,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         const taskName = taskToDelete.name || 'Tarea';
         toast.success(`Se eliminó tarea "${taskName}" de la DB.`);
       } else {
-        const updatedTasks = generalTasks.filter((t) => t.id !== taskToDelete.id);
-        setGeneralTasks(updatedTasks);
-        const updatedUserData = { ...userData, generalTasks: updatedTasks };
-        await updateUserData(user.uid, updatedUserData);
-        useAuthStore.getState().setUserData(updatedUserData);
+        // Verificar si la tarea está en calendarTasks
+        const isCalendarTask = calendarTasks?.some(t => t.id === taskToDelete.id);
+        if (isCalendarTask) {
+          const updatedTasks = calendarTasks.filter((t) => t.id !== taskToDelete.id);
+          setCalendarTasks(updatedTasks);
+          const updatedUserData = { ...userData, calendarTasks: updatedTasks };
+          await updateUserData(user.uid, updatedUserData);
+          useAuthStore.getState().setUserData(updatedUserData);
+        } else {
+          const updatedTasks = generalTasks.filter((t) => t.id !== taskToDelete.id);
+          setGeneralTasks(updatedTasks);
+          const updatedUserData = { ...userData, generalTasks: updatedTasks };
+          await updateUserData(user.uid, updatedUserData);
+          useAuthStore.getState().setUserData(updatedUserData);
+        }
         set({ showConfirmation: false, taskToDelete: null });
         const taskName = taskToDelete.name || 'Tarea';
         toast.success(`Se eliminó tarea "${taskName}" de la DB.`);
@@ -382,12 +490,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   handleEditTask: (taskId) => {
     const { userData } = useAuthStore.getState();
-    const { dayTasks, generalTasks, weeklyTasks } = useScheduleStore.getState();
+    const { dayTasks, generalTasks, weeklyTasks, calendarTasks } = useScheduleStore.getState();
 
     const task = [
       ...dayTasks,
       ...generalTasks,
       ...Object.values(weeklyTasks).flat(),
+      ...(calendarTasks || []),
     ].find((t) => t.id === taskId);
     if (task) {
       set({ editingTask: task, isModalOpen: true });
@@ -454,7 +563,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   handleUpdateHabitForAllTasks: async (taskId: string, isHabit: boolean) => {
     const { user } = useAuthStore.getState();
     const { userData } = useAuthStore.getState();
-    const { dayTasks, generalTasks, weeklyTasks, setDayTasks, setGeneralTasks, setWeeklyTasks } = useScheduleStore.getState();
+    const { dayTasks, generalTasks, weeklyTasks, calendarTasks, setDayTasks, setGeneralTasks, setWeeklyTasks, setCalendarTasks } = useScheduleStore.getState();
 
     if (!user || !userData) return;
 
@@ -463,6 +572,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       ...dayTasks,
       ...generalTasks,
       ...Object.values(weeklyTasks).flat(),
+      ...(calendarTasks || []),
     ];
     const originalTask = allTasks.find((t) => t.id === taskId);
     if (!originalTask) return;
@@ -489,10 +599,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         );
       });
 
+      // Actualizar calendarTasks
+      const updatedCalendarTasks = (calendarTasks || []).map((task) =>
+        task.name.trim().toLowerCase() === taskName ? { ...task, isHabit } : task
+      );
+
       // Actualizar Zustand stores
       setDayTasks(updatedDayTasks);
       setGeneralTasks(updatedGeneralTasks);
       setWeeklyTasks(updatedWeeklyTasks);
+      setCalendarTasks(updatedCalendarTasks);
 
       // Actualizar userData y base de datos
       const updatedUserData = {
@@ -500,6 +616,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         dayTasks: updatedDayTasks,
         generalTasks: updatedGeneralTasks,
         weeklyTasks: updatedWeeklyTasks,
+        calendarTasks: updatedCalendarTasks,
       };
 
       await updateUserData(user.uid, updatedUserData);

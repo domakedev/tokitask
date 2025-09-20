@@ -6,11 +6,13 @@ interface ScheduleState {
   dayTasks: DayTask[];
   generalTasks: GeneralTask[];
   weeklyTasks: Record<WeekDay, GeneralTask[]>;
+  calendarTasks: GeneralTask[];
   currentPage: Page;
   setEndOfDay: (endOfDay: string) => void;
   setDayTasks: (tasks: DayTask[]) => void;
   setGeneralTasks: (tasks: GeneralTask[]) => void;
   setWeeklyTasks: (tasks: Record<WeekDay, GeneralTask[]>) => void;
+  setCalendarTasks: (tasks: GeneralTask[]) => void;
   setCurrentPage: (page: Page) => void;
 }
 
@@ -28,11 +30,13 @@ export const useScheduleStore = create<ScheduleState>((set) => ({
     [WeekDay.Saturday]: [],
     [WeekDay.Sunday]: [],
   },
+  calendarTasks: [],
   currentPage: Page.Day,
 
   setEndOfDay: (endOfDay) => set({ endOfDay }),
   setDayTasks: (dayTasks) => set({ dayTasks }),
   setGeneralTasks: (generalTasks) => set({ generalTasks }),
   setWeeklyTasks: (weeklyTasks) => set({ weeklyTasks }),
+  setCalendarTasks: (calendarTasks) => set({ calendarTasks }),
   setCurrentPage: (currentPage) => set({ currentPage }),
 }));

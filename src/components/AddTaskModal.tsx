@@ -3,6 +3,7 @@ import { BaseTask, Priority, getPriorityLabel, WeekDay, WEEKDAY_LABELS, WEEKDAY_
 import { generateUniqueId } from '../utils/idGenerator';
 import { parseDurationToMinutes, calculateTimeDifferenceInMinutes } from '../utils/dateUtils';
 import Badge from './Badge';
+import Icon from './Icon';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -11,9 +12,12 @@ interface TaskModalProps {
     taskToEdit?: BaseTask | null;
     showDaySelection?: boolean;
     currentDay?: WeekDay;
+    initialScheduledDate?: string;
+    showScheduledDateField?: boolean;
+    currentView?: string; // 'day', 'general-week', 'general-calendar', etc.
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskToEdit, showDaySelection = false, currentDay }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskToEdit, showDaySelection = false, currentDay, initialScheduledDate, showScheduledDateField = false, currentView }) => {
     const [name, setName] = useState('');
     const [duration, setDuration] = useState('');
     const [priority, setPriority] = useState<Priority>(Priority.High);
@@ -49,7 +53,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 setIsHabit(false);
                 setStartTime('');
                 setEndTime('');
-                setScheduledDate('');
+                setScheduledDate(initialScheduledDate || '');
                 // Preselect current day if provided
                 setSelectedDays(currentDay ? [currentDay] : []);
             }
@@ -88,7 +92,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
             isHabit,
             ...(startTime && { startTime }),
             ...(endTime && { endTime }),
-            scheduledDate: scheduledDate || "", // Guardar como string vacío si no hay fecha
+            scheduledDate: showScheduledDateField ? (scheduledDate || "") : (taskToEdit?.scheduledDate || ""), // Mantener fecha existente si no se puede editar
         };
 
         if (isEditing) {
@@ -157,17 +161,29 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                             </div>
                         </div>
 
-                        <div className="mb-4">
-                            <label htmlFor="scheduled-date" className="block text-sm font-medium text-slate-300 mb-1">Fecha específica (opcional)</label>
-                            <input
-                                type="date"
-                                id="scheduled-date"
-                                value={scheduledDate}
-                                onChange={(e) => setScheduledDate(e.target.value)}
-                                className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                            <p className="text-xs text-slate-400 mt-1">Deja vacío para tareas recurrentes o del día actual</p>
-                        </div>
+                        {showScheduledDateField ? (
+                            <div className="mb-4">
+                                <label htmlFor="scheduled-date" className="block text-sm font-medium text-slate-300 mb-1">Fecha específica</label>
+                                <input
+                                    type="date"
+                                    id="scheduled-date"
+                                    value={scheduledDate}
+                                    onChange={(e) => setScheduledDate(e.target.value)}
+                                    className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                <p className="text-xs text-slate-400 mt-1">Selecciona la fecha para esta tarea programada</p>
+                            </div>
+                        ) : (
+                            isEditing && taskToEdit?.scheduledDate && (
+                                <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                                    <p className="text-sm text-amber-300">
+                                        <Icon name="informationcircle" className="inline mr-2 h-4 w-4" />
+                                        Esta tarea tiene una fecha programada ({new Date(taskToEdit.scheduledDate).toLocaleDateString('es-ES')}).
+                                        Para cambiar la fecha, ve a <strong>Configurar Horario → Calendario</strong> y edítala desde ahí.
+                                    </p>
+                                </div>
+                            )
+                        )}
 
                          <div className="mb-6">
                              <label className="block text-sm font-medium text-slate-300 mb-3">

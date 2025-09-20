@@ -9,6 +9,9 @@ interface TaskItemProps {
   onDelete: (id: string) => void;
   onEdit?: (id: string) => void;
   onUpdateAiDuration?: (id: string, newAiDuration: string) => void;
+  showCopyButton?: boolean;
+  showEditButton?: boolean;
+  showDeleteButton?: boolean;
 }
 
 const TaskItem: React.FC<
@@ -20,6 +23,9 @@ const TaskItem: React.FC<
   onDelete,
   onEdit,
   onUpdateAiDuration,
+  showCopyButton = true,
+  showEditButton = true,
+  showDeleteButton = true,
   className,
   ...divProps
 }) => {
@@ -47,6 +53,9 @@ const TaskItem: React.FC<
       onDelete={onDelete}
       onEdit={onEdit}
       onUpdateAiDuration={onUpdateAiDuration}
+      showCopyButton={showCopyButton}
+      showEditButton={showEditButton}
+      showDeleteButton={showDeleteButton}
       className={`${getTaskSpecificClasses()} ${className}`}
       {...divProps}
     />

@@ -87,6 +87,7 @@ export interface UserData {
     generalTasks: GeneralTask[];
     dayTasks: DayTask[];
     weeklyTasks: Record<WeekDay, GeneralTask[]>;
+    calendarTasks?: GeneralTask[]; // Tareas programadas específicamente para fechas
     taskCompletionsByProgressId?: Record<string, string[]>; // progressId -> array of completion dates (ISO strings) - PERSISTENT
     onboardingCompleted?: boolean;
 }

@@ -16,6 +16,9 @@ interface TaskListItemProps {
   onUpdateAiDuration?: (id: string, newAiDuration: string) => void;
   className?: string;
   showTimer?: boolean;
+  showCopyButton?: boolean;
+  showEditButton?: boolean;
+  showDeleteButton?: boolean;
 }
 
 const TaskListItem: React.FC<TaskListItemProps> = ({
@@ -27,6 +30,9 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   onUpdateAiDuration,
   className = "",
   showTimer = true,
+  showCopyButton = true,
+  showEditButton = true,
+  showDeleteButton = true,
 }) => {
   const initialAiDuration =
     isDaily && "aiDuration" in task ? (task as DayTask).aiDuration : undefined;
@@ -119,22 +125,26 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             {task.name}
           </p>
           <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
-            <button
-              onClick={() => onEdit?.(task.id)}
-              className="p-1 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
-              title="Editar tarea"
-              aria-label="Editar tarea"
-            >
-              <Icon name="pencil" className="h-3 w-3 md:h-4 md:w-4" />
-            </button>
-            <button
-              onClick={() => onDelete(task.id)}
-              className="p-1 rounded-md hover:bg-red-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
-              title="Eliminar tarea"
-              aria-label="Eliminar tarea"
-            >
-              <Icon name="trash2" className="h-3 w-3 md:h-4 md:w-4" />
-            </button>
+            {showEditButton && (
+              <button
+                onClick={() => onEdit?.(task.id)}
+                className="p-1 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+                title="Editar tarea"
+                aria-label="Editar tarea"
+              >
+                <Icon name="pencil" className="h-3 w-3 md:h-4 md:w-4" />
+              </button>
+            )}
+            {showDeleteButton && (
+              <button
+                onClick={() => onDelete(task.id)}
+                className="p-1 rounded-md hover:bg-red-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+                title="Eliminar tarea"
+                aria-label="Eliminar tarea"
+              >
+                <Icon name="trash2" className="h-3 w-3 md:h-4 md:w-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -216,22 +226,24 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           )}
         </div>
 
-        {/* Tercera fila: botón de copiar */}
-        <div className="flex justify-end mt-1">
-          <button
-            onClick={() => {
-              const { setCopiedTask } = useTaskStore.getState();
-              setCopiedTask(task);
-              toast.success(`Tarea "${task.name}" copiada.`);
-            }}
-            className="flex items-center space-x-1 p-1 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
-            title="Copiar tarea"
-            aria-label="Copiar tarea"
-          >
-            <Icon name="copy" className="h-3 w-3 md:h-4 md:w-4" />
-            <span className="text-xs">Copiar</span>
-          </button>
-        </div>
+        {/* Tercera fila: botón de copiar (solo si showCopyButton es true) */}
+        {showCopyButton && (
+          <div className="flex justify-end mt-1">
+            <button
+              onClick={() => {
+                const { setCopiedTask } = useTaskStore.getState();
+                setCopiedTask(task);
+                toast.success(`Tarea "${task.name}" copiada.`);
+              }}
+              className="flex items-center space-x-1 p-1 rounded-md hover:bg-slate-700 hover:text-white transition-colors opacity-60 hover:opacity-100"
+              title="Copiar tarea"
+              aria-label="Copiar tarea"
+            >
+              <Icon name="copy" className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="text-xs">Copiar</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

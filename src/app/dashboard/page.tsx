@@ -29,6 +29,18 @@ export default function DashboardPage() {
     WeekDay.All
   );
 
+  // Estado para el modo de vista en General
+  const [generalViewMode, setGeneralViewMode] = useState<'week' | 'calendar'>('week');
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+
+  // Inicializar calendarTasks si no existe
+  useEffect(() => {
+    if (userData && !userData.calendarTasks) {
+      const updatedUserData = { ...userData, calendarTasks: [] };
+      setUserData(updatedUserData);
+    }
+  }, [userData, setUserData]);
+
   const [showClearConfirmation, setShowClearConfirmation] = useState(false);
 
   const showNotification = useCallback(
@@ -68,6 +80,80 @@ export default function DashboardPage() {
   const handleGeneralTabChange = useCallback((tab: WeekDay) => {
     setActiveGeneralTab(tab);
   }, []);
+
+  // Funciones específicas para manejar tareas de calendarTasks
+  const handleEditCalendarTask = useCallback(
+    (taskId: string) => {
+      if (!userData?.calendarTasks) return;
+
+      const task = userData.calendarTasks.find(
+        (t) => t.id === taskId
+      );
+      if (task) {
+        setEditingTask(task);
+        setModalOpen(true);
+      }
+    },
+    [userData, setEditingTask, setModalOpen]
+  );
+
+  const handleDeleteCalendarTask = useCallback(
+    async (taskId: string) => {
+      if (!userData?.calendarTasks) return;
+
+      const task = userData.calendarTasks.find((t) => t.id === taskId);
+
+      if (task) {
+        setTaskToDelete(task);
+        setShowConfirmation(true);
+      }
+    },
+    [userData, setTaskToDelete, setShowConfirmation]
+  );
+
+  // Función específica para confirmar eliminación de tareas del calendario
+  const confirmDeleteCalendar = useCallback(async () => {
+    if (!userData || !taskToDelete) return;
+
+    const prevUserData = { ...userData };
+    try {
+      // Asegurar que calendarTasks esté inicializado
+      const currentCalendarTasks = userData.calendarTasks || [];
+
+      // Filtrar la tarea específica
+      const updatedTasks = currentCalendarTasks.filter(
+        (t) => t.id !== taskToDelete.id
+      );
+
+      const updatedUserData = {
+        ...userData,
+        calendarTasks: updatedTasks,
+      };
+
+      setUserData(updatedUserData);
+      await handleUpdateUserData(updatedUserData);
+      setShowConfirmation(false);
+      setTaskToDelete(null);
+      const taskName = taskToDelete.name || "Tarea";
+      toast.success(`Se eliminó tarea "${taskName}" de la DB.`);
+    } catch (error) {
+      console.error("Error en confirmDeleteCalendar:", error);
+      setUserData(prevUserData);
+      setShowConfirmation(false);
+      setTaskToDelete(null);
+      const taskName = taskToDelete.name || "Tarea";
+      toast.error(
+        `Error al eliminar tarea "${taskName}". No se guardó en la base de datos.`
+      );
+    }
+  }, [
+    userData,
+    taskToDelete,
+    setUserData,
+    handleUpdateUserData,
+    setShowConfirmation,
+    setTaskToDelete,
+  ]);
 
   // Funciones específicas para manejar tareas de weeklyTasks
   const handleEditWeeklyTask = useCallback(
@@ -328,7 +414,60 @@ export default function DashboardPage() {
   const handleSaveTaskContextual = useCallback(
     async (task: BaseTask | Omit<BaseTask, "id">, selectedDays?: WeekDay[]) => {
       if (currentPage === Page.General) {
-        if (activeGeneralTab === WeekDay.All) {
+        if (generalViewMode === 'calendar') {
+          // Manejar calendarTasks directamente cuando está en modo calendario
+          if (!userData) return;
+
+          const isEditing = "id" in task;
+          const prevUserData = { ...userData };
+
+          try {
+            // Asegurar que calendarTasks esté inicializado
+            const currentCalendarTasks = userData.calendarTasks || [];
+
+            if (isEditing) {
+              // Editar tarea existente en calendarTasks
+              const updatedTasks = currentCalendarTasks.map((t) =>
+                t.id === task.id ? { ...t, ...task } : t
+              );
+
+              const updatedUserData = {
+                ...userData,
+                calendarTasks: updatedTasks,
+              };
+
+              setUserData(updatedUserData);
+              await handleUpdateUserData(updatedUserData);
+            } else {
+              // Crear nueva tarea en calendarTasks
+              const newTask = {
+                ...task,
+                id: generateTaskId(),
+                progressId: generateTaskId(),
+                completed: false,
+              } as GeneralTask;
+
+              const updatedUserData = {
+                ...userData,
+                calendarTasks: [...currentCalendarTasks, newTask],
+              };
+
+              setUserData(updatedUserData);
+              await handleUpdateUserData(updatedUserData);
+            }
+
+            const taskName = "name" in task ? task.name : "Tarea";
+            const action = isEditing ? "actualizó" : "añadió";
+            toast.success(`Se ${action} tarea "${taskName}" en la base de datos.`);
+            setModalOpen(false);
+            setEditingTask(null);
+          } catch (error) {
+            console.error("Error saving calendar task:", error);
+            setUserData(prevUserData);
+            const taskName = "name" in task ? task.name : "Tarea";
+            toast.error(`Error al guardar tarea "${taskName}". No se guardó en la base de datos.`);
+          }
+        } else if (activeGeneralTab === WeekDay.All) {
           // Guardar en generalTasks
           await handleSaveTask(task);
         } else {
@@ -349,6 +488,7 @@ export default function DashboardPage() {
                 ...userData.dayTasks,
                 ...userData.generalTasks,
                 ...Object.values(userData.weeklyTasks || {}).flat(),
+                ...(userData.calendarTasks || []),
               ];
               originalTask = allTasks.find((t) => t.id === task.id);
               if (originalTask && 'isHabit' in task && originalTask.isHabit !== task.isHabit) {
@@ -453,6 +593,7 @@ export default function DashboardPage() {
     },
     [
       currentPage,
+      generalViewMode,
       activeGeneralTab,
       userData,
       handleSaveTask,
@@ -461,6 +602,7 @@ export default function DashboardPage() {
       setModalOpen,
       setEditingTask,
       handleUpdateHabitForAllTasks,
+      generateTaskId,
     ]
   );
 
@@ -565,16 +707,20 @@ export default function DashboardPage() {
         onSaveTaskForDay={handleSaveTaskForDayWrapper}
         onDelete={handleDeleteTask}
         onDeleteWeekly={handleDeleteWeeklyTask}
+        onDeleteCalendar={handleDeleteCalendarTask}
         onReorder={handleReorderTasks}
         onReorderWeekly={handleReorderWeeklyTasks}
         onEdit={handleEditTask}
         onEditWeekly={handleEditWeeklyTask}
+        onEditCalendar={handleEditCalendarTask}
         onToggleComplete={handleToggleComplete}
         onToggleWeekly={handleToggleWeeklyTask}
         onSetEndOfDay={handleSetEndOfDayGeneral}
         tempEndOfDay={tempEndOfDay}
         setTempEndOfDay={setTempEndOfDay}
         onTabChange={handleGeneralTabChange}
+        onViewModeChange={setGeneralViewMode}
+        onSelectedDateChange={setSelectedCalendarDate}
       />
     );
   }, [
@@ -703,8 +849,23 @@ export default function DashboardPage() {
                 }
           }
           taskToEdit={editingTask}
-          showDaySelection={currentPage === Page.General && activeGeneralTab !== WeekDay.All && !editingTask}
+          showDaySelection={currentPage === Page.General && activeGeneralTab !== WeekDay.All && !editingTask && generalViewMode !== 'calendar'}
           currentDay={currentPage === Page.General ? activeGeneralTab : undefined}
+          initialScheduledDate={
+            currentPage === Page.General && generalViewMode === 'calendar' && !editingTask
+              ? selectedCalendarDate
+              : undefined
+          }
+          showScheduledDateField={
+            currentPage === Page.General && generalViewMode === 'calendar'
+          }
+          currentView={
+            currentPage === Page.Day ? 'day' :
+            currentPage === Page.General && generalViewMode === 'calendar' ? 'general-calendar' :
+            currentPage === Page.General && generalViewMode === 'week' ? 'general-week' :
+            currentPage === Page.Progress ? 'progress' :
+            currentPage === Page.Profile ? 'profile' : 'unknown'
+          }
         />
       )}
 
@@ -713,12 +874,16 @@ export default function DashboardPage() {
           isOpen={showConfirmation}
           onCancel={() => setShowConfirmation(false)}
           onConfirm={() => {
-            // Determinar si es una tarea semanal o general/diaria
+            // Determinar si es una tarea semanal, del calendario o general/diaria
             const isWeeklyTask = userData?.weeklyTasks?.[
               activeGeneralTab
             ]?.some((t) => t.id === taskToDelete.id);
 
-            if (isWeeklyTask) {
+            const isCalendarTask = userData?.calendarTasks?.some((t) => t.id === taskToDelete.id);
+
+            if (isCalendarTask) {
+              confirmDeleteCalendar();
+            } else if (isWeeklyTask) {
               confirmDeleteWeekly();
             } else {
               confirmDelete();

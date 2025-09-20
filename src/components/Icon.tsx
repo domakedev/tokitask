@@ -31,7 +31,8 @@ import {
   ListTodoIcon,
   GripVerticalIcon,
   Copy,
-  Clipboard
+  Clipboard,
+  ChevronDown
 } from "lucide-react";
 
 interface IconProps {
@@ -71,7 +72,8 @@ const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> 
   list: ListTodoIcon,
   gripvertical: GripVerticalIcon,
   copy: Copy,
-  clipboard: Clipboard
+  clipboard: Clipboard,
+  chevrondown: ChevronDown
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {

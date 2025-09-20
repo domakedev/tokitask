@@ -250,25 +250,43 @@ export const useAiSync = (
     if (!userData) return;
 
     const currentDay = getCurrentWeekDay();
+    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
+
+    // Get all tasks that should be included for today
     const generalTasks = userData.generalTasks || [];
     const dayTasks = userData.weeklyTasks?.[currentDay] || [];
-    const allTasks = [...generalTasks, ...dayTasks];
+    const calendarTasks = userData.calendarTasks || [];
 
-    if (allTasks.length === 0) {
-      showNotification("No hay tareas programadas. Crea tareas en la sección General primero.", "error");
+    // Include tasks specifically scheduled for today from calendarTasks
+    const scheduledCalendarTasks = calendarTasks.filter(task =>
+      task.scheduledDate && task.scheduledDate === today
+    );
+
+    const allTasks = [
+      ...generalTasks,
+      ...dayTasks,
+      ...scheduledCalendarTasks
+    ];
+
+    // Remove duplicates based on id
+    const uniqueTasks = allTasks.filter((task, index, self) =>
+      index === self.findIndex(t => t.id === task.id)
+    );
+
+    if (uniqueTasks.length === 0) {
+      showNotification("No hay tareas programadas para hoy. Crea tareas en la sección General primero.", "error");
       return;
     }
 
     try {
-      const now = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
       const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
 
       // Crear IDs únicos para evitar duplicados, pero mantener progressId
-      const allTasksAsDay: DayTask[] = allTasks.map((task) => {
+      const allTasksAsDay: DayTask[] = uniqueTasks.map((task) => {
         const taskProgressId = task.progressId || generateTaskId();
         // Verificar si la tarea ya fue completada hoy según la DB
         const taskCompletions = taskCompletionsByProgressId[taskProgressId] || [];
-        const isCompletedToday = taskCompletions.includes(now);
+        const isCompletedToday = taskCompletions.includes(today);
 
         return {
           ...task,

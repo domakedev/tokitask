@@ -166,7 +166,16 @@ const DayView: React.FC<DayViewProps> = ({
           `}</style>
         </div>
 
-        
+        {/* Mensaje informativo para Día */}
+        <div className="text-center mb-4">
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+            <p className="text-sm text-blue-300">
+              <Icon name="info" className="inline mr-2 h-4 w-4" />
+              Esta es tu día de hoy. Aquí se mostraran tus tareas programadas: <br /> <strong>semanales repetitivas</strong> + <strong>las de calendario de día específico.</strong>
+            </p>
+          </div>
+        </div>
+
       </header>
       <main className="px-2 md:px-6 mt-2 md:mt-4">
         {/* Botones de copiar/pegar */}

@@ -12,6 +12,9 @@ interface TaskListProps {
   onReorder: (reorderedTasks: Task[]) => void;
   onEdit?: (id: string) => void;
   onUpdateAiDuration?: (id: string, newAiDuration: string) => void;
+  showCopyButton?: boolean;
+  showEditButton?: boolean;
+  showDeleteButton?: boolean;
 }
 
 const TaskList: React.FC<TaskListProps> = ({
@@ -22,6 +25,9 @@ const TaskList: React.FC<TaskListProps> = ({
   onReorder,
   onEdit,
   onUpdateAiDuration,
+  showCopyButton = true,
+  showEditButton = true,
+  showDeleteButton = true,
 }) => {
   const [dragging, setDragging] = useState(false);
   const dragItem = useRef<number | null>(null);
@@ -72,6 +78,9 @@ const TaskList: React.FC<TaskListProps> = ({
           onDelete={onDelete}
           onEdit={onEdit}
           onUpdateAiDuration={onUpdateAiDuration}
+          showCopyButton={showCopyButton}
+          showEditButton={showEditButton}
+          showDeleteButton={showDeleteButton}
           draggable={true}
           onDragStart={(e) => handleDragStart(e, index)}
           onDragEnter={(e) => handleDragEnter(e, index)}
