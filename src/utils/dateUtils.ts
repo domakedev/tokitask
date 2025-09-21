@@ -152,12 +152,21 @@ export const formatTimeTo12Hour = (time: string): string => {
 
 /**
  * Convierte una duración en string a minutos
- * Soporta formatos como "30 min", "1 hora", "2 horas", "45 minutos", "1h", "30m"
+ * Soporta formatos como "30 min", "1 hora", "2 horas", "45 minutos", "1h", "30m", "1:30 h"
  */
 export const parseDurationToMinutes = (duration: string): number => {
   const trimmed = duration.trim().toLowerCase();
-  const match = trimmed.match(/^(\d+)\s*(min|minutos|m|hora|horas?|h)?$/);
 
+  // Manejar formato "1:30 h" o "1:30"
+  const timeMatch = trimmed.match(/^(\d+):(\d+)\s*(h|hora|horas?)?$/);
+  if (timeMatch) {
+    const hours = parseInt(timeMatch[1], 10);
+    const minutes = parseInt(timeMatch[2], 10);
+    return hours * 60 + minutes;
+  }
+
+  // Manejar formato simple "30 min", "1 hora", etc.
+  const match = trimmed.match(/^(\d+)\s*(min|minutos|m|hora|horas?|h)?$/);
   if (!match) {
     console.log('No match for duration:', trimmed);
     return 0;
@@ -202,4 +211,28 @@ export const formatDateString = (dateString: string, locale: string = 'es-ES'): 
   const utcDate = new Date(dateString + 'T00:00:00.000Z');
 
   return utcDate.toLocaleDateString(locale);
+};
+
+
+/**
+ * Redondea un número al múltiplo de 5 más cercano.
+ */
+export const roundToNearest5 = (num: number): number => {
+  return Math.round(num / 5) * 5;
+};
+
+
+/**
+ * Suma minutos a una hora en formato "HH:MM".
+ */
+export const addMinutesToTime = (time: string, minutes: number): string => {
+  const [hours, mins] = time.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, mins, 0, 0);
+  date.setMinutes(date.getMinutes() + minutes);
+  
+  const newHours = date.getHours().toString().padStart(2, '0');
+  const newMinutes = date.getMinutes().toString().padStart(2, '0');
+  
+  return `${newHours}:${newMinutes}`;
 };

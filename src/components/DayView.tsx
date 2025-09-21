@@ -17,6 +17,7 @@ interface DayViewProps {
   freeTime: string | null;
   onStartDay: () => void;
   onSyncWithAI: () => void;
+  onSyncWithPseudoAI: () => void;
   onToggleComplete: (id: string) => void;
   onDelete: (id: string) => void;
   onReorder: (tasks: (DayTask | GeneralTask)[]) => void;
@@ -36,16 +37,27 @@ const DayView: React.FC<DayViewProps> = ({
   freeTime,
   onStartDay,
   onSyncWithAI,
+  onSyncWithPseudoAI,
   onToggleComplete,
   onDelete,
   onReorder,
   onEdit,
   onUpdateAiDuration,
+  tempEndOfDay,
+  setTempEndOfDay,
   onDismissAiTip,
   onNavigate,
   onNavigateToGeneralCalendar,
 }) => {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+
+  // Validación para desactivar botones si ya pasó la hora de fin del día
+  const currentTime = new Date().toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const isPastEndOfDay = currentTime > userData.endOfDay;
 
   return (
     <div>
@@ -120,6 +132,7 @@ const DayView: React.FC<DayViewProps> = ({
             onClick={onStartDay}
             disabled={
               isSyncing ||
+              isPastEndOfDay ||
               (!userData.generalTasks?.length &&
                 !userData.weeklyTasks?.[getCurrentWeekDay()]?.length)
             }
@@ -129,7 +142,7 @@ const DayView: React.FC<DayViewProps> = ({
           </button>
           <button
             onClick={onSyncWithAI}
-            disabled={isSyncing || userData.dayTasks.length === 0}
+            disabled={isSyncing || isPastEndOfDay || userData.dayTasks.length === 0}
             className="flex-1 w-full text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-75 transition-transform transform disabled:opacity-50 disabled:cursor-not-allowed border-none animate-float animate-gradient"
             style={{
               position: "relative",
@@ -152,6 +165,15 @@ const DayView: React.FC<DayViewProps> = ({
               {isSyncing ? "Calculando..." : "Organizar tiempos con IA"}
             </span>
           </button>
+
+          <button
+            onClick={onSyncWithPseudoAI}
+            disabled={isSyncing || isPastEndOfDay || userData.dayTasks.length === 0}
+           className="flex-1 w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+         >
+           {isSyncing ? "Calculando..." : "Calcular con Pseudo IA"}
+         </button>
+
           <style jsx global>{`
             @keyframes float {
               0% {

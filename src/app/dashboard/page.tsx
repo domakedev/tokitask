@@ -620,6 +620,7 @@ export default function DashboardPage() {
     tempEndOfDay,
     setTempEndOfDay,
     syncWithAI,
+    syncWithPseudoAI,
     handleUpdateAiDuration,
     handleCloneDaySchedule,
   } = useAiSync(userData, handleUpdateUserData, showNotification);
@@ -670,6 +671,7 @@ export default function DashboardPage() {
         freeTime={freeTime}
         onStartDay={handleShowCloneConfirmation}
         onSyncWithAI={syncWithAI}
+        onSyncWithPseudoAI={syncWithPseudoAI}
         onToggleComplete={handleToggleComplete}
         onDelete={handleDeleteTask}
         onReorder={handleReorderTasks}
@@ -689,6 +691,7 @@ export default function DashboardPage() {
     freeTime,
     handleShowCloneConfirmation,
     syncWithAI,
+    syncWithPseudoAI,
     handleToggleComplete,
     handleDeleteTask,
     handleReorderTasks,

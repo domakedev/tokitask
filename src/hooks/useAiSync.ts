@@ -1,6 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { DayTask, UserData, WEEKDAY_LABELS } from "../types";
-import { getCurrentWeekDay } from "../utils/dateUtils";
+import {
+  getCurrentWeekDay,
+  calculateTimeDifferenceInMinutes,
+  roundToNearest5,
+  addMinutesToTime,
+} from "../utils/dateUtils";
 import { generateTaskId } from "../utils/idGenerator";
 import { toast } from "react-toastify";
 
@@ -34,30 +39,35 @@ export const useAiSync = (
   const parseDurationToMinutes = useCallback((duration: string): number => {
     if (!duration) return 0;
 
-    const lowerDuration = duration.toLowerCase();
-    let totalMinutes = 0;
+    const trimmed = duration.trim().toLowerCase();
+
+    // Manejar formato "1:30 h" o "1:30"
+    const timeMatch = trimmed.match(/^(\d+):(\d+)\s*(h|hora|horas?)?$/);
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      return hours * 60 + minutes;
+    }
 
     // Buscar horas
-    const hourMatch = lowerDuration.match(/(\d+)\s*h/);
+    const hourMatch = trimmed.match(/(\d+)\s*h/);
     if (hourMatch) {
-      totalMinutes += parseInt(hourMatch[1]) * 60;
+      return parseInt(hourMatch[1]) * 60;
     }
 
     // Buscar minutos
-    const minuteMatch = lowerDuration.match(/(\d+)\s*min/);
+    const minuteMatch = trimmed.match(/(\d+)\s*min/);
     if (minuteMatch) {
-      totalMinutes += parseInt(minuteMatch[1]);
+      return parseInt(minuteMatch[1]);
     }
 
     // Si no encuentra formato específico, intentar parsear como número directo
-    if (totalMinutes === 0) {
-      const directMatch = lowerDuration.match(/(\d+)/);
-      if (directMatch) {
-        totalMinutes = parseInt(directMatch[1]);
-      }
+    const directMatch = trimmed.match(/(\d+)/);
+    if (directMatch) {
+      return parseInt(directMatch[1]);
     }
 
-    return totalMinutes;
+    return 0;
   }, []);
 
   // Función para validar si las tareas fijas exceden el tiempo disponible
@@ -123,8 +133,10 @@ export const useAiSync = (
       }
 
       // Validar tiempo de tareas fijas antes de sincronizar
-      const now = new Date();
-      const userTime = now.toLocaleTimeString("es-ES", {
+      //new date 6 am
+      const sixAm = new Date();
+      sixAm.setHours(6, 0, 0, 0);
+      const userTime = sixAm.toLocaleTimeString("es-ES", {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
@@ -195,6 +207,7 @@ export const useAiSync = (
           endOfDay: endOfDayForSync,
         };
 
+        console.log("🚀 ~ useAiSync ~ updatedUserDataUUUUUUUU:", updatedUserData)
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
         setAiTip(tip || null);
@@ -282,7 +295,7 @@ export const useAiSync = (
       const taskCompletionsByProgressId = userData.taskCompletionsByProgressId || {};
 
       // Crear IDs únicos para evitar duplicados, pero mantener progressId
-      const allTasksAsDay: DayTask[] = uniqueTasks.map((task) => {
+      const allTasksAsDay: DayTask[] = uniqueTasks.map((task, index) => {
         const taskProgressId = task.progressId || generateTaskId();
         // Verificar si la tarea ya fue completada hoy según la DB
         const taskCompletions = taskCompletionsByProgressId[taskProgressId] || [];
@@ -296,6 +309,7 @@ export const useAiSync = (
           isCurrent: false,
           aiDuration: "",
           isHabit: task.isHabit ?? false, // Asegurar que isHabit se copie correctamente
+          order: task.order ?? index,
         };
       });
 
@@ -321,6 +335,222 @@ export const useAiSync = (
     }
   }, [userData, handleUpdateUserData, showNotification]);
 
+  const syncWithPseudoAI = useCallback(
+    async (options?: { endOfDay?: string; tasks?: DayTask[] }) => {
+      if (!userData) return;
+
+      setIsSyncing(true);
+
+      try {
+        // --- 1. PREPARACIÓN INICIAL (sin cambios) ---
+        const tasksForSync = userData.dayTasks || [];
+        console.log("🚀 ~ useAiSync ~ MATEEE ENTRADA:", tasksForSync)
+        const endOfDayForSync =
+          options?.endOfDay || tempEndOfDay || userData.endOfDay || "23:00";
+
+        const now = new Date();
+        const userTime = now.toLocaleTimeString("es-ES", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+
+        
+        const HORA_INICIO = userTime;
+        const HORA_FIN = endOfDayForSync;
+        // const HORA_INICIO = "02:04";
+        // const HORA_FIN = "16:00";
+
+        // INICIO DE LA CORRECCIÓN: ALINEAR LA HORA DE INICIO
+       // =================================================================================
+       
+       // 1. Alinear la hora de inicio a la cuadrícula de 5 minutos.
+       
+       // Esto es CRUCIAL para que el método de bloques funcione sin desperdiciar tiempo.
+       const [startHour, startMinute] = HORA_INICIO.split(':').map(Number);
+       const remainder = startMinute % 10; // <--- ESTA ES LA LÍNEA CLAVE       
+       let initialOffset = 0;
+      let HORA_INICIO_ALINEADA = HORA_INICIO;
+
+       // Si la hora de inicio no es un múltiplo de 10 (ej: 02:04),
+       // calculamos el tiempo hasta el siguiente múltiplo (02:05).
+      if (remainder !== 0) {
+          initialOffset = 10 - remainder; // <--- Y ESTA TAMBIÉN
+          HORA_INICIO_ALINEADA = addMinutesToTime(HORA_INICIO, initialOffset);
+          console.log("🚀 ~ useAiSync ~ HORA_INICIO_ALINEADA:", HORA_INICIO_ALINEADA)
+      }
+
+       const minutosTotalesDisponibles = calculateTimeDifferenceInMinutes(
+          HORA_INICIO_ALINEADA,
+          HORA_FIN
+        );
+
+        if (minutosTotalesDisponibles < 0) {
+          showNotification("El horario de inicio es posterior al de fin.", "error");
+          setIsSyncing(false);
+          return;
+        }
+
+        const tareas = tasksForSync
+          .filter((t) => !t.completed)
+          .map((t, index) => ({
+            ...t,
+            baseDurationMinutes: parseDurationToMinutes(t.baseDuration),
+            order: t.order ?? index,
+          }));
+
+        const tareasOrdenadas = [...tareas].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const tareasFlexibles = tareasOrdenadas.filter(t => t.flexibleTime);
+        
+        // =================================================================================
+        // INICIO DE LA LÓGICA CORREGIDA: MÉTODO DE DOS FASES
+        // =================================================================================
+
+        // --- FASE 1: Colocar las Tareas Fijas y Medir el Tiempo Restante ---
+
+        let minutosDisponiblesParaFlexibles = minutosTotalesDisponibles;
+        for (const tarea of tareasOrdenadas) {
+            if (!tarea.flexibleTime) {
+                // CAMBIO: Redondeamos las tareas fijas a la nueva cuadrícula de 10 minutos.
+                minutosDisponiblesParaFlexibles -= Math.round(tarea.baseDurationMinutes / 10) * 10;
+            }
+        }
+        minutosDisponiblesParaFlexibles = Math.max(0, minutosDisponiblesParaFlexibles);
+
+        // --- FASE 2: Calcular Duración de Flexibles con Bloques de 10 min ---
+        const totalFlexibleBaseDuration = tareasFlexibles.reduce((sum, t) => sum + t.baseDurationMinutes, 0);
+        const duracionesFlexibles: { [id: string]: number } = {};
+        
+        // CAMBIO: Definimos el tamaño del bloque para reutilizarlo.
+        const BLOCK_SIZE = 10;
+
+        // CAMBIO: Calculamos el presupuesto en bloques de 10 minutos.
+        const totalBloques = Math.floor(minutosDisponiblesParaFlexibles / BLOCK_SIZE);
+
+        if (totalBloques > 0 && totalFlexibleBaseDuration > 0) {
+            const tareasConBloques = tareasFlexibles.map(tarea => {
+                const proportion = tarea.baseDurationMinutes / totalFlexibleBaseDuration;
+                const bloquesIdeales = totalBloques * proportion;
+                return {
+                    ...tarea,
+                    bloquesIdeales,
+                    fraccion: bloquesIdeales - Math.floor(bloquesIdeales),
+                    bloquesAsignados: Math.floor(bloquesIdeales),
+                    // CAMBIO: El límite máximo de bloques también se basa en 10.
+                    maxBloques: Math.floor(tarea.baseDurationMinutes / BLOCK_SIZE),
+                };
+            });
+
+            const bloquesAsignadosInicialmente = tareasConBloques.reduce((sum, t) => sum + t.bloquesAsignados, 0);
+            let bloquesRestantes = totalBloques - bloquesAsignadosInicialmente;
+
+            tareasConBloques.sort((a, b) => b.fraccion - a.fraccion);
+
+            for (const tarea of tareasConBloques) {
+                if (bloquesRestantes <= 0) break;
+                tarea.bloquesAsignados += 1;
+                bloquesRestantes -= 1;
+            }
+    
+            let surplusBloques = 0;
+            for (const tarea of tareasConBloques) {
+                if (tarea.bloquesAsignados > tarea.maxBloques) {
+                    surplusBloques += tarea.bloquesAsignados - tarea.maxBloques;
+                    tarea.bloquesAsignados = tarea.maxBloques;
+                }
+            }
+
+            if (surplusBloques > 0) {
+                tareasConBloques.sort((a, b) => a.baseDurationMinutes - b.baseDurationMinutes);
+        
+                for (const tarea of tareasConBloques) {
+                    if (surplusBloques <= 0) break;
+                    const puedeRecibir = tarea.maxBloques - tarea.bloquesAsignados;
+                    if (puedeRecibir > 0) {
+                        const aAsignar = Math.min(surplusBloques, puedeRecibir);
+                        tarea.bloquesAsignados += aAsignar;
+                        surplusBloques -= aAsignar;
+                    }
+                }
+            }
+
+            tareasConBloques.forEach(t => {
+                // CAMBIO: La duración final se calcula multiplicando por 10.
+                duracionesFlexibles[t.id] = t.bloquesAsignados * BLOCK_SIZE;
+            });
+        }
+        
+        // --- FASE 3: Construir el Horario Final ---
+        let tiempoAcumulado = HORA_INICIO_ALINEADA;
+        const updatedTasks: DayTask[] = [];
+
+        for (const tarea of tareasOrdenadas) {
+            let aiDurationMinutes = 0;
+            if (tarea.flexibleTime) {
+                aiDurationMinutes = duracionesFlexibles[tarea.id] ?? 0;
+            } else {
+                // CAMBIO: Las tareas fijas también se redondean a 10.
+                aiDurationMinutes = Math.round(tarea.baseDurationMinutes / 10) * 10;
+            }
+
+            const startTime = tiempoAcumulado;
+            const endTime = addMinutesToTime(startTime, aiDurationMinutes);
+          
+            const formattedAiDuration = aiDurationMinutes >= 60
+              ? `${Math.floor(aiDurationMinutes / 60)} h ${aiDurationMinutes % 60} min`
+              : `${aiDurationMinutes} min`;
+
+            updatedTasks.push({
+              ...tarea,
+              startTime,
+              endTime,
+              aiDuration: formattedAiDuration,
+            });
+
+            tiempoAcumulado = endTime;
+        }
+
+        // --- 6. Calcular tiempo libre ---
+        const freeTimeMinutes = calculateTimeDifferenceInMinutes(tiempoAcumulado, HORA_FIN);
+        const newFreeTime = freeTimeMinutes > 0 ? `${freeTimeMinutes} min` : null;
+        
+        // --- 7. Finalizar y devolver resultado ---
+        const completedOriginalTasks = tasksForSync.filter((t) => t.completed);
+        const finalTasks = recalculateCurrentDayTask([
+          ...completedOriginalTasks,
+          ...updatedTasks,
+        ]);
+
+        const updatedUserData = {
+          ...userData,
+          dayTasks: finalTasks,
+          endOfDay: endOfDayForSync,
+        };
+
+        console.log("🚀 ~ useAiSync ~ MATE SALIDA", updatedUserData.dayTasks)
+        await handleUpdateUserData(updatedUserData);
+        setFreeTime(newFreeTime);
+        setAiTip(
+          "Planificación local completa. ¡Revisa tu horario actualizado!"
+        );
+        showNotification("Horario calculado localmente.", "success");
+      } catch (error) {
+        console.error("Error in pseudoAI sync:", error);
+        showNotification("Error al calcular el horario localmente.", "error");
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [
+      userData,
+      handleUpdateUserData,
+      tempEndOfDay,
+      showNotification,
+      recalculateCurrentDayTask,
+      parseDurationToMinutes,
+    ]
+  );
+
   return {
     isSyncing,
     aiTip,
@@ -329,6 +559,7 @@ export const useAiSync = (
     tempEndOfDay,
     setTempEndOfDay,
     syncWithAI,
+    syncWithPseudoAI,
     handleUpdateAiDuration,
     handleCloneDaySchedule,
   };

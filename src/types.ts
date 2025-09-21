@@ -68,6 +68,7 @@ export interface BaseTask {
     startTime?: string; // Hora de inicio opcional (formato HH:MM)
     endTime?: string; // Hora de fin opcional (formato HH:MM)
     scheduledDate?: string; // Fecha específica opcional (formato YYYY-MM-DD)
+    order?: number; // Para mantener el orden original que el usuario definió
 }
 
 export interface DayTask extends BaseTask {
