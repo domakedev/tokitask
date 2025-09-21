@@ -50,7 +50,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onSignOut }) => {
         )}
 
         {/* Configuración de Notificaciones */}
-        {loading ? (
+        {/* {loading ? (
           <div className="p-4 bg-slate-800 rounded-lg">
             <div className="animate-spin h-4 w-4 border-2 border-green-400 border-t-transparent rounded-full mx-auto"></div>
             <p className="text-xs text-slate-400 text-center mt-2">Cargando configuración...</p>
@@ -63,7 +63,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onSignOut }) => {
               whatsappConfigured: userData?.whatsappConfigured,
             }}
           />
-        )}
+        )} */}
 
         <button
           onClick={onSignOut}
