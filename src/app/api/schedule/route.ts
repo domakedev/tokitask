@@ -169,8 +169,9 @@ export async function POST(request: Request) {
     2. Duraciones:
        - flexibleTime: false → aiDuration = baseDuration.
        - flexibleTime: true → ajusta aiDuration (máx. = baseDuration).
-       - Siempre múltiplos de 5 min.       
+       - Siempre múltiplos de 5 min.
        - aiDuration nunca > baseDuration.
+       - FORMATO: aiDuration debe estar en formato HH:MM (24 horas), ej: '01:30' para 1h 30min, '00:15' para 15min.
     3. Distribución:
        - Prioriza tareas de prioridad 2.
        - No cambies el orden.

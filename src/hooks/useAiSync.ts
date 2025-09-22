@@ -479,9 +479,7 @@ export const useAiSync = (
                 endTime = addMinutesToTime(startTime, aiDurationMinutes);
             }
 
-            const formattedAiDuration = aiDurationMinutes >= 60
-              ? `${Math.floor(aiDurationMinutes / 60)} h ${aiDurationMinutes % 60} min`
-              : `${aiDurationMinutes} min`;
+            const formattedAiDuration = `${Math.floor(aiDurationMinutes / 60).toString().padStart(2, '0')}:${(aiDurationMinutes % 60).toString().padStart(2, '0')}`;
 
             updatedTasks.push({
               ...tarea,

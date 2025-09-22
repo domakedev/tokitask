@@ -4,7 +4,7 @@ import Icon from "./Icon";
 import Badge from "./Badge";
 import ConfirmationModal from "./ConfirmationModal";
 import { useTimer } from "../hooks/useTimer";
-import { calculateTimeDifferenceInMinutes, parseDurationToMinutes } from "../utils/dateUtils";
+import { calculateTimeDifferenceInMinutes, parseDurationToMinutes, formatDurationToHuman } from "../utils/dateUtils";
 import { useTaskStore } from "../stores/taskStore";
 import { useAuthStore } from "../stores/authStore";
 import { toast } from "react-toastify";
@@ -214,7 +214,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             {task.isHabit && <Badge label="Hábito" icon="repeat" variant="habit" />}
             {isDaily && "aiDuration" in task && (
               <Badge
-                label={`IA recomendación: ${task.aiDuration}`}
+                label={`IA Recomendación: ${formatDurationToHuman(task.aiDuration)}`}
                 icon="orbit"
                 variant="ai"
               />

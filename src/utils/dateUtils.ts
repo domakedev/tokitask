@@ -305,3 +305,22 @@ export const addMinutesToTime = (time: string, minutes: number): string => {
   
   return `${newHours}:${newMinutes}`;
 };
+
+/**
+ * Formatea una duración en formato HH:MM a lenguaje humano.
+ * Ej: "01:00" -> "1 hora", "01:10" -> "1 hora 10 minutos", "00:30" -> "30 minutos"
+ */
+export const formatDurationToHuman = (duration: string): string => {
+  console.log("🚀 ~ formatDurationToHuman ~ duration:", duration)
+  const minutes = parseDurationToMinutes(duration);
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  if (hours > 0 && mins > 0) {
+    return `${hours} hora${hours > 1 ? 's' : ''} ${mins} minuto${mins > 1 ? 's' : ''}`;
+  } else if (hours > 0) {
+    return `${hours} hora${hours > 1 ? 's' : ''}`;
+  } else {
+    return `${mins} minuto${mins > 1 ? 's' : ''}`;
+  }
+};
