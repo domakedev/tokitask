@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DayTask, Priority } from "../../../types";
 import { NextResponse } from "next/server";
 import "dotenv/config";
+import { normalizeTime } from "../../../utils/dateUtils";
 
 // Helper function to get the AI client on demand.
 const getAiClient = (): GoogleGenAI => {
@@ -214,8 +215,8 @@ export async function POST(request: Request) {
       const convertedTask = {
         ...task,
         priority: Number(task.priority) as Priority,
-        startTime: task.startTime || undefined,
-        endTime: task.endTime || undefined,
+        startTime: task.startTime ? normalizeTime(task.startTime) : undefined,
+        endTime: task.endTime ? normalizeTime(task.endTime) : undefined,
         scheduledDate: task.scheduledDate || undefined,
       };
       if (convertedTask.isCurrent && !foundCurrent) {

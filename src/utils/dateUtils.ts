@@ -133,11 +133,76 @@ export const formatTime = (date: Date): string => {
 };
 
 /**
- * Verifica si una hora es válida
+ * Normaliza cualquier formato de tiempo a HH:MM (24 horas)
+ * Maneja formatos como "14:30", "2:30 PM", "14:30:00", etc.
+ */
+export const normalizeTime = (time: string): string => {
+  if (!time || time.trim() === '') return '';
+
+  const trimmed = time.trim().toLowerCase();
+
+  // Si ya está en formato HH:MM, validarlo y devolverlo
+  const hhmmRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  if (hhmmRegex.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Manejar formato HH:MM:SS
+  const hhmmssRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/;
+  if (hhmmssRegex.test(trimmed)) {
+    return trimmed.substring(0, 5);
+  }
+
+  // Manejar formato 12 horas con AM/PM
+  const time12Regex = /^(\d{1,2}):(\d{2})\s*(am|pm)?$/i;
+  const match12 = trimmed.match(time12Regex);
+  if (match12) {
+    let hour = parseInt(match12[1], 10);
+    const minute = match12[2];
+    const period = match12[3]?.toLowerCase();
+
+    if (period === 'pm' && hour !== 12) {
+      hour += 12;
+    } else if (period === 'am' && hour === 12) {
+      hour = 0;
+    }
+
+    return `${hour.toString().padStart(2, '0')}:${minute}`;
+  }
+
+  // Manejar formato "14h 30min" o similar (extraer primera hora encontrada)
+  const hourMinRegex = /(\d{1,2}):(\d{2})/;
+  const hourMinMatch = trimmed.match(hourMinRegex);
+  if (hourMinMatch) {
+    const hour = parseInt(hourMinMatch[1], 10);
+    const minute = hourMinMatch[2];
+    if (hour >= 0 && hour <= 23 && parseInt(minute, 10) >= 0 && parseInt(minute, 10) <= 59) {
+      return `${hour.toString().padStart(2, '0')}:${minute}`;
+    }
+  }
+
+  // Manejar formato "14h 30min" o "30 min" usando parseDurationToMinutes
+  const durationMinutes = parseDurationToMinutes(trimmed);
+  if (durationMinutes > 0 && durationMinutes < 1440) { // Menos de 24 horas
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }
+
+
+  // Si no se puede parsear, devolver vacío
+  console.warn(`No se pudo normalizar el tiempo: "${time}"`);
+  return '';
+};
+
+/**
+ * Verifica si una hora es válida (formato HH:MM)
  */
 export const isValidTime = (time: string): boolean => {
+  const normalized = normalizeTime(time);
+  if (!normalized) return false;
   const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-  return timeRegex.test(time);
+  return timeRegex.test(normalized);
 };
 
 /**
@@ -152,9 +217,11 @@ export const formatTimeTo12Hour = (time: string): string => {
 
 /**
  * Convierte una duración en string a minutos
- * Soporta formatos como "30 min", "1 hora", "2 horas", "45 minutos", "1h", "30m", "1:30 h"
+ * Soporta formatos como "30 min", "1 hora", "2 horas", "45 minutos", "1h", "30m", "1:30 h", "90", "1h 30m", etc.
  */
 export const parseDurationToMinutes = (duration: string): number => {
+  if (!duration) return 0;
+
   const trimmed = duration.trim().toLowerCase();
 
   // Manejar formato "1:30 h" o "1:30"
@@ -165,25 +232,27 @@ export const parseDurationToMinutes = (duration: string): number => {
     return hours * 60 + minutes;
   }
 
-  // Manejar formato simple "30 min", "1 hora", etc.
-  const match = trimmed.match(/^(\d+)\s*(min|minutos|m|hora|horas?|h)?$/);
-  if (!match) {
-    console.log('No match for duration:', trimmed);
-    return 0;
+  // Buscar horas
+  const hourMatch = trimmed.match(/(\d+)\s*h/);
+  let total = 0;
+  if (hourMatch) {
+    total += parseInt(hourMatch[1], 10) * 60;
   }
 
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
-
-  console.log('Parsed duration:', { value, unit });
-
-  if (!unit || unit === 'min' || unit === 'minutos' || unit === 'm') {
-    return value;
-  } else if (unit === 'hora' || unit === 'horas' || unit === 'h') {
-    return value * 60;
+  // Buscar minutos
+  const minuteMatch = trimmed.match(/(\d+)\s*min/);
+  if (minuteMatch) {
+    total += parseInt(minuteMatch[1], 10);
   }
 
-  console.log('Unknown unit:', unit);
+  if (total > 0) return total;
+
+  // Si no encuentra formato específico, intentar parsear como número directo
+  const directMatch = trimmed.match(/(\d+)/);
+  if (directMatch) {
+    return parseInt(directMatch[1]);
+  }
+
   return 0;
 };
 

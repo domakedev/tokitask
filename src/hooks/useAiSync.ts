@@ -3,8 +3,9 @@ import { DayTask, UserData, WEEKDAY_LABELS } from "../types";
 import {
   getCurrentWeekDay,
   calculateTimeDifferenceInMinutes,
-  roundToNearest5,
   addMinutesToTime,
+  normalizeTime,
+  parseDurationToMinutes,
 } from "../utils/dateUtils";
 import { generateTaskId } from "../utils/idGenerator";
 import { toast } from "react-toastify";
@@ -35,43 +36,7 @@ export const useAiSync = (
     }));
   }, []);
 
-  // Función para convertir duración string a minutos
-  const parseDurationToMinutes = useCallback((duration: string): number => {
-    if (!duration) return 0;
 
-    const trimmed = duration.trim().toLowerCase();
-
-    // Manejar formato "1:30 h" o "1:30"
-    const timeMatch = trimmed.match(/^(\d+):(\d+)\s*(h|hora|horas?)?$/);
-    if (timeMatch) {
-      const hours = parseInt(timeMatch[1], 10);
-      const minutes = parseInt(timeMatch[2], 10);
-      return hours * 60 + minutes;
-    }
-
-    // Buscar horas
-    const hourMatch = trimmed.match(/(\d+)\s*h/);
-    let total = 0;
-    if (hourMatch) {
-      total += parseInt(hourMatch[1], 10) * 60;
-    }
-
-    // Buscar minutos
-    const minuteMatch = trimmed.match(/(\d+)\s*min/);
-    if (minuteMatch) {
-      total += parseInt(minuteMatch[1], 10);
-    }
-
-    if (total > 0) return total;
-
-    // Si no encuentra formato específico, intentar parsear como número directo
-    const directMatch = trimmed.match(/(\d+)/);
-    if (directMatch) {
-      return parseInt(directMatch[1]);
-    }
-
-    return 0;
-  }, []);
 
   // Función para validar si las tareas fijas exceden el tiempo disponible
   const validateFixedTasksTime = useCallback((tasks: DayTask[], endOfDay: string, currentTime: string): boolean => {
@@ -400,6 +365,9 @@ export const useAiSync = (
             ...t,
             baseDurationMinutes: parseDurationToMinutes(t.baseDuration),
             order: t.order ?? index,
+            // Normalizar tiempos a formato HH:MM
+            startTime: t.startTime ? normalizeTime(t.startTime) : undefined,
+            endTime: t.endTime ? normalizeTime(t.endTime) : undefined,
           }));
 
         const tareasOrdenadas = [...tareas].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
