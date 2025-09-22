@@ -493,9 +493,21 @@ export const useAiSync = (
                 aiDurationMinutes = Math.round(tarea.baseDurationMinutes / 10) * 10;
             }
 
-            const startTime = tiempoAcumulado;
-            const endTime = addMinutesToTime(startTime, aiDurationMinutes);
-          
+            let startTime = tiempoAcumulado;
+            let endTime;
+
+            if (!tarea.flexibleTime && tarea.startTime && tarea.startTime.trim() !== '') {
+                startTime = tarea.startTime;
+                if (tarea.endTime && tarea.endTime.trim() !== '') {
+                    endTime = tarea.endTime;
+                    aiDurationMinutes = calculateTimeDifferenceInMinutes(startTime, endTime);
+                } else {
+                    endTime = addMinutesToTime(startTime, aiDurationMinutes);
+                }
+            } else {
+                endTime = addMinutesToTime(startTime, aiDurationMinutes);
+            }
+
             const formattedAiDuration = aiDurationMinutes >= 60
               ? `${Math.floor(aiDurationMinutes / 60)} h ${aiDurationMinutes % 60} min`
               : `${aiDurationMinutes} min`;
