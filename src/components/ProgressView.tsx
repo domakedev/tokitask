@@ -278,7 +278,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
     <div className="p-2 md:p-4 space-y-2 md:space-y-6">
       {/* Task Pills */}
       <div className="space-y-2 md:space-y-4">
-        <h2 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Hábitos disponibles</h2>
+        <h2 className="text-sm md:text-lg lg:text-xl font-semibold text-white">Hábitos en construcción 🏗️ 💪</h2>
         <HabitReminder />
         <div className="flex flex-wrap justify-center mt-4 md:mt-6 gap-1 md:gap-2">
           {uniqueCompletedTaskNames.map(taskName => {
