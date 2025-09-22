@@ -51,15 +51,18 @@ export const useAiSync = (
 
     // Buscar horas
     const hourMatch = trimmed.match(/(\d+)\s*h/);
+    let total = 0;
     if (hourMatch) {
-      return parseInt(hourMatch[1]) * 60;
+      total += parseInt(hourMatch[1], 10) * 60;
     }
 
     // Buscar minutos
     const minuteMatch = trimmed.match(/(\d+)\s*min/);
     if (minuteMatch) {
-      return parseInt(minuteMatch[1]);
+      total += parseInt(minuteMatch[1], 10);
     }
+
+    if (total > 0) return total;
 
     // Si no encuentra formato específico, intentar parsear como número directo
     const directMatch = trimmed.match(/(\d+)/);
@@ -523,7 +526,16 @@ export const useAiSync = (
         }
 
         // --- 6. Calcular tiempo libre ---
-        const freeTimeMinutes = calculateTimeDifferenceInMinutes(tiempoAcumulado, HORA_FIN);
+        // Calcular tiempo libre como: HORA_FIN - HORA_INICIO - suma de aiDuration de todas las tareas
+        const totalAssignedMinutes = updatedTasks.reduce((sum, task) => sum + parseDurationToMinutes(task.aiDuration), 0);
+
+        const totalAvailableMinutes = calculateTimeDifferenceInMinutes(HORA_INICIO, HORA_FIN);
+        console.log("🚀 ~ useAiSync ~ Tiempo FREE", {
+          totalAvailableMinutes,
+          totalAssignedMinutes,
+          initialOffset
+        })
+        const freeTimeMinutes = totalAvailableMinutes - totalAssignedMinutes + initialOffset;
         const newFreeTime = freeTimeMinutes > 0 ? `${freeTimeMinutes} min` : null;
         
         // --- 7. Finalizar y devolver resultado ---
