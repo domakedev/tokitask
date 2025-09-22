@@ -220,7 +220,7 @@ export const formatTimeTo12Hour = (time: string): string => {
  * Soporta formatos como "30 min", "1 hora", "2 horas", "45 minutos", "1h", "30m", "1:30 h", "90", "1h 30m", etc.
  */
 export const parseDurationToMinutes = (duration: string): number => {
-  if (!duration) return 0;
+  if (!duration || duration.trim() === '') return 0;
 
   const trimmed = duration.trim().toLowerCase();
 

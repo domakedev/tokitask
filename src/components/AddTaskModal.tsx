@@ -35,7 +35,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
             setValidationError(''); // Reset error on open
             if (isEditing) {
                 setName(taskToEdit.name);
-                setDuration(taskToEdit.baseDuration);
+                // Convert duration to HH:MM format
+                const minutes = parseDurationToMinutes(taskToEdit.baseDuration);
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                
+                setDuration(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`);
                 setPriority(taskToEdit.priority);
                 setFlexibleTime(taskToEdit.flexibleTime ?? true);
                 setIsHabit(taskToEdit.isHabit ?? false);
@@ -47,7 +52,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
             } else {
                 // Reset form for adding a new task
                 setName('');
-                setDuration('');
+                setDuration('00:00');
                 setPriority(Priority.High);
                 setFlexibleTime(true);
                 setIsHabit(false);
@@ -129,14 +134,55 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                             </div>
                         </div>
                         <div className="mb-4">
-                            <label htmlFor="task-duration" className="block text-sm font-medium text-slate-300 mb-1">Cuánto tiempo de tu día crees que tomará</label>
-                            <input type="text" id="task-duration" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Ej: 30 min o 1 hora" className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required />
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Cuánto tiempo de tu día crees que tomará</label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="task-hours" className="block text-xs font-medium text-slate-400 mb-1">Horas</label>
+                                    <select
+                                        id="task-hours"
+                                        value={duration.split(':')[0] || '0'}
+                                        onChange={(e) => {
+                                            const hours = e.target.value;
+                                            const minutes = duration.split(':')[1] || '00';
+                                            setDuration(`${hours}:${minutes}`);
+                                        }}
+                                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        required
+                                    >
+                                        {Array.from({ length: 24 }, (_, i) => (
+                                            <option key={i} value={i.toString().padStart(2, '0')}>
+                                                {i.toString().padStart(2, '0')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="task-minutes" className="block text-xs font-medium text-slate-400 mb-1">Minutos</label>
+                                    <select
+                                        id="task-minutes"
+                                        value={duration.split(':')[1] || '00'}
+                                        onChange={(e) => {
+                                            const hours = duration.split(':')[0] || '00';
+                                            const minutes = e.target.value;
+                                            setDuration(`${hours}:${minutes}`);
+                                        }}
+                                        className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        required
+                                    >
+                                        {Array.from({ length: 60 }, (_, i) => (
+                                            <option key={i} value={i.toString().padStart(2, '0')}>
+                                                {i.toString().padStart(2, '0')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Campos de horario opcionales */}
                         <div className="mb-4 grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="start-time" className="block text-sm font-medium text-slate-300 mb-1">Hora de inicio (opcional)</label>
+                                <label htmlFor="start-time" className="block text-xs font-medium text-slate-300 mb-1">Hora de inicio (opcional)</label>
                                 <input
                                     type="time"
                                     id="start-time"
@@ -148,7 +194,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                 />
                             </div>
                             <div>
-                                <label htmlFor="end-time" className="block text-sm font-medium text-slate-300 mb-1">Hora de fin (opcional)</label>
+                                <label htmlFor="end-time" className="block text-xs font-medium text-slate-300 mb-1">Hora de fin (opcional)</label>
                                 <input
                                     type="time"
                                     id="end-time"
