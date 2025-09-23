@@ -213,7 +213,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
               variant={task.priority === 2 ? 'high' : task.priority === 1 ? 'medium' : 'low'}
             />
             {task.isHabit && <Badge label="Hábito" icon="repeat" variant="habit" />}
-            {isDaily && "aiDuration" in task && (
+            {isDaily && "aiDuration" in task && (Number(parseDurationToMinutes(task.aiDuration)) > 0) && (
               <Badge
                 label={`IA Recomendación: ${formatDurationToHuman(task.aiDuration)}`}
                 icon="orbit"

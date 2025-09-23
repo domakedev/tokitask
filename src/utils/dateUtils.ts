@@ -218,6 +218,7 @@ export const formatTimeTo12Hour = (time: string): string => {
 /**
  * Convierte una duración en string a minutos
  * Soporta formatos como "30 min", "1 hora", "2 horas", "45 minutos", "1h", "30m", "1:30 h", "90", "1h 30m", etc.
+ * y devuelve el total en minutos (número)
  */
 export const parseDurationToMinutes = (duration: string): number => {
   if (!duration || duration.trim() === '') return 0;

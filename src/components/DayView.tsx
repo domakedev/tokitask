@@ -67,15 +67,27 @@ const DayView: React.FC<DayViewProps> = ({
   });
   const isPastEndOfDay = currentTime > userData.endOfDay;
 
-  // Calcular estadísticas de sobrecarga
+  // Verificar si las tareas ya están organizadas (tienen aiDuration)
+  const isOrganized = userData.dayTasks.some(task => task.aiDuration && task.aiDuration.trim() !== '');
+  console.log("🚀 ~ DayView ~ isOrganized:", isOrganized)
+
+  // Calcular estadísticas
   const totalBaseMinutes = userData.dayTasks.reduce(
     (sum, task) => sum + parseDurationToMinutes(task.baseDuration),
     0
   );
+
+  const totalAiMinutes = userData.dayTasks.reduce(
+    (sum, task) => sum + parseDurationToMinutes(task.aiDuration),
+    0
+  );
+
   const availableMinutes =
     parseDurationToMinutes(userData.endOfDay) -
     parseDurationToMinutes(currentTime);
-  const overloadMinutes = totalBaseMinutes - availableMinutes;
+
+  const overloadMinutes = (isOrganized ? totalAiMinutes : totalBaseMinutes) - availableMinutes;
+  console.log("🚀 ~ DayView ~ overloadMinutes:", overloadMinutes)
 
   // Determinar badges a mostrar
   const getOverloadBadges = () => {
@@ -90,12 +102,14 @@ const DayView: React.FC<DayViewProps> = ({
       icon: 'clock'
     });
 
-    // Badge de tiempo requerido
-    const requiredHours = Math.floor(totalBaseMinutes / 60);
-    const requiredMins = totalBaseMinutes % 60;
+    // Badge de tiempo requerido/organizado
+    const requiredMinutes = isOrganized ? totalAiMinutes : totalBaseMinutes;
+    console.log("🚀 ~ getOverloadBadges ~ requiredMinutes:", requiredMinutes)
+    const requiredHours = Math.floor(requiredMinutes / 60);
+    const requiredMins = requiredMinutes % 60;
     badges.push({
-      label: `Requerido: ${requiredHours}h ${requiredMins}min`,
-      variant: 'flexible' as const,
+      label: isOrganized ? `Organizado: ${requiredHours}h ${requiredMins}min` : `Requerido: ${requiredHours}h ${requiredMins}min`,
+      variant: isOrganized ? 'ai' :'flexible',
       icon: 'timer'
     });
 
@@ -124,16 +138,26 @@ const DayView: React.FC<DayViewProps> = ({
         icon: 'trendingup'
       });
 
-      // Badge de consejo
-      badges.push({
-        label: '¡Organízate ahora!',
-        variant: 'habit' as const,
-        icon: 'lightbulb'
-      });
+      // Badge de consejo solo si no está organizado
+      if (!isOrganized) {
+        badges.push({
+          label: '¡Organízate ahora!',
+          variant: 'ai' as const,
+          icon: 'lightbulb'
+        });
+      }
+      if (isOrganized) {
+        // Badge positivo
+        badges.push({
+          label: `¡Bien, ahora solo necesitas: ${overloadHours}h y ${overloadMinutes % 60} min más`,
+          variant: 'ai' as const,
+          icon: 'checkcircle'
+        });
+      }
     } else {
       // Badge positivo
       badges.push({
-        label: '¡Bien organizado!',
+        label: '¡Bien, te sobra tiempo!',
         variant: 'ai' as const,
         icon: 'checkcircle'
       });
