@@ -76,10 +76,12 @@ const DayView: React.FC<DayViewProps> = ({
     0
   );
 
-  const totalAiMinutes = userData.dayTasks.reduce(
-    (sum, task) => sum + parseDurationToMinutes(task.aiDuration),
-    0
-  );
+  const totalAiMinutes = userData.dayTasks
+    .filter(task => !task.completed)
+    .reduce(
+      (sum, task) => sum + parseDurationToMinutes(task.aiDuration),
+      0
+    );
 
   const availableMinutes =
     parseDurationToMinutes(userData.endOfDay) -
@@ -104,6 +106,14 @@ const DayView: React.FC<DayViewProps> = ({
     const requiredMinutes = isOrganized ? totalAiMinutes : totalBaseMinutes;
     const requiredHours = Math.floor(requiredMinutes / 60);
     const requiredMins = requiredMinutes % 60;
+    //console de todos
+    console.log("⏱️ Estadísticas de tiempo:", {
+      available: `${availableHours}h ${availableMins}min`,
+      totalAiMinutes,
+      totalBaseMinutes,
+      required: `${requiredHours}h ${requiredMins}min`,
+      overload: overloadMinutes > 0 ? `+${Math.floor(overloadMinutes / 60)}h ${overloadMinutes % 60}min` : '0'
+    });
     badges.push({
       label: isOrganized ? `Organizado: ${requiredHours}h ${requiredMins}min` : `Requerido: ${requiredHours}h ${requiredMins}min`,
       variant: isOrganized ? ('ai' as const) : ('flexible' as const),
