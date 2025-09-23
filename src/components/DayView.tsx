@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { DayTask, GeneralTask, UserData, Page } from "../types";
 import CurrentDate from "./CurrentDate";
 import RemainingTime from "./RemainingTime";
@@ -109,7 +109,7 @@ const DayView: React.FC<DayViewProps> = ({
     const requiredMins = requiredMinutes % 60;
     badges.push({
       label: isOrganized ? `Organizado: ${requiredHours}h ${requiredMins}min` : `Requerido: ${requiredHours}h ${requiredMins}min`,
-      variant: isOrganized ? 'ai' :'flexible',
+      variant: isOrganized ? ('ai' as const) : ('flexible' as const),
       icon: 'timer'
     });
 
@@ -119,16 +119,16 @@ const DayView: React.FC<DayViewProps> = ({
       let label = '';
 
       if (overloadHours >= 3) {
-        variant = 'danger';
+        variant = 'danger' as const;
         label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
       } else if (overloadHours >= 2) {
-        variant = 'danger';
+        variant = 'danger' as const;
         label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
       } else if (overloadHours >= 1) {
-        variant = 'alert';
+        variant = 'alert' as const;
         label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
       } else {
-        variant = 'success';
+        variant = 'success' as const;
         label = `Necesitas: +${overloadMinutes}min`;
       }
 
@@ -167,6 +167,25 @@ const DayView: React.FC<DayViewProps> = ({
   };
 
   const overloadBadges = getOverloadBadges();
+
+  const sortedTasks = useMemo(() => {
+    const tasks = [...userData.dayTasks];
+
+    // Ordenar por startTime ascendente
+    tasks.sort((a, b) => {
+      if (!a.startTime && !b.startTime) return 0;
+      if (!a.startTime) return 1;
+      if (!b.startTime) return -1;
+      return a.startTime.localeCompare(b.startTime);
+    });
+
+    // Recalcular isCurrent: el primer no completado en el orden ordenado
+    const firstPendingIndex = tasks.findIndex(task => !task.completed);
+    return tasks.map((task, index) => ({
+      ...task,
+      isCurrent: index === firstPendingIndex
+    }));
+  }, [userData.dayTasks]);
 
   return (
     <div>
@@ -353,7 +372,7 @@ const DayView: React.FC<DayViewProps> = ({
             )}
             {viewMode === "list" ? (
               <TaskList
-                tasks={userData.dayTasks}
+                tasks={sortedTasks}
                 isDaily={true}
                 onToggleComplete={onToggleComplete}
                 onDelete={onDelete}
@@ -363,7 +382,7 @@ const DayView: React.FC<DayViewProps> = ({
               />
             ) : (
               <CalendarView
-                tasks={userData.dayTasks}
+                tasks={sortedTasks}
                 onToggleComplete={onToggleComplete}
                 onDelete={onDelete}
                 onEdit={onEdit}
