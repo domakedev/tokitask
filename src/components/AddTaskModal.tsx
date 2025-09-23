@@ -52,7 +52,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
             } else {
                 // Reset form for adding a new task
                 setName('');
-                setDuration('00:00');
+                setDuration('00:10');
                 setPriority(Priority.High);
                 setFlexibleTime(true);
                 setIsHabit(false);
@@ -68,6 +68,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim() || !duration.trim()) return;
+
+        // Validación: duración mínima de 10 minutos
+        const totalMinutes = parseDurationToMinutes(duration);
+        if (totalMinutes < 10) {
+            setValidationError('La duración mínima es de 10 minutos.');
+            return;
+        }
 
         // Validación: si hay startTime y endTime y el tiempo es fijo, la duración base no puede exceder la diferencia
         if (startTime && endTime && !flexibleTime) {
@@ -169,9 +176,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                         className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         required
                                     >
-                                        {Array.from({ length: 60 }, (_, i) => (
-                                            <option key={i} value={i.toString().padStart(2, '0')}>
-                                                {i.toString().padStart(2, '0')}
+                                        {[10, 20, 30, 40, 50].map((min) => (
+                                            <option key={min} value={min.toString().padStart(2, '0')}>
+                                                {min.toString().padStart(2, '0')}
                                             </option>
                                         ))}
                                     </select>
