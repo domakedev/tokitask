@@ -71,7 +71,6 @@ export const useTimer = (
             setLocalPaused(false);
             setLocalRemainingSeconds(null);
             startTimestamp.current = null;
-            console.log(`[Timer] Temporizador finalizado a las ${new Date().toISOString()}`);
           }, 0);
           return null;
         }
@@ -109,7 +108,6 @@ export const useTimer = (
     setLocalRemainingSeconds(durationSeconds);
     startInterval();
 
-    console.log(`[Timer] Temporizador iniciado a las ${new Date().toISOString()}`);
   }, [effectiveDuration, taskId, activeTimer, setActiveTimer, clearActiveTimer, aiDuration, baseDuration, getSecondsFromAiDuration, startInterval]);
 
   const handlePauseTimer = useCallback(() => {

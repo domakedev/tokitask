@@ -174,7 +174,6 @@ export const useAiSync = (
           endOfDay: endOfDayForSync,
         };
 
-        console.log("🚀 ~ useAiSync ~ updatedUserDataUUUUUUUU:", updatedUserData)
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
         setAiTip(tip || null);
@@ -311,7 +310,6 @@ export const useAiSync = (
       try {
         // --- 1. PREPARACIÓN INICIAL (sin cambios) ---
         const tasksForSync = userData.dayTasks || [];
-        console.log("🚀 ~ useAiSync ~ MATEEE ENTRADA:", tasksForSync)
         const endOfDayForSync =
           options?.endOfDay || tempEndOfDay || userData.endOfDay || "23:00";
 
@@ -344,7 +342,6 @@ export const useAiSync = (
       if (remainder !== 0) {
           initialOffset = 10 - remainder; // <--- Y ESTA TAMBIÉN
           HORA_INICIO_ALINEADA = addMinutesToTime(HORA_INICIO, initialOffset);
-          console.log("🚀 ~ useAiSync ~ HORA_INICIO_ALINEADA:", HORA_INICIO_ALINEADA)
       }
 
        const minutosTotalesDisponibles = calculateTimeDifferenceInMinutes(
@@ -372,9 +369,6 @@ export const useAiSync = (
         // Separar tareas fijas (con horarios específicos) y flexibles
         const tareasConHorarioFijo = tareas.filter(t => t.flexibleTime === false && t.startTime && t.endTime);
         const tareasFlexibles = tareas.filter(t => t.flexibleTime !== false || !t.startTime || !t.endTime);
-        
-        console.log("🚀 ~ Tareas con horario fijo:", tareasConHorarioFijo);
-        console.log("🚀 ~ Tareas flexibles:", tareasFlexibles);
         
         // =================================================================================
         // NUEVA LÓGICA: RESPETAR HORARIOS FIJOS Y LLENAR ESPACIOS CON FLEXIBLES
@@ -430,14 +424,10 @@ export const useAiSync = (
           });
         }
 
-        console.log("🚀 ~ Time slots:", timeSlots);
-
         // --- FASE 2: Calcular tiempo disponible para tareas flexibles ---
         const tiempoDisponibleParaFlexibles = timeSlots
           .filter(slot => !slot.isFixed)
           .reduce((total, slot) => total + calculateTimeDifferenceInMinutes(slot.startTime, slot.endTime), 0);
-
-        console.log("🚀 ~ Tiempo disponible para flexibles:", tiempoDisponibleParaFlexibles);
 
         // --- FASE 3: Distribuir tareas flexibles en espacios disponibles ---
         const totalFlexibleBaseDuration = tareasFlexibles.reduce((sum, t) => sum + t.baseDurationMinutes, 0);
@@ -608,7 +598,6 @@ export const useAiSync = (
           endOfDay: endOfDayForSync,
         };
 
-        console.log("🚀 ~ useAiSync ~ MATE SALIDA", updatedUserData.dayTasks)
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
         setAiTip(

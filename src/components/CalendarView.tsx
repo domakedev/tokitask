@@ -54,8 +54,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         maxHour = endHour;
       }
     });
-    //console min y mx
-    console.log({minHour, maxHour})
 
     // Generar un array continuo de horas desde la primera hasta la última tarea
     const relevantHours = [];

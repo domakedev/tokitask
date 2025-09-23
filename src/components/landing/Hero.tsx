@@ -9,7 +9,6 @@ import AiThinkingSection from "../AiThinkingSection";
 const Hero = () => {
   const router = useRouter();
   const { user } = useAuth();
-  console.log("🚀 ~ Hero ~ user:", user)
 
   // Mensajes de carga de IA con animación secuencial
   const aiLoadingMessages = [

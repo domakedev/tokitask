@@ -78,10 +78,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
 
         // Validación: si hay startTime y endTime y el tiempo es fijo, la duración base no puede exceder la diferencia
         if (startTime && endTime && !flexibleTime) {
-            console.log('Validando:', { duration, startTime, endTime, flexibleTime });
             const durationMinutes = parseDurationToMinutes(duration);
             const timeDiffMinutes = calculateTimeDifferenceInMinutes(startTime, endTime);
-            console.log('Cálculos:', { durationMinutes, timeDiffMinutes });
 
             if (timeDiffMinutes <= 0) {
                 setValidationError('La hora de fin debe ser posterior a la hora de inicio.');

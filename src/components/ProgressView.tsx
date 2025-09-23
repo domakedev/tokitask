@@ -119,12 +119,6 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
     const days = [];
     const current = new Date(startDate);
 
-    // Debug logs
-    console.log('Debug - Current date local:', new Date().toLocaleString());
-    console.log('Debug - Current date UTC:', new Date().toISOString());
-    console.log('Debug - Current month/year:', currentMonth, currentYear);
-    console.log('Debug - First day:', firstDay.toLocaleString());
-
     for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
       const dateStr = current.toLocaleDateString('en-CA'); // Use local date YYYY-MM-DD
       const isCurrentMonth = current.getMonth() === currentMonth;
@@ -348,7 +342,6 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
             ))}
             {calendarDays.map((day, index) => {
               const isToday = day.dateStr === new Date().toLocaleDateString('en-CA');
-              console.log('Debug - Day dateStr:', day.dateStr, 'Today local:', new Date().toLocaleDateString('en-CA'), 'isToday:', isToday);
               return (
                 <div
                   key={`${currentMonth}-${currentYear}-${index}`}

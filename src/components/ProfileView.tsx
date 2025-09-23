@@ -32,8 +32,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user, onSignOut }) => {
     loadUserData();
   }, [user?.uid]);
 
-  console.log("🚀 ~ ProfileView ~ user:", user)
-  console.log("🚀 ~ ProfileView ~ userData:", userData)
   return (
     <div>
       <header className="p-4 sm:p-6">

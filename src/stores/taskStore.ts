@@ -688,7 +688,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       };
       await updateUserData(user.uid, updatedUserData);
       useAuthStore.getState().setUserData(updatedUserData);
-      console.log('userData updated in store');
 
       toast.success(`Tarea "${task.name}" movida para mañana.`);
     } catch (error) {

@@ -69,7 +69,6 @@ const DayView: React.FC<DayViewProps> = ({
 
   // Verificar si las tareas ya están organizadas (tienen aiDuration)
   const isOrganized = userData.dayTasks.some(task => task.aiDuration && task.aiDuration.trim() !== '');
-  console.log("🚀 ~ DayView ~ isOrganized:", isOrganized)
 
   // Calcular estadísticas
   const totalBaseMinutes = userData.dayTasks.reduce(
@@ -87,7 +86,6 @@ const DayView: React.FC<DayViewProps> = ({
     parseDurationToMinutes(currentTime);
 
   const overloadMinutes = (isOrganized ? totalAiMinutes : totalBaseMinutes) - availableMinutes;
-  console.log("🚀 ~ DayView ~ overloadMinutes:", overloadMinutes)
 
   // Determinar badges a mostrar
   const getOverloadBadges = () => {
@@ -104,7 +102,6 @@ const DayView: React.FC<DayViewProps> = ({
 
     // Badge de tiempo requerido/organizado
     const requiredMinutes = isOrganized ? totalAiMinutes : totalBaseMinutes;
-    console.log("🚀 ~ getOverloadBadges ~ requiredMinutes:", requiredMinutes)
     const requiredHours = Math.floor(requiredMinutes / 60);
     const requiredMins = requiredMinutes % 60;
     badges.push({
