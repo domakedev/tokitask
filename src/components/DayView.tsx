@@ -251,6 +251,11 @@ const DayView: React.FC<DayViewProps> = ({
           `}</style>
         </div>
 
+        <div className="text-center text-xs text-slate-400 mt-2 space-y-1">
+          <p><strong>Organizar tiempos con IA:</strong> Respeta horarios fijos, demora hasta 1 minuto.</p>
+          <p><strong>Calcular con Pseudo IA:</strong> Responde en segundos, no respeta horarios fijos.</p>
+        </div>
+
         {/* Mensaje informativo para Día */}
         <div className="text-center mb-4">
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
