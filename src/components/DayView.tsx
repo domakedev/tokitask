@@ -249,7 +249,7 @@ const DayView: React.FC<DayViewProps> = ({
               }}
             />
             <span className="relative z-10">
-              {isSyncing ? "Calculando..." : "Organizar tiempos con IA"}
+              {isSyncing ? "Calculando..." : "Organizarme con IA"}
             </span>
           </button>
 
@@ -260,7 +260,7 @@ const DayView: React.FC<DayViewProps> = ({
             }
             className="flex-1 w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSyncing ? "Calculando..." : "Organización Express"}
+            {isSyncing ? "Calculando..." : "Organización Express⚡"}
           </button>
 
           <style jsx global>{`
