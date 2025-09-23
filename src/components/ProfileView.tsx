@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { User } from "firebase/auth";
 import { getUserData } from "../services/firestoreService";
 import { UserData } from "../types";
-import NotificationSettings from "./NotificationSettings";
 
 interface ProfileViewProps {
   user: User | null;
