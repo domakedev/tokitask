@@ -499,7 +499,7 @@ export const useAiSync = (
         
         // --- FASE 4: Construir el horario final llenando espacios libres ---
         const updatedTasks: DayTask[] = [];
-        let flexibleTaskIndex = 0;
+        const tareasFlexiblesProcesadas = new Set<string>();
 
         for (const slot of timeSlots) {
           if (slot.isFixed && slot.task) {
@@ -520,41 +520,68 @@ export const useAiSync = (
             let slotTime = slot.startTime;
             const slotEndTime = slot.endTime;
             
-            while (slotTime < slotEndTime && flexibleTaskIndex < tareasFlexibles.length) {
-              const tareaFlexible = tareasFlexibles[flexibleTaskIndex];
+            for (const tareaFlexible of tareasFlexibles) {
+              if (tareasFlexiblesProcesadas.has(tareaFlexible.id)) continue;
+              if (slotTime >= slotEndTime) break;
+              
               const aiDurationMinutes = duracionesFlexibles[tareaFlexible.id] ?? 0;
               
-              if (aiDurationMinutes === 0) {
-                flexibleTaskIndex++;
-                continue;
-              }
-
+              // Si la tarea no tiene duración asignada, darle al menos 10 minutos
+              const duracionFinal = aiDurationMinutes > 0 ? aiDurationMinutes : 10;
+              
               const tiempoRestanteEnSlot = calculateTimeDifferenceInMinutes(slotTime, slotEndTime);
-              const duracionAUsar = Math.min(aiDurationMinutes, tiempoRestanteEnSlot);
+              const duracionAUsar = Math.min(duracionFinal, tiempoRestanteEnSlot);
               
-              const taskEndTime = addMinutesToTime(slotTime, duracionAUsar);
-              
-              const formattedAiDuration = duracionAUsar >= 60
-                ? `${Math.floor(duracionAUsar / 60).toString().padStart(2, '0')}:${(duracionAUsar % 60).toString().padStart(2, '0')}`
-                : `00:${(duracionAUsar % 60).toString().padStart(2, '0')}`;
+              if (duracionAUsar > 0) {
+                const taskEndTime = addMinutesToTime(slotTime, duracionAUsar);
+                
+                const formattedAiDuration = duracionAUsar >= 60
+                  ? `${Math.floor(duracionAUsar / 60).toString().padStart(2, '0')}:${(duracionAUsar % 60).toString().padStart(2, '0')}`
+                  : `00:${(duracionAUsar % 60).toString().padStart(2, '0')}`;
 
-              updatedTasks.push({
-                ...tareaFlexible,
-                startTime: slotTime,
-                endTime: taskEndTime,
-                aiDuration: formattedAiDuration,
-              });
+                updatedTasks.push({
+                  ...tareaFlexible,
+                  startTime: slotTime,
+                  endTime: taskEndTime,
+                  aiDuration: formattedAiDuration,
+                });
 
-              slotTime = taskEndTime;
-              
-              // Si usamos toda la duración de la tarea, pasar a la siguiente
-              if (duracionAUsar >= aiDurationMinutes) {
-                flexibleTaskIndex++;
-              } else {
-                // Si no, reducir la duración restante de esta tarea
-                duracionesFlexibles[tareaFlexible.id] -= duracionAUsar;
+                slotTime = taskEndTime;
+                
+                // SIEMPRE marcar como procesada, independientemente de si se usó toda la duración
+                tareasFlexiblesProcesadas.add(tareaFlexible.id);
+                
+                // Si no usamos toda la duración, actualizar la duración restante para referencia
+                if (duracionAUsar < duracionFinal) {
+                  duracionesFlexibles[tareaFlexible.id] = duracionFinal - duracionAUsar;
+                }
               }
             }
+          }
+        }
+
+        // --- FASE 5: Agregar tareas flexibles no procesadas al final ---
+        let tiempoFinal = updatedTasks.length > 0
+          ? updatedTasks[updatedTasks.length - 1].endTime || HORA_INICIO_ALINEADA
+          : HORA_INICIO_ALINEADA;
+
+        for (const tareaFlexible of tareasFlexibles) {
+          if (!tareasFlexiblesProcesadas.has(tareaFlexible.id)) {
+            const duracionRestante = duracionesFlexibles[tareaFlexible.id] ?? 10; // Mínimo 10 minutos
+            const taskEndTime = addMinutesToTime(tiempoFinal, duracionRestante);
+            
+            const formattedAiDuration = duracionRestante >= 60
+              ? `${Math.floor(duracionRestante / 60).toString().padStart(2, '0')}:${(duracionRestante % 60).toString().padStart(2, '0')}`
+              : `00:${(duracionRestante % 60).toString().padStart(2, '0')}`;
+
+            updatedTasks.push({
+              ...tareaFlexible,
+              startTime: tiempoFinal,
+              endTime: taskEndTime,
+              aiDuration: formattedAiDuration,
+            });
+
+            tiempoFinal = taskEndTime;
           }
         }
 
