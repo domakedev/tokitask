@@ -38,55 +38,55 @@ export const db = dbInstance;
 export const googleProvider = googleProviderInstance;
 export const firebaseInitializationError = initializationError;
 
-// Inicializar Messaging solo en el cliente (navegador)
-let messagingInstance = null;
+// // Inicializar Messaging solo en el cliente (navegador)
+// let messagingInstance = null;
 
-if (typeof window !== 'undefined' && appInstance) {
-  try {
-    messagingInstance = getMessaging(appInstance);
-  } catch (error) {
-    console.warn("Firebase Messaging no disponible:", error);
-  }
-}
+// if (typeof window !== 'undefined' && appInstance) {
+//   try {
+//     messagingInstance = getMessaging(appInstance);
+//   } catch (error) {
+//     console.warn("Firebase Messaging no disponible:", error);
+//   }
+// }
 
-export const messaging = messagingInstance;
+// export const messaging = messagingInstance;
 
-// Función para obtener token FCM
-export const getFCMToken = async () => {
-  if (!messaging) {
-    throw new Error("Firebase Messaging no está disponible");
-  }
+// // Función para obtener token FCM
+// export const getFCMToken = async () => {
+//   if (!messaging) {
+//     throw new Error("Firebase Messaging no está disponible");
+//   }
 
-  try {
-    const permission = await Notification.requestPermission();
-    console.log("🚀 ~ getFCMToken ~ permission:", permission)
+//   try {
+//     const permission = await Notification.requestPermission();
+//     console.log("🚀 ~ getFCMToken ~ permission:", permission)
 
-    if (permission !== 'granted') {
-      //reset client notifications settings
-      await Notification.requestPermission();
-      throw new Error("Permiso de notificaciones denegado, por seguridad no se puede activar desde aqui si fue denegado 1 vez, ve a la configuración del navegador o a la izquierda de la barra de direcciones.");
-    }
+//     if (permission !== 'granted') {
+//       //reset client notifications settings
+//       await Notification.requestPermission();
+//       throw new Error("Permiso de notificaciones denegado, por seguridad no se puede activar desde aqui si fue denegado 1 vez, ve a la configuración del navegador o a la izquierda de la barra de direcciones.");
+//     }
 
-    const token = await getToken(messaging, {
-      vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY
-    });
+//     const token = await getToken(messaging, {
+//       vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY
+//     });
 
-    return token;
-  } catch (error) {
-    console.error("Error obteniendo token FCM:", error);
-    throw error;
-  }
-};
+//     return token;
+//   } catch (error) {
+//     console.error("Error obteniendo token FCM:", error);
+//     throw error;
+//   }
+// };
 
-// Función para escuchar mensajes cuando la app está abierta
-export const onMessageListener = (callback: (payload: MessagePayload) => void) => {
-  if (!messaging) {
-    console.warn("Firebase Messaging no disponible para listener");
-    return;
-  }
+// // Función para escuchar mensajes cuando la app está abierta
+// export const onMessageListener = (callback: (payload: MessagePayload) => void) => {
+//   if (!messaging) {
+//     console.warn("Firebase Messaging no disponible para listener");
+//     return;
+//   }
 
-  return onMessage(messaging, (payload) => {
-    console.log("📱 Notificación recibida:", payload);
-    callback(payload);
-  });
-};
+//   return onMessage(messaging, (payload) => {
+//     console.log("📱 Notificación recibida:", payload);
+//     callback(payload);
+//   });
+// };

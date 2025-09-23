@@ -84,22 +84,23 @@ exports.dailyCalendarTaskReminder = onSchedule(
         logger.info(`📋 Usuario ${userId}: ${todayTasks.length} tareas para hoy`);
 
         if (todayTasks.length > 0) {
-          // ===== WHATSAPP NOTIFICATIONS (NUEVO) =====
+          // ===== WHATSAPP NOTIFICATIONS (DESACTIVADO) =====
+          /*
           if (client && whatsappNumber) {
             // Obtener número de teléfono del usuario
             const userPhone = userData.phoneNumber || userData.whatsappNumber;
-
+          
             if (userPhone) {
               // Preparar mensaje de WhatsApp
               const whatsappMessage = `📅 *Tienes ${todayTasks.length} tarea(s) programada(s) para hoy:*\n\n${todayTasks.map(task => `• ${task.name}`).join('\n')}\n\n💡 Recuerda completar tus tareas programadas.`;
-
+          
               try {
                 await client.messages.create({
                   body: whatsappMessage,
                   from: `whatsapp:${whatsappNumber}`,
                   to: `whatsapp:${userPhone.startsWith('+') ? userPhone : '+' + userPhone}`
                 });
-
+          
                 logger.info(`📱 WhatsApp enviado exitosamente a ${userPhone}`);
                 totalNotifications++;
               } catch (error) {
@@ -111,6 +112,7 @@ exports.dailyCalendarTaskReminder = onSchedule(
           } else {
             logger.warn(`⚠️ Twilio no configurado - revisa variables de entorno`);
           }
+          */
 
           // ===== PUSH NOTIFICATIONS (COMENTADO - LEGACY) =====
           /*
@@ -218,65 +220,65 @@ exports.dailyCalendarTaskReminder = onSchedule(
   }
 );
 
-// Función para configurar número de teléfono para WhatsApp - Nueva función
-const { onRequest } = require('firebase-functions/v1/https');
+// // Función para configurar número de teléfono para WhatsApp - DESACTIVADA
+// const { onRequest } = require('firebase-functions/v1/https');
 
-exports.configureWhatsAppHTTP = onRequest(async (req, res) => {
-  // Configurar CORS manualmente
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+// exports.configureWhatsAppHTTP = onRequest(async (req, res) => {
+//   // Configurar CORS manualmente
+//   res.set('Access-Control-Allow-Origin', '*');
+//   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+//   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // Manejar preflight OPTIONS request
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+//   // Manejar preflight OPTIONS request
+//   if (req.method === 'OPTIONS') {
+//     res.status(200).end();
+//     return;
+//   }
 
-  // Solo permitir POST
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+//   // Solo permitir POST
+//   if (req.method !== 'POST') {
+//     res.status(405).json({ error: 'Method not allowed' });
+//     return;
+//   }
 
-  try {
-    const { phoneNumber, userId } = req.body;
+//   try {
+//     const { phoneNumber, userId } = req.body;
 
-    if (!userId) {
-      res.status(401).json({ error: 'Usuario no autenticado' });
-      return;
-    }
+//     if (!userId) {
+//       res.status(401).json({ error: 'Usuario no autenticado' });
+//       return;
+//     }
 
-    if (!phoneNumber) {
-      res.status(400).json({ error: 'Número de teléfono requerido' });
-      return;
-    }
+//     if (!phoneNumber) {
+//       res.status(400).json({ error: 'Número de teléfono requerido' });
+//       return;
+//     }
 
-    // Validar formato del número
-    const cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+?/, '');
-    if (cleanNumber.length < 10) {
-      res.status(400).json({ error: 'Número de teléfono inválido' });
-      return;
-    }
+//     // Validar formato del número
+//     const cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+?/, '');
+//     if (cleanNumber.length < 10) {
+//       res.status(400).json({ error: 'Número de teléfono inválido' });
+//       return;
+//     }
 
-    const userRef = admin.firestore().collection('users').doc(userId);
+//     const userRef = admin.firestore().collection('users').doc(userId);
 
-    await userRef.update({
-      phoneNumber: cleanNumber,
-      whatsappConfigured: true,
-      whatsappConfiguredAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+//     await userRef.update({
+//       phoneNumber: cleanNumber,
+//       whatsappConfigured: true,
+//       whatsappConfiguredAt: admin.firestore.FieldValue.serverTimestamp()
+//     });
 
-    console.log(`📱 Número WhatsApp configurado para usuario ${userId}: ${cleanNumber}`);
+//     console.log(`📱 Número WhatsApp configurado para usuario ${userId}: ${cleanNumber}`);
 
-    res.json({
-      success: true,
-      message: 'Número de WhatsApp configurado exitosamente',
-      phoneNumber: cleanNumber
-    });
+//     res.json({
+//       success: true,
+//       message: 'Número de WhatsApp configurado exitosamente',
+//       phoneNumber: cleanNumber
+//     });
 
-  } catch (error) {
-    console.error('Error configurando WhatsApp:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
+//   } catch (error) {
+//     console.error('Error configurando WhatsApp:', error);
+//     res.status(500).json({ error: 'Error interno del servidor' });
+//   }
+// });
