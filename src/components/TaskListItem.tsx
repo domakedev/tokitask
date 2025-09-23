@@ -112,7 +112,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   }, []);
 
   return (
-    <div className={`p-3 md:p-4 rounded-lg border flex items-center space-x-2 md:space-x-4 transition-all duration-300 shadow-sm group cursor-grab bg-slate-800 border-slate-600 ${className}`}>
+    <div className={`p-3 md:p-4 rounded-lg border flex items-center space-x-2 md:space-x-4 transition-all duration-300 shadow-sm group cursor-grab bg-slate-800 ${className} ${task.isCurrent ? 'border-emerald-400' : 'border-slate-600'}`}>      
       {/* Columna izquierda: check o grip */}
       <div className="flex flex-col items-center justify-center flex-shrink-0 mr-1 md:mr-2">
         {isDaily ? (
@@ -148,7 +148,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
       {/* Columna central: contenido compacto */}
       <div className="flex flex-col flex-grow min-w-0">
         {/* Primera fila: nombre y acciones */}
-        <div className="flex items-start justify-between gap-2">
+        <div className="relative flex items-start justify-between gap-2">
           <p
             className={`font-semibold text-white text-sm md:text-base truncate flex-1 ${
               isDaily && task.completed ? "line-through" : ""
@@ -156,6 +156,9 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           >
             {task.name}
           </p>
+            {task.isCurrent && (
+                <span className="absolute -left-1 -top-0  animate-pulse inline-flex h-2 w-2 md:h-2 md:w-2 rounded-full bg-emerald-400 opacity-75"></span>
+            )}
           <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
             {showEditButton && (
               <button
