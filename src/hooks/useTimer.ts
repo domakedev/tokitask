@@ -7,7 +7,7 @@ export const useTimer = (
   onUpdateAiDuration?: (id: string, duration: string) => void,
   taskId?: string
 ) => {
-  const { activeTimer, setActiveTimer, clearActiveTimer, updateRemainingSeconds, pauseTimer, resumeTimer } = useTimerStore();
+  const { activeTimer, setActiveTimer, clearActiveTimer, pauseTimer, resumeTimer } = useTimerStore();
 
   // Estado local para sincronización
   const [localTimerActive, setLocalTimerActive] = useState(false);
@@ -20,6 +20,13 @@ export const useTimer = (
   const getSecondsFromAiDuration = useCallback((duration?: string) => {
     if (!duration) return 0;
     const normalized = duration.replace(/\s+/g, '').toLowerCase();
+    // Check for hh:mm format
+    const timeMatch = normalized.match(/(\d+):(\d+)/);
+    if (timeMatch) {
+      const h = parseInt(timeMatch[1], 10);
+      const m = parseInt(timeMatch[2], 10);
+      return h * 3600 + m * 60;
+    }
     const match = normalized.match(/(\d+)h(\d+)?m?/);
     if (match) {
       const h = parseInt(match[1] || "0", 10);
@@ -40,7 +47,7 @@ export const useTimer = (
     let out = "";
     if (h > 0) out += `${h}h `;
     if (m > 0 || h > 0) out += `${m}m `;
-    out += `${s < 10 ? "0" : ""}${s}s`;
+    out += `${s < 10 ? "0" : ""}${Math.trunc(s)}s`;
     return out.trim();
   }, []);
 
@@ -49,6 +56,29 @@ export const useTimer = (
     audio.volume = 1;
     audio.play();
   }, []);
+
+  const startInterval = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setLocalRemainingSeconds(prev => {
+        if (prev === null || prev <= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          // Defer state updates to avoid setState during render
+          setTimeout(() => {
+            playSoftSound();
+            clearActiveTimer();
+            setLocalTimerActive(false);
+            setLocalPaused(false);
+            setLocalRemainingSeconds(null);
+            startTimestamp.current = null;
+            console.log(`[Timer] Temporizador finalizado a las ${new Date().toISOString()}`);
+          }, 0);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [playSoftSound, clearActiveTimer]);
 
   const effectiveDuration = aiDuration || baseDuration;
 
@@ -60,6 +90,8 @@ export const useTimer = (
       clearActiveTimer();
     }
 
+    const durationSeconds = getSecondsFromAiDuration(effectiveDuration);
+
     const now = Date.now();
     startTimestamp.current = now;
 
@@ -67,20 +99,22 @@ export const useTimer = (
       taskId,
       startTimestamp: now,
       paused: false,
-      remainingSeconds: null,
+      initialDuration: durationSeconds,
       effectiveDuration,
       isUsingBaseDuration: !aiDuration && !!baseDuration,
     });
 
     setLocalTimerActive(true);
     setLocalPaused(false);
-    setLocalRemainingSeconds(null);
+    setLocalRemainingSeconds(durationSeconds);
+    startInterval();
 
     console.log(`[Timer] Temporizador iniciado a las ${new Date().toISOString()}`);
-  }, [effectiveDuration, taskId, activeTimer, setActiveTimer, clearActiveTimer, aiDuration, baseDuration]);
+  }, [effectiveDuration, taskId, activeTimer, setActiveTimer, clearActiveTimer, aiDuration, baseDuration, getSecondsFromAiDuration, startInterval]);
 
   const handlePauseTimer = useCallback(() => {
     if (activeTimer && activeTimer.taskId === taskId) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
       pauseTimer();
       setLocalPaused(true);
     }
@@ -88,13 +122,15 @@ export const useTimer = (
 
   const handleResumeTimer = useCallback(() => {
     if (activeTimer && activeTimer.taskId === taskId) {
+      startInterval();
       resumeTimer();
       setLocalPaused(false);
     }
-  }, [activeTimer, taskId, resumeTimer]);
+  }, [activeTimer, taskId, resumeTimer, startInterval]);
 
   const handleStopTimer = useCallback(() => {
     if (activeTimer && activeTimer.taskId === taskId) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
       clearActiveTimer();
       setLocalTimerActive(false);
       setLocalPaused(false);
@@ -103,48 +139,28 @@ export const useTimer = (
     }
   }, [activeTimer, taskId, clearActiveTimer]);
 
-  useEffect(() => {
-    if (!activeTimer || activeTimer.taskId !== taskId || activeTimer.paused || activeTimer.startTimestamp === null) return;
-
-    intervalRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - activeTimer.startTimestamp!) / 1000);
-      const durationSeconds = getSecondsFromAiDuration(activeTimer.effectiveDuration);
-      const remaining = Math.max(durationSeconds - elapsed, 0);
-
-      updateRemainingSeconds(remaining);
-      setLocalRemainingSeconds(remaining);
-
-      if (remaining <= 0) {
-        playSoftSound();
-        clearActiveTimer();
-        setLocalTimerActive(false);
-        setLocalPaused(false);
-        setLocalRemainingSeconds(null);
-        startTimestamp.current = null;
-        clearInterval(intervalRef.current!);
-        console.log(`[Timer] Temporizador finalizado a las ${new Date().toISOString()}`);
-      }
-    }, 1000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [activeTimer, taskId, updateRemainingSeconds, clearActiveTimer, getSecondsFromAiDuration, playSoftSound]);
 
   // Sincronizar estado local con el store global
   useEffect(() => {
     if (activeTimer && activeTimer.taskId === taskId) {
       setLocalTimerActive(true);
       setLocalPaused(activeTimer.paused);
-      setLocalRemainingSeconds(activeTimer.remainingSeconds);
       startTimestamp.current = activeTimer.startTimestamp;
+      // Calculate remaining
+      const elapsed = activeTimer.startTimestamp ? (Date.now() - activeTimer.startTimestamp) / 1000 : 0;
+      const remaining = Math.max((activeTimer.initialDuration || 0) - elapsed, 0);
+      setLocalRemainingSeconds(remaining);
+      if (!activeTimer.paused) {
+        startInterval();
+      }
     } else {
       setLocalTimerActive(false);
       setLocalPaused(false);
       setLocalRemainingSeconds(null);
       startTimestamp.current = null;
+      if (intervalRef.current) clearInterval(intervalRef.current);
     }
-  }, [activeTimer, taskId]);
+  }, [activeTimer, taskId, startInterval]);
 
   // Limpiar cuando cambie la duración o el taskId
   useEffect(() => {
@@ -166,6 +182,8 @@ export const useTimer = (
       }
     };
   }, []);
+
+
 
   return {
     timerActive: localTimerActive,

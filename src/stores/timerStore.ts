@@ -5,13 +5,12 @@ interface TimerState {
     taskId: string | null;
     startTimestamp: number | null;
     paused: boolean;
-    remainingSeconds: number | null;
+    initialDuration: number | null;
     effectiveDuration: string;
     isUsingBaseDuration: boolean;
   } | null;
   setActiveTimer: (timer: TimerState['activeTimer']) => void;
   clearActiveTimer: () => void;
-  updateRemainingSeconds: (seconds: number | null) => void;
   pauseTimer: () => void;
   resumeTimer: () => void;
 }
@@ -22,13 +21,6 @@ export const useTimerStore = create<TimerState>((set) => ({
   setActiveTimer: (timer) => set({ activeTimer: timer }),
 
   clearActiveTimer: () => set({ activeTimer: null }),
-
-  updateRemainingSeconds: (seconds) =>
-    set((state) => ({
-      activeTimer: state.activeTimer
-        ? { ...state.activeTimer, remainingSeconds: seconds }
-        : null,
-    })),
 
   pauseTimer: () =>
     set((state) => ({

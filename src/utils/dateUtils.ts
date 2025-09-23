@@ -311,7 +311,6 @@ export const addMinutesToTime = (time: string, minutes: number): string => {
  * Ej: "01:00" -> "1 hora", "01:10" -> "1 hora 10 minutos", "00:30" -> "30 minutos"
  */
 export const formatDurationToHuman = (duration: string): string => {
-  console.log("🚀 ~ formatDurationToHuman ~ duration:", duration)
   const minutes = parseDurationToMinutes(duration);
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;

@@ -87,6 +87,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
     isUsingBaseDuration,
   } = useTimer(initialAiDuration, task.baseDuration, onUpdateAiDuration, task.id);
 
+
   // Mostrar temporizador para tareas diarias con duración (IA o base) y no completadas
   const shouldShowTimer = showTimer && isDaily && (effectiveDuration) && !task.completed;
 
