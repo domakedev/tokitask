@@ -102,9 +102,10 @@ export const useAiSync = (
 
       // Validar tiempo de tareas fijas antes de sincronizar
       //new date 6 am
-      const sixAm = new Date();
-      sixAm.setHours(6, 0, 0, 0);
-      const userTime = sixAm.toLocaleTimeString("es-ES", {
+      // const sixAm = new Date();
+      // sixAm.setHours(6, 0, 0, 0);
+      const now = new Date();
+      const userTime = now.toLocaleTimeString("es-ES", {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
@@ -326,8 +327,8 @@ export const useAiSync = (
         
         const HORA_INICIO = userTime;
         const HORA_FIN = endOfDayForSync;
-        // const HORA_INICIO = "02:04";
-        // const HORA_FIN = "16:00";
+        // const HORA_INICIO = "06:00";
+        // const HORA_FIN = "23:00";
 
         // INICIO DE LA CORRECCIÓN: ALINEAR LA HORA DE INICIO
        // =================================================================================
@@ -520,8 +521,22 @@ export const useAiSync = (
         console.log("🚀 ~ useAiSync ~ MATE SALIDA", updatedUserData.dayTasks)
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
+        const totalTasks = tareas.length;
+        const availableHours = Math.floor(minutosTotalesDisponibles / 60);
+        const availableMinutes = minutosTotalesDisponibles % 60;
+        const fixedTasksCount = tareasOrdenadas.filter(t => !t.flexibleTime).length;
+        const flexibleTasksCount = totalTasks - fixedTasksCount;
+
+        const totalFixedMinutes = tareasOrdenadas.filter(t => !t.flexibleTime).reduce((sum, t) => sum + t.baseDurationMinutes, 0);
+        const totalFlexibleMinutes = tareasOrdenadas.filter(t => t.flexibleTime).reduce((sum, t) => sum + t.baseDurationMinutes, 0);
+        const totalBaseMinutes = totalFixedMinutes + totalFlexibleMinutes;
+
+        const timeDiffMinutes = totalAvailableMinutes - totalAssignedMinutes + initialOffset;
+        const timeStatus = timeDiffMinutes > 0 ? `sobran ${timeDiffMinutes} min` : timeDiffMinutes < 0 ? `faltan ${Math.abs(timeDiffMinutes)} min` : 'Ajustado perfectamente';
+        const alertEmoji = timeDiffMinutes < 0 ? '🚨 ' : '';
+
         setAiTip(
-          "Planificación local completa. ¡Revisa tu horario actualizado!"
+          `${alertEmoji}📅 Horario actualizado: ${totalTasks} tareas. ${timeStatus}.`
         );
         showNotification("Horario calculado localmente.", "success");
       } catch (error) {

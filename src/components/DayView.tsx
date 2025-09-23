@@ -7,7 +7,11 @@ import CalendarView from "./CalendarView";
 import AiTipCard from "./AiTipCard";
 import FreeTimeCard from "./FreeTimeCard";
 import Icon from "./Icon";
-import { getCurrentWeekDayName, getCurrentWeekDay } from "../utils/dateUtils";
+import {
+  getCurrentWeekDayName,
+  getCurrentWeekDay,
+  parseDurationToMinutes,
+} from "../utils/dateUtils";
 import CopyPasteButtons from "./CopyPasteButtons";
 
 interface DayViewProps {
@@ -58,6 +62,41 @@ const DayView: React.FC<DayViewProps> = ({
     hour12: false,
   });
   const isPastEndOfDay = currentTime > userData.endOfDay;
+
+  // Calcular estadísticas de sobrecarga
+  const totalBaseMinutes = userData.dayTasks.reduce(
+    (sum, task) => sum + parseDurationToMinutes(task.baseDuration),
+    0
+  );
+  const availableMinutes = parseDurationToMinutes(userData.endOfDay) - parseDurationToMinutes(currentTime);
+  const overloadMinutes = totalBaseMinutes - availableMinutes;
+  let overloadMessage = "";
+  let overloadClass = "";
+  if (overloadMinutes > 0) {
+    const overloadHours = Math.floor(overloadMinutes / 60);
+    if (overloadHours >= 3) {
+      overloadMessage = `🚨 Sobrecarga crítica: Tus tareas suman ${overloadHours}h ${
+        overloadMinutes % 60
+      }min más que el tiempo disponible.`;
+      overloadClass = "bg-red-900/50 border-red-500/50 text-red-200";
+    } else if (overloadHours >= 2) {
+      overloadMessage = `⚠️ Sobrecarga alta: Tus tareas exceden en ${overloadHours}h ${
+        overloadMinutes % 60
+      }min.`;
+      overloadClass = "bg-yellow-900/50 border-yellow-500/50 text-yellow-200";
+    } else if (overloadHours >= 1) {
+      overloadMessage = `🟡 Sobrecarga moderada: Tus tareas superan en ${overloadHours}h ${
+        overloadMinutes % 60
+      }min.`;
+      overloadClass = "bg-orange-900/50 border-orange-500/50 text-orange-200";
+    } else if (overloadMinutes >= 0) {
+      overloadMessage = `🔴 Sobrecarga leve: Tus tareas exceden en ${overloadMinutes}min.`;
+      overloadClass = "bg-purple-900/50 border-purple-500/50 text-purple-200";
+    }
+  } else if (overloadMinutes <= 0) {
+    overloadMessage = "Estas dentro del tiempo disponible. ¡Bien hecho!";
+    overloadClass = "bg-emerald-900/50 border-emerald-500/50 text-emerald-200";
+  }
 
   return (
     <div>
@@ -142,7 +181,9 @@ const DayView: React.FC<DayViewProps> = ({
           </button>
           <button
             onClick={onSyncWithAI}
-            disabled={isSyncing || isPastEndOfDay || userData.dayTasks.length === 0}
+            disabled={
+              isSyncing || isPastEndOfDay || userData.dayTasks.length === 0
+            }
             className="flex-1 w-full text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-75 transition-transform transform disabled:opacity-50 disabled:cursor-not-allowed border-none animate-float animate-gradient"
             style={{
               position: "relative",
@@ -168,11 +209,13 @@ const DayView: React.FC<DayViewProps> = ({
 
           <button
             onClick={onSyncWithPseudoAI}
-            disabled={isSyncing || isPastEndOfDay || userData.dayTasks.length === 0}
-           className="flex-1 w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-         >
-           {isSyncing ? "Calculando..." : "Calcular con Pseudo IA"}
-         </button>
+            disabled={
+              isSyncing || isPastEndOfDay || userData.dayTasks.length === 0
+            }
+            className="flex-1 w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSyncing ? "Calculando..." : "Calcular con Pseudo IA"}
+          </button>
 
           <style jsx global>{`
             @keyframes float {
@@ -230,6 +273,25 @@ const DayView: React.FC<DayViewProps> = ({
             {aiTip && (
               <div className="mb-2 md:mb-4">
                 <AiTipCard tip={aiTip} onDismiss={onDismissAiTip} />
+              </div>
+            )}
+            {overloadMessage && (
+              <div
+                className={`mb-2 md:mb-4 p-3 md:p-4 rounded-lg border ${overloadClass}`}
+              >
+                <p className="text-sm font-medium">{overloadMessage}</p>
+                <p className="text-xs mt-1 opacity-80">
+                  Tiempo disponible: {Math.floor(availableMinutes / 60)}h{" "}
+                  {availableMinutes % 60}min | Tiempo requerido idealmente:{" "}
+                  {Math.floor(totalBaseMinutes / 60)}h {totalBaseMinutes % 60}
+                  min
+                </p>
+                {/* mensaje de consejo elimina algunas tareas o reduce su tiempo */}
+                <p className="mt-2 text-xs italic opacity-80">
+                  👨‍🏫 La IA te ayudara a organizar tus tiempos pero considera
+                  eliminar algunas tareas o reducir sus duraciones para ajustar
+                  tu día al tiempo disponible.
+                </p>
               </div>
             )}
             {viewMode === "list" ? (
