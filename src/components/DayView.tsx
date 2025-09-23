@@ -8,6 +8,7 @@ import AiTipCard from "./AiTipCard";
 import FreeTimeCard from "./FreeTimeCard";
 import Icon from "./Icon";
 import ConfirmationModal from "./ConfirmationModal";
+import Badge, { BadgeProps } from "./Badge";
 import {
   getCurrentWeekDayName,
   getCurrentWeekDay,
@@ -75,33 +76,73 @@ const DayView: React.FC<DayViewProps> = ({
     parseDurationToMinutes(userData.endOfDay) -
     parseDurationToMinutes(currentTime);
   const overloadMinutes = totalBaseMinutes - availableMinutes;
-  let overloadMessage = "";
-  let overloadClass = "";
-  if (overloadMinutes > 0) {
-    const overloadHours = Math.floor(overloadMinutes / 60);
-    if (overloadHours >= 3) {
-      overloadMessage = `🚨 Sobrecarga crítica: Tus tareas suman ${overloadHours}h ${
-        overloadMinutes % 60
-      }min más que el tiempo disponible.`;
-      overloadClass = "bg-red-900/50 border-red-500/50 text-red-200";
-    } else if (overloadHours >= 2) {
-      overloadMessage = `⚠️ Sobrecarga alta: Tus tareas exceden en ${overloadHours}h ${
-        overloadMinutes % 60
-      }min.`;
-      overloadClass = "bg-yellow-900/50 border-yellow-500/50 text-yellow-200";
-    } else if (overloadHours >= 1) {
-      overloadMessage = `🟡 Sobrecarga moderada: Tus tareas superan en ${overloadHours}h ${
-        overloadMinutes % 60
-      }min.`;
-      overloadClass = "bg-orange-900/50 border-orange-500/50 text-orange-200";
-    } else if (overloadMinutes >= 0) {
-      overloadMessage = `🔴 Sobrecarga leve: Tus tareas exceden en ${overloadMinutes}min.`;
-      overloadClass = "bg-purple-900/50 border-purple-500/50 text-purple-200";
+
+  // Determinar badges a mostrar
+  const getOverloadBadges = () => {
+    const badges = [];
+
+    // Badge de tiempo disponible
+    const availableHours = Math.floor(availableMinutes / 60);
+    const availableMins = availableMinutes % 60;
+    badges.push({
+      label: `Disponible: ${availableHours}h ${availableMins}min`,
+      variant: 'base' as const,
+      icon: 'clock'
+    });
+
+    // Badge de tiempo requerido
+    const requiredHours = Math.floor(totalBaseMinutes / 60);
+    const requiredMins = totalBaseMinutes % 60;
+    badges.push({
+      label: `Requerido: ${requiredHours}h ${requiredMins}min`,
+      variant: 'flexible' as const,
+      icon: 'timer'
+    });
+
+    if (overloadMinutes > 0) {
+      const overloadHours = Math.floor(overloadMinutes / 60);
+      let variant: BadgeProps['variant'];
+      let label = '';
+
+      if (overloadHours >= 3) {
+        variant = 'danger';
+        label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
+      } else if (overloadHours >= 2) {
+        variant = 'danger';
+        label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
+      } else if (overloadHours >= 1) {
+        variant = 'alert';
+        label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
+      } else {
+        variant = 'success';
+        label = `Necesitas: +${overloadMinutes}min`;
+      }
+
+      badges.push({
+        label,
+        variant,
+        icon: 'trendingup'
+      });
+
+      // Badge de consejo
+      badges.push({
+        label: '¡Organízate ahora!',
+        variant: 'habit' as const,
+        icon: 'lightbulb'
+      });
+    } else {
+      // Badge positivo
+      badges.push({
+        label: '¡Bien organizado!',
+        variant: 'ai' as const,
+        icon: 'checkcircle'
+      });
     }
-  } else if (overloadMinutes <= 0) {
-    overloadMessage = "Estas dentro del tiempo disponible. ¡Bien hecho!";
-    overloadClass = "bg-emerald-900/50 border-emerald-500/50 text-emerald-200";
-  }
+
+    return badges;
+  };
+
+  const overloadBadges = getOverloadBadges();
 
   return (
     <div>
@@ -274,23 +315,16 @@ const DayView: React.FC<DayViewProps> = ({
                 <AiTipCard tip={aiTip} onDismiss={onDismissAiTip} />
               </div>
             )}
-            {overloadMessage && (
-              <div
-                className={`mb-2 md:mb-4 p-3 md:p-4 rounded-lg border ${overloadClass}`}
-              >
-                <p className="text-sm font-medium">{overloadMessage}</p>
-                <p className="text-xs mt-1 opacity-80">
-                  Tiempo disponible: {Math.floor(availableMinutes / 60)}h{" "}
-                  {availableMinutes % 60}min | Tiempo requerido idealmente:{" "}
-                  {Math.floor(totalBaseMinutes / 60)}h {totalBaseMinutes % 60}
-                  min
-                </p>
-                {/* mensaje de consejo elimina algunas tareas o reduce su tiempo */}
-                <p className="mt-2 text-xs italic opacity-80">
-                  👨‍🏫 La IA te ayudara a organizar tus tiempos pero considera
-                  eliminar algunas tareas para ajustar tu día al tiempo
-                  disponible.
-                </p>
+            {overloadBadges.length > 0 && (
+              <div className="mb-2 md:mb-4 flex flex-wrap gap-2">
+                {overloadBadges.map((badge, index) => (
+                  <Badge
+                    key={index}
+                    label={badge.label}
+                    variant={badge.variant}
+                    icon={badge.icon}
+                  />
+                ))}
               </div>
             )}
             {viewMode === "list" ? (
