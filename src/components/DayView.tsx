@@ -68,7 +68,9 @@ const DayView: React.FC<DayViewProps> = ({
     (sum, task) => sum + parseDurationToMinutes(task.baseDuration),
     0
   );
-  const availableMinutes = parseDurationToMinutes(userData.endOfDay) - parseDurationToMinutes(currentTime);
+  const availableMinutes =
+    parseDurationToMinutes(userData.endOfDay) -
+    parseDurationToMinutes(currentTime);
   const overloadMinutes = totalBaseMinutes - availableMinutes;
   let overloadMessage = "";
   let overloadClass = "";
@@ -289,8 +291,8 @@ const DayView: React.FC<DayViewProps> = ({
                 {/* mensaje de consejo elimina algunas tareas o reduce su tiempo */}
                 <p className="mt-2 text-xs italic opacity-80">
                   👨‍🏫 La IA te ayudara a organizar tus tiempos pero considera
-                  eliminar algunas tareas o reducir sus duraciones para ajustar
-                  tu día al tiempo disponible.
+                  eliminar algunas tareas para ajustar tu día al tiempo
+                  disponible.
                 </p>
               </div>
             )}

@@ -4,8 +4,8 @@ import {
   getCurrentWeekDay,
   calculateTimeDifferenceInMinutes,
   addMinutesToTime,
-  normalizeTime,
   parseDurationToMinutes,
+  normalizeTime,
 } from "../utils/dateUtils";
 import { generateTaskId } from "../utils/idGenerator";
 import { toast } from "react-toastify";
@@ -35,8 +35,6 @@ export const useAiSync = (
       isCurrent: index === firstPendingIndex,
     }));
   }, []);
-
-
 
   // Función para validar si las tareas fijas exceden el tiempo disponible
   const validateFixedTasksTime = useCallback((tasks: DayTask[], endOfDay: string, currentTime: string): boolean => {
@@ -327,8 +325,8 @@ export const useAiSync = (
         
         const HORA_INICIO = userTime;
         const HORA_FIN = endOfDayForSync;
-        // const HORA_INICIO = "06:00";
-        // const HORA_FIN = "23:00";
+        // const HORA_INICIO = "02:04";
+        // const HORA_FIN = "16:00";
 
         // INICIO DE LA CORRECCIÓN: ALINEAR LA HORA DE INICIO
        // =================================================================================
@@ -465,22 +463,12 @@ export const useAiSync = (
                 aiDurationMinutes = Math.round(tarea.baseDurationMinutes / 10) * 10;
             }
 
-            let startTime = tiempoAcumulado;
-            let endTime;
-
-            if (!tarea.flexibleTime && tarea.startTime && tarea.startTime.trim() !== '') {
-                startTime = tarea.startTime;
-                if (tarea.endTime && tarea.endTime.trim() !== '') {
-                    endTime = tarea.endTime;
-                    aiDurationMinutes = calculateTimeDifferenceInMinutes(startTime, endTime);
-                } else {
-                    endTime = addMinutesToTime(startTime, aiDurationMinutes);
-                }
-            } else {
-                endTime = addMinutesToTime(startTime, aiDurationMinutes);
-            }
-
-            const formattedAiDuration = `${Math.floor(aiDurationMinutes / 60).toString().padStart(2, '0')}:${(aiDurationMinutes % 60).toString().padStart(2, '0')}`;
+            const startTime = tiempoAcumulado;
+            const endTime = addMinutesToTime(startTime, aiDurationMinutes);
+          
+            const formattedAiDuration = aiDurationMinutes >= 60
+              ? `${Math.floor(aiDurationMinutes / 60).toString().padStart(2, '0')}:${(aiDurationMinutes % 60).toString().padStart(2, '0')}`
+              : `00:${(aiDurationMinutes % 60).toString().padStart(2, '0')}`;
 
             updatedTasks.push({
               ...tarea,
@@ -493,16 +481,7 @@ export const useAiSync = (
         }
 
         // --- 6. Calcular tiempo libre ---
-        // Calcular tiempo libre como: HORA_FIN - HORA_INICIO - suma de aiDuration de todas las tareas
-        const totalAssignedMinutes = updatedTasks.reduce((sum, task) => sum + parseDurationToMinutes(task.aiDuration), 0);
-
-        const totalAvailableMinutes = calculateTimeDifferenceInMinutes(HORA_INICIO, HORA_FIN);
-        console.log("🚀 ~ useAiSync ~ Tiempo FREE", {
-          totalAvailableMinutes,
-          totalAssignedMinutes,
-          initialOffset
-        })
-        const freeTimeMinutes = totalAvailableMinutes - totalAssignedMinutes + initialOffset;
+        const freeTimeMinutes = calculateTimeDifferenceInMinutes(tiempoAcumulado, HORA_FIN);
         const newFreeTime = freeTimeMinutes > 0 ? `${freeTimeMinutes} min` : null;
         
         // --- 7. Finalizar y devolver resultado ---
@@ -521,22 +500,8 @@ export const useAiSync = (
         console.log("🚀 ~ useAiSync ~ MATE SALIDA", updatedUserData.dayTasks)
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
-        const totalTasks = tareas.length;
-        const availableHours = Math.floor(minutosTotalesDisponibles / 60);
-        const availableMinutes = minutosTotalesDisponibles % 60;
-        const fixedTasksCount = tareasOrdenadas.filter(t => !t.flexibleTime).length;
-        const flexibleTasksCount = totalTasks - fixedTasksCount;
-
-        const totalFixedMinutes = tareasOrdenadas.filter(t => !t.flexibleTime).reduce((sum, t) => sum + t.baseDurationMinutes, 0);
-        const totalFlexibleMinutes = tareasOrdenadas.filter(t => t.flexibleTime).reduce((sum, t) => sum + t.baseDurationMinutes, 0);
-        const totalBaseMinutes = totalFixedMinutes + totalFlexibleMinutes;
-
-        const timeDiffMinutes = totalAvailableMinutes - totalAssignedMinutes + initialOffset;
-        const timeStatus = timeDiffMinutes > 0 ? `sobran ${timeDiffMinutes} min` : timeDiffMinutes < 0 ? `faltan ${Math.abs(timeDiffMinutes)} min` : 'Ajustado perfectamente';
-        const alertEmoji = timeDiffMinutes < 0 ? '🚨 ' : '';
-
         setAiTip(
-          `${alertEmoji}📅 Horario actualizado: ${totalTasks} tareas. ${timeStatus}.`
+          "Planificación local completa. ¡Revisa tu horario actualizado! Y recuerda que la PseudoIA no respeta las tareas de horarios fijos."
         );
         showNotification("Horario calculado localmente.", "success");
       } catch (error) {
