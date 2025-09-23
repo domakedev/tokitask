@@ -176,7 +176,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                         className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         required
                                     >
-                                        {[10, 20, 30, 40, 50].map((min) => (
+                                        {[0, 10, 20, 30, 40, 50].map((min) => (
                                             <option key={min} value={min.toString().padStart(2, '0')}>
                                                 {min.toString().padStart(2, '0')}
                                             </option>
