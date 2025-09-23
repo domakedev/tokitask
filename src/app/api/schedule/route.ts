@@ -178,10 +178,10 @@ export async function POST(request: Request) {
        - Si falta tiempo, reparte proporcional según baseDuration + prioridad.
        - Prioridad 0 puede ser 0min (con "Nombre + (no realizable)"), las demás nunca 0min.
     4. Horarios:
-       - PARA CADA TAREA: asigna startTime y endTime basados en el horario acumulado desde ${now}.
+       - PARA CADA TAREA: asigna startTime y endTime basados en el horario acumulado, inicia desde ahora ${now} para la primera tarea.
        - Respeta startTime/endTime existentes si flexibleTime: false.
+       - Si hay tareas con flexibleTime: false, construye el horario en base a esas tareas y el resto ajustalo en lo que queda.
        - Si flexibleTime: true puedes ajustarlos.
-       - Horarios consecutivos sin solapamientos.      
        - Tiempo que sobra ->Tiempo que queda - suma total de tareas(startTime-endTime) → freeTime.
     5. Otras reglas:
        - Solo la primera tarea → isCurrent: true, el resto false.
