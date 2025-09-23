@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { DayTask, GeneralTask } from "../types";
 import TaskItem from "./TaskItem";
+import { generateUniqueId } from "@/utils/idGenerator";
 
 type Task = DayTask | GeneralTask;
 
@@ -71,7 +72,7 @@ const TaskList: React.FC<TaskListProps> = ({
     <div className="space-y-4">
       {tasks.map((task, index) => (
         <TaskItem
-          key={task.id}
+          key={generateUniqueId()}
           task={task}
           isDaily={isDaily}
           onToggleComplete={onToggleComplete}

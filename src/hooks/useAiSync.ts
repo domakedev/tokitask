@@ -369,33 +369,82 @@ export const useAiSync = (
             endTime: t.endTime ? normalizeTime(t.endTime) : undefined,
           }));
 
-        const tareasOrdenadas = [...tareas].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-        const tareasFlexibles = tareasOrdenadas.filter(t => t.flexibleTime);
+        // Separar tareas fijas (con horarios específicos) y flexibles
+        const tareasConHorarioFijo = tareas.filter(t => t.flexibleTime === false && t.startTime && t.endTime);
+        const tareasFlexibles = tareas.filter(t => t.flexibleTime !== false || !t.startTime || !t.endTime);
+        
+        console.log("🚀 ~ Tareas con horario fijo:", tareasConHorarioFijo);
+        console.log("🚀 ~ Tareas flexibles:", tareasFlexibles);
         
         // =================================================================================
-        // INICIO DE LA LÓGICA CORREGIDA: MÉTODO DE DOS FASES
+        // NUEVA LÓGICA: RESPETAR HORARIOS FIJOS Y LLENAR ESPACIOS CON FLEXIBLES
         // =================================================================================
 
-        // --- FASE 1: Colocar las Tareas Fijas y Medir el Tiempo Restante ---
-
-        let minutosDisponiblesParaFlexibles = minutosTotalesDisponibles;
-        for (const tarea of tareasOrdenadas) {
-            if (!tarea.flexibleTime) {
-                // CAMBIO: Redondeamos las tareas fijas a la nueva cuadrícula de 10 minutos.
-                minutosDisponiblesParaFlexibles -= Math.round(tarea.baseDurationMinutes / 10) * 10;
-            }
+        // --- FASE 1: Crear estructura de tiempo con tareas fijas ---
+        interface TimeSlot {
+          startTime: string;
+          endTime: string;
+          task?: DayTask;
+          isFixed: boolean;
         }
-        minutosDisponiblesParaFlexibles = Math.max(0, minutosDisponiblesParaFlexibles);
 
-        // --- FASE 2: Calcular Duración de Flexibles con Bloques de 10 min ---
+        const timeSlots: TimeSlot[] = [];
+        let currentTime = HORA_INICIO_ALINEADA;
+
+        // Ordenar tareas fijas por hora de inicio
+        const tareasFixasOrdenadas = [...tareasConHorarioFijo].sort((a, b) =>
+          (a.startTime || '').localeCompare(b.startTime || '')
+        );
+
+        // Colocar tareas fijas y crear espacios libres entre ellas
+        for (const tareaFija of tareasFixasOrdenadas) {
+          const tareaStart = tareaFija.startTime!;
+          const tareaEnd = tareaFija.endTime!;
+
+          // Si hay espacio antes de esta tarea fija, crear slot libre
+          if (currentTime < tareaStart) {
+            timeSlots.push({
+              startTime: currentTime,
+              endTime: tareaStart,
+              isFixed: false
+            });
+          }
+
+          // Agregar la tarea fija
+          timeSlots.push({
+            startTime: tareaStart,
+            endTime: tareaEnd,
+            task: tareaFija,
+            isFixed: true
+          });
+
+          currentTime = tareaEnd;
+        }
+
+        // Si queda tiempo después de la última tarea fija
+        if (currentTime < HORA_FIN) {
+          timeSlots.push({
+            startTime: currentTime,
+            endTime: HORA_FIN,
+            isFixed: false
+          });
+        }
+
+        console.log("🚀 ~ Time slots:", timeSlots);
+
+        // --- FASE 2: Calcular tiempo disponible para tareas flexibles ---
+        const tiempoDisponibleParaFlexibles = timeSlots
+          .filter(slot => !slot.isFixed)
+          .reduce((total, slot) => total + calculateTimeDifferenceInMinutes(slot.startTime, slot.endTime), 0);
+
+        console.log("🚀 ~ Tiempo disponible para flexibles:", tiempoDisponibleParaFlexibles);
+
+        // --- FASE 3: Distribuir tareas flexibles en espacios disponibles ---
         const totalFlexibleBaseDuration = tareasFlexibles.reduce((sum, t) => sum + t.baseDurationMinutes, 0);
         const duracionesFlexibles: { [id: string]: number } = {};
         
-        // CAMBIO: Definimos el tamaño del bloque para reutilizarlo.
         const BLOCK_SIZE = 10;
-
-        // CAMBIO: Calculamos el presupuesto en bloques de 10 minutos.
-        const totalBloques = Math.floor(minutosDisponiblesParaFlexibles / BLOCK_SIZE);
+        const totalBloques = Math.floor(tiempoDisponibleParaFlexibles / BLOCK_SIZE);
 
         if (totalBloques > 0 && totalFlexibleBaseDuration > 0) {
             const tareasConBloques = tareasFlexibles.map(tarea => {
@@ -406,7 +455,6 @@ export const useAiSync = (
                     bloquesIdeales,
                     fraccion: bloquesIdeales - Math.floor(bloquesIdeales),
                     bloquesAsignados: Math.floor(bloquesIdeales),
-                    // CAMBIO: El límite máximo de bloques también se basa en 10.
                     maxBloques: Math.floor(tarea.baseDurationMinutes / BLOCK_SIZE),
                 };
             });
@@ -445,43 +493,79 @@ export const useAiSync = (
             }
 
             tareasConBloques.forEach(t => {
-                // CAMBIO: La duración final se calcula multiplicando por 10.
                 duracionesFlexibles[t.id] = t.bloquesAsignados * BLOCK_SIZE;
             });
         }
         
-        // --- FASE 3: Construir el Horario Final ---
-        let tiempoAcumulado = HORA_INICIO_ALINEADA;
+        // --- FASE 4: Construir el horario final llenando espacios libres ---
         const updatedTasks: DayTask[] = [];
+        let flexibleTaskIndex = 0;
 
-        for (const tarea of tareasOrdenadas) {
-            let aiDurationMinutes = 0;
-            if (tarea.flexibleTime) {
-                aiDurationMinutes = duracionesFlexibles[tarea.id] ?? 0;
-            } else {
-                // CAMBIO: Las tareas fijas también se redondean a 10.
-                aiDurationMinutes = Math.round(tarea.baseDurationMinutes / 10) * 10;
-            }
-
-            const startTime = tiempoAcumulado;
-            const endTime = addMinutesToTime(startTime, aiDurationMinutes);
-          
-            const formattedAiDuration = aiDurationMinutes >= 60
-              ? `${Math.floor(aiDurationMinutes / 60).toString().padStart(2, '0')}:${(aiDurationMinutes % 60).toString().padStart(2, '0')}`
-              : `00:${(aiDurationMinutes % 60).toString().padStart(2, '0')}`;
+        for (const slot of timeSlots) {
+          if (slot.isFixed && slot.task) {
+            // Agregar tarea fija con su horario original
+            const taskDurationMinutes = parseDurationToMinutes(slot.task.baseDuration);
+            const formattedAiDuration = taskDurationMinutes >= 60
+              ? `${Math.floor(taskDurationMinutes / 60).toString().padStart(2, '0')}:${(taskDurationMinutes % 60).toString().padStart(2, '0')}`
+              : `00:${(taskDurationMinutes % 60).toString().padStart(2, '0')}`;
 
             updatedTasks.push({
-              ...tarea,
-              startTime,
-              endTime,
+              ...slot.task,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
               aiDuration: formattedAiDuration,
             });
+          } else {
+            // Llenar espacio libre con tareas flexibles
+            let slotTime = slot.startTime;
+            const slotEndTime = slot.endTime;
+            
+            while (slotTime < slotEndTime && flexibleTaskIndex < tareasFlexibles.length) {
+              const tareaFlexible = tareasFlexibles[flexibleTaskIndex];
+              const aiDurationMinutes = duracionesFlexibles[tareaFlexible.id] ?? 0;
+              
+              if (aiDurationMinutes === 0) {
+                flexibleTaskIndex++;
+                continue;
+              }
 
-            tiempoAcumulado = endTime;
+              const tiempoRestanteEnSlot = calculateTimeDifferenceInMinutes(slotTime, slotEndTime);
+              const duracionAUsar = Math.min(aiDurationMinutes, tiempoRestanteEnSlot);
+              
+              const taskEndTime = addMinutesToTime(slotTime, duracionAUsar);
+              
+              const formattedAiDuration = duracionAUsar >= 60
+                ? `${Math.floor(duracionAUsar / 60).toString().padStart(2, '0')}:${(duracionAUsar % 60).toString().padStart(2, '0')}`
+                : `00:${(duracionAUsar % 60).toString().padStart(2, '0')}`;
+
+              updatedTasks.push({
+                ...tareaFlexible,
+                startTime: slotTime,
+                endTime: taskEndTime,
+                aiDuration: formattedAiDuration,
+              });
+
+              slotTime = taskEndTime;
+              
+              // Si usamos toda la duración de la tarea, pasar a la siguiente
+              if (duracionAUsar >= aiDurationMinutes) {
+                flexibleTaskIndex++;
+              } else {
+                // Si no, reducir la duración restante de esta tarea
+                duracionesFlexibles[tareaFlexible.id] -= duracionAUsar;
+              }
+            }
+          }
         }
 
-        // --- 6. Calcular tiempo libre ---
-        const freeTimeMinutes = calculateTimeDifferenceInMinutes(tiempoAcumulado, HORA_FIN);
+        // Ordenar tareas finales por hora de inicio para mantener continuidad
+        updatedTasks.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+
+        // --- 5. Calcular tiempo libre ---
+        const ultimaTareaEndTime = updatedTasks.length > 0
+          ? updatedTasks[updatedTasks.length - 1].endTime || HORA_INICIO_ALINEADA
+          : HORA_INICIO_ALINEADA;
+        const freeTimeMinutes = calculateTimeDifferenceInMinutes(ultimaTareaEndTime, HORA_FIN);
         const newFreeTime = freeTimeMinutes > 0 ? `${freeTimeMinutes} min` : null;
         
         // --- 7. Finalizar y devolver resultado ---
@@ -501,7 +585,7 @@ export const useAiSync = (
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
         setAiTip(
-          "Planificación local completa. ¡Revisa tu horario actualizado! Y recuerda que la PseudoIA no respeta las tareas de horarios fijos."
+          "Planificación local completa. ¡Revisa tu horario actualizado! Las tareas con horarios fijos se respetan completamente."
         );
         showNotification("Horario calculado localmente.", "success");
       } catch (error) {

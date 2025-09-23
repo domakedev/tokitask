@@ -198,14 +198,14 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           <div className="flex items-center flex-wrap text-xs text-slate-400 gap-1 md:gap-2 flex-1 min-w-0">
             <span className="bg-slate-700 rounded px-1 py-0.5 text-xs whitespace-nowrap flex items-center">
               <Icon name="timer" className="h-3 w-3 inline mr-1" />
-              {task.baseDuration}
+              Tiempo ideal: {task.baseDuration}
             </span>
-            {timeSlotDuration && (
+            {/* {timeSlotDuration && (
               <span className="bg-emerald-700 rounded px-1 py-0.5 text-xs whitespace-nowrap flex items-center">
                 <Icon name="clock" className="h-3 w-3 inline mr-1" />
                 {timeSlotDuration}
               </span>
-            )}
+            )} */}
             <Badge
               label={task.flexibleTime ? 'Flexible' : 'Fijo'}
               icon={task.flexibleTime ? 'bird' : 'lock'}
@@ -218,7 +218,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             {task.isHabit && <Badge label="Hábito" icon="repeat" variant="habit" />}
             {isDaily && "aiDuration" in task && (Number(parseDurationToMinutes(task.aiDuration)) > 0) && (
               <Badge
-                label={`IA Recomendación: ${formatDurationToHuman(task.aiDuration)}`}
+                label={`IA recomienda: ${formatDurationToHuman(task.aiDuration)}`}
                 icon="orbit"
                 variant="ai"
               />
