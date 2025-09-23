@@ -458,7 +458,7 @@ const DayView: React.FC<DayViewProps> = ({
       <ConfirmationModal
         isOpen={showAiModal}
         title="Organizar tiempos con IA"
-        message="😎Esta opción respeta los horarios fijos pero puede demorar hasta 1 minuto en responder😿."
+        message="😎Esta opción respeta los horarios fijos y piensa más pero puede demorar hasta 1 minuto en responder😿."
         onConfirm={() => {
           setShowAiModal(false);
           onSyncWithAI();
@@ -470,7 +470,7 @@ const DayView: React.FC<DayViewProps> = ({
       <ConfirmationModal
         isOpen={showPseudoAiModal}
         title="Organización Express"
-        message="⚡Esta opción responde al instante pero no respeta los horarios fijos de tus tareas 😿."
+        message="⚡Esta opción responde al instante y respeta los horarios fijos de tus tareas 😺."
         onConfirm={() => {
           setShowPseudoAiModal(false);
           onSyncWithPseudoAI();
