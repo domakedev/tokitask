@@ -5,6 +5,7 @@ import RemainingTime from "./RemainingTime";
 import TaskList from "./TaskList";
 import CalendarView from "./CalendarView";
 import AiTipCard from "./AiTipCard";
+import CongratulationsCard from "./CongratulationsCard";
 import FreeTimeCard from "./FreeTimeCard";
 import Icon from "./Icon";
 import ConfirmationModal from "./ConfirmationModal";
@@ -95,6 +96,10 @@ const DayView: React.FC<DayViewProps> = ({
 
   const overloadMinutes =
     (areOrganizedTasks ? totalAiMinutes : totalBaseMinutes) - availableMinutes;
+
+  // Calcular estadísticas de completadas
+  const completedCount = userData.dayTasks.filter(task => task.completed).length;
+  const totalTasks = userData.dayTasks.length;
 
   // Determinar badges a mostrar
   const getOverloadBadges = () => {
@@ -368,6 +373,11 @@ const DayView: React.FC<DayViewProps> = ({
             {aiTip && (
               <div className="mb-2 md:mb-4">
                 <AiTipCard tip={aiTip} onDismiss={onDismissAiTip} />
+              </div>
+            )}
+            {completedCount > 0 && (
+              <div className="mb-2 md:mb-4">
+                <CongratulationsCard completedCount={completedCount} totalTasks={totalTasks} />
               </div>
             )}
             <div className="flex justify-around items-center mb-2">
