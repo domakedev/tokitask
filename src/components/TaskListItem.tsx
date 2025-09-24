@@ -21,6 +21,9 @@ interface TaskListItemProps {
   showCopyButton?: boolean;
   showEditButton?: boolean;
   showDeleteButton?: boolean;
+  index?: number;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
 const TaskListItem: React.FC<TaskListItemProps> = ({
@@ -35,6 +38,9 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   showCopyButton = true,
   showEditButton = true,
   showDeleteButton = true,
+  index,
+  onMoveUp,
+  onMoveDown,
 }) => {
   const [showMoveModal, setShowMoveModal] = useState(false);
 
@@ -112,7 +118,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   }, []);
 
   return (
-    <div className={`p-3 md:p-4 rounded-lg border flex items-center space-x-2 md:space-x-4 transition-all duration-300 shadow-sm group cursor-grab bg-slate-800 ${className} ${task.isCurrent ? 'border-emerald-400' : 'border-slate-600'}`}>      
+    <div className={`relative p-3 md:p-4 rounded-lg border flex items-center space-x-2 md:space-x-4 transition-all duration-300 shadow-sm group cursor-grab bg-slate-800 ${className} ${task.isCurrent ? 'border-emerald-400' : 'border-slate-600'}`}>      
       {/* Columna izquierda: check o grip */}
       <div className="flex flex-col items-center justify-center flex-shrink-0 mr-1 md:mr-2">
         {isDaily ? (
@@ -290,6 +296,28 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           </div>
         )}
       </div>
+
+      {/* Botones de subir y bajar posicionados absolutamente */}
+      {index !== undefined && onMoveUp && onMoveDown && (
+        <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between items-center p-1">
+          <button
+            onClick={onMoveUp}
+            className="p-1 rounded-md hover:bg-slate-700 transition-colors"
+            title="Subir tarea"
+            aria-label="Subir tarea"
+          >
+            <Icon name="chevronup" className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onMoveDown}
+            className="p-1 rounded-md hover:bg-slate-700 transition-colors"
+            title="Bajar tarea"
+            aria-label="Bajar tarea"
+          >
+            <Icon name="chevrondown" className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <ConfirmationModal
         isOpen={showMoveModal}

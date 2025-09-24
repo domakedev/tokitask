@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { DayTask, GeneralTask } from "../types";
 import TaskItem from "./TaskItem";
 import { generateUniqueId } from "@/utils/idGenerator";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Task = DayTask | GeneralTask;
 
@@ -10,12 +11,13 @@ interface TaskListProps {
   isDaily: boolean;
   onToggleComplete?: (id: string) => void;
   onDelete: (id: string) => void;
-  onReorder: (reorderedTasks: Task[]) => void;
+  onReorder: (reorderedTasks: Task[]) => Promise<void>;
   onEdit?: (id: string) => void;
   onUpdateAiDuration?: (id: string, newAiDuration: string) => void;
   showCopyButton?: boolean;
   showEditButton?: boolean;
   showDeleteButton?: boolean;
+  showTimer?: boolean;
 }
 
 const TaskList: React.FC<TaskListProps> = ({
@@ -29,10 +31,17 @@ const TaskList: React.FC<TaskListProps> = ({
   showCopyButton = true,
   showEditButton = true,
   showDeleteButton = true,
+  showTimer = true,
 }) => {
+  const [localTasks, setLocalTasks] = useState<Task[]>(tasks);
   const [dragging, setDragging] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+
+  // Sync localTasks with props.tasks
+  React.useEffect(() => {
+    setLocalTasks(tasks);
+  }, [tasks]);
 
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
@@ -68,29 +77,64 @@ const TaskList: React.FC<TaskListProps> = ({
     setDragging(false);
   };
 
+  const handleMoveUp = async (index: number) => {
+    if (index > 0) {
+      const originalTasks = [...localTasks];
+      const newTasks = [...localTasks];
+      [newTasks[index], newTasks[index - 1]] = [newTasks[index - 1], newTasks[index]];
+      setLocalTasks(newTasks);
+      try {
+        await onReorder(newTasks);
+      } catch (error) {
+        setLocalTasks(originalTasks);
+        console.error('Error reordering tasks:', error);
+      }
+    }
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index < localTasks.length - 1) {
+      const originalTasks = [...localTasks];
+      const newTasks = [...localTasks];
+      [newTasks[index], newTasks[index + 1]] = [newTasks[index + 1], newTasks[index]];
+      setLocalTasks(newTasks);
+      try {
+        await onReorder(newTasks);
+      } catch (error) {
+        setLocalTasks(originalTasks);
+        console.error('Error reordering tasks:', error);
+      }
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      {tasks.map((task, index) => (
-        <TaskItem
-          key={generateUniqueId()}
-          task={task}
-          isDaily={isDaily}
-          onToggleComplete={onToggleComplete}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          onUpdateAiDuration={onUpdateAiDuration}
-          showCopyButton={showCopyButton}
-          showEditButton={showEditButton}
-          showDeleteButton={showDeleteButton}
-          draggable={true}
-          onDragStart={(e) => handleDragStart(e, index)}
-          onDragEnter={(e) => handleDragEnter(e, index)}
-          onDragEnd={handleDragEnd}
-          onDragOver={(e) => e.preventDefault()}
-          className={dragging && dragItem.current === index ? "dragging" : ""}
-        />
+    <motion.div className="space-y-4" layout>
+      {localTasks.map((task, index) => (
+        <motion.div key={task.id} layout>
+          <TaskItem
+            task={task}
+            isDaily={isDaily}
+            onToggleComplete={onToggleComplete}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onUpdateAiDuration={onUpdateAiDuration}
+            showCopyButton={showCopyButton}
+            showEditButton={showEditButton}
+            showDeleteButton={showDeleteButton}
+            showTimer={showTimer}
+            index={index}
+            onMoveUp={() => handleMoveUp(index)}
+            onMoveDown={() => handleMoveDown(index)}
+            draggable={true}
+            onDragStart={(e) => handleDragStart(e, index)}
+            onDragEnter={(e) => handleDragEnter(e, index)}
+            onDragEnd={handleDragEnd}
+            onDragOver={(e) => e.preventDefault()}
+            className={dragging && dragItem.current === index ? "dragging" : ""}
+          />
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 };
 

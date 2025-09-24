@@ -17,8 +17,9 @@ interface GeneralViewProps {
   onDelete: (id: string) => void;
   onDeleteWeekly?: (id: string) => void;
   onDeleteCalendar?: (id: string) => void;
-  onReorder: (tasks: (GeneralTask)[]) => void;
-  onReorderWeekly?: (tasks: GeneralTask[]) => void;
+  onReorder: (tasks: (GeneralTask)[]) => Promise<void>;
+  onReorderWeekly?: (tasks: GeneralTask[]) => Promise<void>;
+  onReorderCalendar?: (tasks: GeneralTask[]) => Promise<void>;
   onEdit: (id: string) => void;
   onEditWeekly?: (id: string) => void;
   onEditCalendar?: (id: string) => void;
@@ -40,6 +41,7 @@ const GeneralView: React.FC<GeneralViewProps> = ({
   onDeleteCalendar,
   onReorder,
   onReorderWeekly,
+  onReorderCalendar,
   onEdit,
   onEditWeekly,
   onEditCalendar,
@@ -119,11 +121,11 @@ const GeneralView: React.FC<GeneralViewProps> = ({
     }
   }, [activeTab, onToggleComplete, onToggleWeekly]);
 
-  const handleReorderWeeklyTasks = useCallback((tasks: GeneralTask[]) => {
+  const handleReorderWeeklyTasks = useCallback(async (tasks: GeneralTask[]) => {
     if (activeTab !== WeekDay.All && onReorderWeekly) {
-      onReorderWeekly(tasks);
+      await onReorderWeekly(tasks);
     } else {
-      onReorder(tasks);
+      await onReorder(tasks);
     }
   }, [activeTab, onReorder, onReorderWeekly]);
 
@@ -320,7 +322,7 @@ const GeneralView: React.FC<GeneralViewProps> = ({
                   tasks={scheduledTasks}
                   isDaily={false}
                   onDelete={onDeleteCalendar || onDelete}
-                  onReorder={() => {}} // No reordenar en vista calendario
+                  onReorder={onReorderCalendar || (async () => {})}
                   onEdit={onEditCalendar || onEdit}
                   onToggleComplete={onToggleComplete}
                   showCopyButton={false}
@@ -348,7 +350,7 @@ const GeneralView: React.FC<GeneralViewProps> = ({
                       tasks={weekTasks}
                       isDaily={false}
                       onDelete={onDeleteWeekly || onDelete}
-                      onReorder={() => {}} // No reordenar en vista calendario
+                      onReorder={onReorderCalendar || (async () => {})}
                       onEdit={onEditWeekly || onEdit}
                       onToggleComplete={onToggleWeekly || onToggleComplete}
                       showCopyButton={false}

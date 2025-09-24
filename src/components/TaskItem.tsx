@@ -12,6 +12,10 @@ interface TaskItemProps {
   showCopyButton?: boolean;
   showEditButton?: boolean;
   showDeleteButton?: boolean;
+  showTimer?: boolean;
+  index?: number;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
 const TaskItem: React.FC<
@@ -26,6 +30,10 @@ const TaskItem: React.FC<
   showCopyButton = true,
   showEditButton = true,
   showDeleteButton = true,
+  showTimer = true,
+  index,
+  onMoveUp,
+  onMoveDown,
   className,
   ...divProps
 }) => {
@@ -56,6 +64,10 @@ const TaskItem: React.FC<
       showCopyButton={showCopyButton}
       showEditButton={showEditButton}
       showDeleteButton={showDeleteButton}
+      showTimer={showTimer}
+      index={index}
+      onMoveUp={onMoveUp}
+      onMoveDown={onMoveDown}
       className={`${getTaskSpecificClasses()} ${className}`}
       {...divProps}
     />

@@ -1,14 +1,18 @@
 import React, { useState } from "react";
-import { DayTask } from "../types";
+import { DayTask, GeneralTask } from "../types";
 import Icon from "./Icon";
 import CalendarTask from "./CalendarTask";
 import TaskListItem from "./TaskListItem";
+import TaskList from "./TaskList";
+
+type Task = DayTask | GeneralTask;
 
 interface CalendarViewProps {
   tasks: DayTask[];
   onToggleComplete: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onReorder: (tasks: Task[]) => Promise<void>;
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({
@@ -16,6 +20,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onToggleComplete,
   onEdit,
   onDelete,
+  onReorder,
 }) => {
   const [showAllHours, setShowAllHours] = useState(false);
 
@@ -216,26 +221,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <h3 className="text-sm font-semibold text-slate-300 mb-2">
             Tareas sin horario
           </h3>
-          <div className="space-y-2">
-            {tasks
-              .filter((task) => !task.startTime || !task.endTime)
-              .map((task) => (
-                <TaskListItem
-                  key={task.id}
-                  task={task}
-                  isDaily={true}
-                  onToggleComplete={onToggleComplete}
-                  onDelete={onDelete}
-                  onEdit={onEdit}
-                  className={`${
-                    task.completed
-                      ? "bg-slate-700 border-slate-600 opacity-50"
-                      : "bg-slate-700 border-slate-600 hover:bg-slate-600"
-                  }`}
-                  showTimer={false}
-                />
-              ))}
-          </div>
+          <TaskList
+            tasks={tasks.filter((task) => !task.startTime || !task.endTime)}
+            isDaily={true}
+            onToggleComplete={onToggleComplete}
+            onDelete={onDelete}
+            onReorder={onReorder}
+            onEdit={onEdit}
+            showTimer={false}
+            showCopyButton={false}
+          />
         </div>
       )}
       {tasks.filter((task) => task.startTime && task.endTime && task.completed)
@@ -244,24 +239,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <h3 className="text-sm font-semibold text-slate-300 mb-2">
             Tareas Completadas
           </h3>
-          <div className="space-y-2">
-            {tasks
-              .filter(
-                (task) => task.startTime && task.endTime && task.completed
-              )
-              .map((task) => (
-                <TaskListItem
-                  key={task.id}
-                  task={task}
-                  isDaily={true}
-                  onToggleComplete={onToggleComplete}
-                  onDelete={onDelete}
-                  onEdit={onEdit}
-                  className="bg-slate-700 border-slate-600 opacity-50"
-                  showTimer={false}
-                />
-              ))}
-          </div>
+          <TaskList
+            tasks={tasks.filter(
+              (task) => task.startTime && task.endTime && task.completed
+            )}
+            isDaily={true}
+            onToggleComplete={onToggleComplete}
+            onDelete={onDelete}
+            onReorder={onReorder}
+            onEdit={onEdit}
+            showTimer={false}
+            showCopyButton={false}
+          />
         </div>
       )}
     </div>

@@ -1,7 +1,13 @@
 "use client";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Page, WeekDay, BaseTask, GeneralTask, WEEKDAY_LABELS } from "../../../types";
+import {
+  Page,
+  WeekDay,
+  BaseTask,
+  GeneralTask,
+  WEEKDAY_LABELS,
+} from "../../../types";
 import { useAuthStore } from "../../../stores/authStore";
 import LoadingScreen from "../../../components/LoadingScreen";
 import { useTaskManagement } from "../../../hooks/useTaskManagement";
@@ -19,9 +25,9 @@ import { generateTaskId } from "../../../utils/idGenerator";
 export default function GeneralPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const user = useAuthStore(state => state.user);
-  const userData = useAuthStore(state => state.userData);
-  const setUserData = useAuthStore(state => state.setUserData);
+  const user = useAuthStore((state) => state.user);
+  const userData = useAuthStore((state) => state.userData);
+  const setUserData = useAuthStore((state) => state.setUserData);
 
   // Estado para trackear la pestaña activa en General
   const [activeGeneralTab, setActiveGeneralTab] = useState<WeekDay>(
@@ -29,8 +35,12 @@ export default function GeneralPage() {
   );
 
   // Estado para el modo de vista en General
-  const [generalViewMode, setGeneralViewMode] = useState<'week' | 'calendar'>('week');
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+  const [generalViewMode, setGeneralViewMode] = useState<"week" | "calendar">(
+    "week"
+  );
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(
+    new Date().toLocaleDateString("en-CA")
+  );
 
   // Inicializar calendarTasks si no existe
   useEffect(() => {
@@ -42,11 +52,11 @@ export default function GeneralPage() {
 
   // Set mode from URL params
   useEffect(() => {
-    const mode = searchParams.get('mode');
-    if (mode === 'calendar') {
-      setGeneralViewMode('calendar');
+    const mode = searchParams.get("mode");
+    if (mode === "calendar") {
+      setGeneralViewMode("calendar");
     } else {
-      setGeneralViewMode('week');
+      setGeneralViewMode("week");
     }
   }, [searchParams]);
 
@@ -93,9 +103,7 @@ export default function GeneralPage() {
     (taskId: string) => {
       if (!userData?.calendarTasks) return;
 
-      const task = userData.calendarTasks.find(
-        (t) => t.id === taskId
-      );
+      const task = userData.calendarTasks.find((t) => t.id === taskId);
       if (task) {
         setEditingTask(task);
         setModalOpen(true);
@@ -271,7 +279,7 @@ export default function GeneralPage() {
 
       const prevUserData = { ...userData };
       try {
-        const now = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format in local time
+        const now = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD format in local time
         const taskCompletionsByProgressId =
           userData.taskCompletionsByProgressId || {};
 
@@ -365,12 +373,7 @@ export default function GeneralPage() {
         toast.error(`Error al actualizar estado de tarea "${taskName}".`);
       }
     },
-    [
-      userData,
-      activeGeneralTab,
-      setUserData,
-      handleUpdateUserData,
-    ]
+    [userData, activeGeneralTab, setUserData, handleUpdateUserData]
   );
 
   const handleReorderWeeklyTasks = useCallback(
@@ -409,18 +412,57 @@ export default function GeneralPage() {
         toast.error("Error al reordenar las tareas.");
       }
     },
-    [
-      userData,
-      activeGeneralTab,
-      setUserData,
-      handleUpdateUserData,
-    ]
+    [userData, activeGeneralTab, setUserData, handleUpdateUserData]
+  );
+
+  const handleReorderGeneralTasks = useCallback(
+    async (reorderedTasks: GeneralTask[]) => {
+      if (!userData) return;
+
+      const prevUserData = { ...userData };
+      try {
+        const updatedUserData = {
+          ...userData,
+          generalTasks: reorderedTasks,
+        };
+
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+      } catch (error) {
+        console.error("Error reordering general tasks:", error);
+        setUserData(prevUserData);
+        toast.error("Error al reordenar las tareas.");
+      }
+    },
+    [userData, setUserData, handleUpdateUserData]
+  );
+
+  const handleReorderCalendarTasks = useCallback(
+    async (reorderedTasks: GeneralTask[]) => {
+      if (!userData) return;
+
+      const prevUserData = { ...userData };
+      try {
+        const updatedUserData = {
+          ...userData,
+          calendarTasks: reorderedTasks,
+        };
+
+        setUserData(updatedUserData);
+        await handleUpdateUserData(updatedUserData);
+      } catch (error) {
+        console.error("Error reordering calendar tasks:", error);
+        setUserData(prevUserData);
+        toast.error("Error al reordenar las tareas.");
+      }
+    },
+    [userData, setUserData, handleUpdateUserData]
   );
 
   // Función para guardar tareas contextual según la pestaña activa
   const handleSaveTaskContextual = useCallback(
     async (task: BaseTask | Omit<BaseTask, "id">, selectedDays?: WeekDay[]) => {
-      if (generalViewMode === 'calendar') {
+      if (generalViewMode === "calendar") {
         // Manejar calendarTasks directamente cuando está en modo calendario
         if (!userData) return;
 
@@ -443,7 +485,11 @@ export default function GeneralPage() {
               ...(userData.calendarTasks || []),
             ];
             const originalTask = allTasks.find((t) => t.id === task.id);
-            if (originalTask && 'isHabit' in task && originalTask.isHabit !== task.isHabit) {
+            if (
+              originalTask &&
+              "isHabit" in task &&
+              originalTask.isHabit !== task.isHabit
+            ) {
               isHabitChanged = true;
             }
 
@@ -461,7 +507,7 @@ export default function GeneralPage() {
             await handleUpdateUserData(updatedUserData);
 
             // Si se cambió isHabit, actualizar todas las tareas con el mismo nombre
-            if (isHabitChanged && 'isHabit' in task) {
+            if (isHabitChanged && "isHabit" in task) {
               await handleUpdateHabitForAllTasks(task.id, task.isHabit!);
             }
           } else {
@@ -484,14 +530,18 @@ export default function GeneralPage() {
 
           const taskName = "name" in task ? task.name : "Tarea";
           const action = isEditing ? "actualizó" : "añadió";
-          toast.success(`Se ${action} tarea "${taskName}" en la base de datos.`);
+          toast.success(
+            `Se ${action} tarea "${taskName}" en la base de datos.`
+          );
           setModalOpen(false);
           setEditingTask(null);
         } catch (error) {
           console.error("Error saving calendar task:", error);
           setUserData(prevUserData);
           const taskName = "name" in task ? task.name : "Tarea";
-          toast.error(`Error al guardar tarea "${taskName}". No se guardó en la base de datos.`);
+          toast.error(
+            `Error al guardar tarea "${taskName}". No se guardó en la base de datos.`
+          );
         }
       } else if (activeGeneralTab === WeekDay.All) {
         // Guardar en generalTasks
@@ -517,7 +567,11 @@ export default function GeneralPage() {
               ...(userData.calendarTasks || []),
             ];
             originalTask = allTasks.find((t) => t.id === task.id);
-            if (originalTask && 'isHabit' in task && originalTask.isHabit !== task.isHabit) {
+            if (
+              originalTask &&
+              "isHabit" in task &&
+              originalTask.isHabit !== task.isHabit
+            ) {
               isHabitChanged = true;
             }
           }
@@ -535,7 +589,10 @@ export default function GeneralPage() {
           };
 
           // Determinar en qué días guardar la tarea
-          const daysToSave = selectedDays && selectedDays.length > 0 ? selectedDays : [activeGeneralTab];
+          const daysToSave =
+            selectedDays && selectedDays.length > 0
+              ? selectedDays
+              : [activeGeneralTab];
 
           const updatedWeeklyTasks = { ...currentWeeklyTasks };
           const successfulDays: WeekDay[] = [];
@@ -561,9 +618,13 @@ export default function GeneralPage() {
             } else {
               // Validar unicidad para nueva tarea en cada día
               const taskName = task.name.trim().toLowerCase();
-              const existingTask = currentTasks.find(t => t.name.trim().toLowerCase() === taskName);
+              const existingTask = currentTasks.find(
+                (t) => t.name.trim().toLowerCase() === taskName
+              );
               if (existingTask) {
-                toast.error(`Ya existe una tarea con el nombre "${task.name}" en ${WEEKDAY_LABELS[day]}.`);
+                toast.error(
+                  `Ya existe una tarea con el nombre "${task.name}" en ${WEEKDAY_LABELS[day]}.`
+                );
                 continue; // Skip this day
               }
               // Crear nueva tarea - agregar al final con ID único y progressId único
@@ -590,13 +651,16 @@ export default function GeneralPage() {
             await handleUpdateUserData(updatedUserData);
 
             // Si se cambió isHabit, actualizar todas las tareas con el mismo nombre
-            if (isHabitChanged && isEditing && 'isHabit' in task) {
+            if (isHabitChanged && isEditing && "isHabit" in task) {
               await handleUpdateHabitForAllTasks(task.id, task.isHabit!);
             }
 
             const taskName = "name" in task ? task.name : "Tarea";
             const action = isEditing ? "actualizó" : "añadió";
-            const daysText = successfulDays.length > 1 ? ` en ${successfulDays.length} días` : ` en ${WEEKDAY_LABELS[successfulDays[0]]}`;
+            const daysText =
+              successfulDays.length > 1
+                ? ` en ${successfulDays.length} días`
+                : ` en ${WEEKDAY_LABELS[successfulDays[0]]}`;
             toast.success(
               `Se ${action} tarea "${taskName}"${daysText} en la base de datos.`
             );
@@ -657,10 +721,13 @@ export default function GeneralPage() {
     }
   }, [userData, tempEndOfDay, handleUpdateUserData]);
 
-  const handleSaveTaskForDayWrapper = useCallback((task: BaseTask | Omit<BaseTask, "id">, day: WeekDay) => {
-    // Wrapper to maintain compatibility, but since we now use selectedDays, this might not be called
-    handleSaveTaskContextual(task, [day]);
-  }, [handleSaveTaskContextual]);
+  const handleSaveTaskForDayWrapper = useCallback(
+    (task: BaseTask | Omit<BaseTask, "id">, day: WeekDay) => {
+      // Wrapper to maintain compatibility, but since we now use selectedDays, this might not be called
+      handleSaveTaskContextual(task, [day]);
+    },
+    [handleSaveTaskContextual]
+  );
 
   const generalViewComponent = useMemo(() => {
     if (!userData) {
@@ -674,8 +741,9 @@ export default function GeneralPage() {
         onDelete={handleDeleteTask}
         onDeleteWeekly={handleDeleteWeeklyTask}
         onDeleteCalendar={handleDeleteCalendarTask}
-        onReorder={handleReorderTasks}
+        onReorder={handleReorderGeneralTasks}
         onReorderWeekly={handleReorderWeeklyTasks}
+        onReorderCalendar={handleReorderCalendarTasks}
         onEdit={handleEditTask}
         onEditWeekly={handleEditWeeklyTask}
         onEditCalendar={handleEditCalendarTask}
@@ -696,8 +764,9 @@ export default function GeneralPage() {
     handleSaveTaskForDayWrapper,
     handleDeleteTask,
     handleDeleteWeeklyTask,
-    handleReorderTasks,
+    handleReorderGeneralTasks,
     handleReorderWeeklyTasks,
+    handleReorderCalendarTasks,
     handleEditTask,
     handleEditWeeklyTask,
     handleToggleComplete,
@@ -739,32 +808,47 @@ export default function GeneralPage() {
             setEditingTask(null);
           }}
           onSubmit={
-            generalViewMode === 'calendar'
+            generalViewMode === "calendar"
               ? handleSaveTaskContextual
-              : (task: BaseTask | Omit<BaseTask, "id">, selectedDays?: WeekDay[]) => {
-                  if ('id' in task) {
-                    handleSaveTask(task, selectedDays ? selectedDays[0] : undefined);
+              : (
+                  task: BaseTask | Omit<BaseTask, "id">,
+                  selectedDays?: WeekDay[]
+                ) => {
+                  if ("id" in task) {
+                    handleSaveTask(
+                      task,
+                      selectedDays ? selectedDays[0] : undefined
+                    );
                   } else {
                     const { progressId, ...taskWithoutProgressId } = task;
-                    handleSaveTask(taskWithoutProgressId, selectedDays ? selectedDays[0] : undefined);
+                    handleSaveTask(
+                      taskWithoutProgressId,
+                      selectedDays ? selectedDays[0] : undefined
+                    );
                   }
                 }
           }
           taskToEdit={editingTask}
-          showDaySelection={generalViewMode !== 'calendar' && activeGeneralTab !== WeekDay.All && !editingTask}
-          currentDay={generalViewMode !== 'calendar' ? activeGeneralTab : undefined}
+          showDaySelection={
+            generalViewMode !== "calendar" &&
+            activeGeneralTab !== WeekDay.All &&
+            !editingTask
+          }
+          currentDay={
+            generalViewMode !== "calendar" ? activeGeneralTab : undefined
+          }
           initialScheduledDate={
-            generalViewMode === 'calendar' && !editingTask
+            generalViewMode === "calendar" && !editingTask
               ? selectedCalendarDate
               : undefined
           }
-          showScheduledDateField={
-            generalViewMode === 'calendar'
-          }
+          showScheduledDateField={generalViewMode === "calendar"}
           currentView={
-            generalViewMode === 'calendar' ? 'general-calendar' :
-            generalViewMode === 'week' ? 'general-week' :
-            'unknown'
+            generalViewMode === "calendar"
+              ? "general-calendar"
+              : generalViewMode === "week"
+              ? "general-week"
+              : "unknown"
           }
         />
       )}
@@ -779,7 +863,9 @@ export default function GeneralPage() {
               activeGeneralTab
             ]?.some((t) => t.id === taskToDelete.id);
 
-            const isCalendarTask = userData?.calendarTasks?.some((t) => t.id === taskToDelete.id);
+            const isCalendarTask = userData?.calendarTasks?.some(
+              (t) => t.id === taskToDelete.id
+            );
 
             if (isCalendarTask) {
               confirmDeleteCalendar();

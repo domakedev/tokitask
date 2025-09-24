@@ -27,7 +27,7 @@ interface DayViewProps {
   onSyncWithPseudoAI: () => void;
   onToggleComplete: (id: string) => void;
   onDelete: (id: string) => void;
-  onReorder: (tasks: (DayTask | GeneralTask)[]) => void;
+  onReorder: (tasks: (DayTask | GeneralTask)[]) => Promise<void>;
   onEdit: (id: string) => void;
   onUpdateAiDuration: (id: string, duration: string) => void;
   tempEndOfDay: string;
@@ -411,6 +411,7 @@ const DayView: React.FC<DayViewProps> = ({
                 onToggleComplete={onToggleComplete}
                 onDelete={onDelete}
                 onEdit={onEdit}
+                onReorder={onReorder}
               />
             )}
             {freeTime ? (
