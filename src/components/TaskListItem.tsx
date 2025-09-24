@@ -303,7 +303,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
 
       {/* Botones de subir y bajar posicionados absolutamente */}
       {index !== undefined && (
-        <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between items-center p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between items-center p-1">
           <button
             onClick={onMoveUp}
             disabled={!onMoveUp}
