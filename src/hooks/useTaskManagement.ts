@@ -16,7 +16,7 @@ export const useTaskManagement = (
   const { currentPage, setCurrentPage } = useScheduleStore();
   const { isModalOpen, setModalOpen, editingTask, setEditingTask, showConfirmation, setShowConfirmation, taskToDelete, setTaskToDelete, handleSaveTask, handleToggleComplete, handleDeleteTask, confirmDelete, handleEditTask, handleReorderTasks, handleClearAllDayTasks, handleUpdateHabitForAllTasks } = useTaskStore();
 
-  const { setDayTasks, setGeneralTasks, setWeeklyTasks, setEndOfDay } = useScheduleStore();
+  const { setDayTasks, setGeneralTasks, setWeeklyTasks, setEndOfDay, setCalendarTasks } = useScheduleStore();
 
   const handleUpdateUserData = useCallback(
     async (newUserData: Partial<UserData>) => {
@@ -38,6 +38,9 @@ export const useTaskManagement = (
         if (newUserData.endOfDay !== undefined) {
           setEndOfDay(newUserData.endOfDay);
         }
+        if (newUserData.calendarTasks !== undefined) {
+          setCalendarTasks(newUserData.calendarTasks);
+        }
 
         try {
           await updateUserData(user.uid, updatedData);
@@ -55,6 +58,9 @@ export const useTaskManagement = (
           }
           if (newUserData.endOfDay !== undefined) {
             setEndOfDay(prevUserData.endOfDay);
+          }
+          if (newUserData.calendarTasks !== undefined) {
+            setCalendarTasks(prevUserData.calendarTasks || []);
           }
           toast.error(
             "Error al actualizar los datos. No se guardó en la base de datos."

@@ -9,7 +9,7 @@ import { useProgressStore } from "../stores/progressStore";
 
 export const useAuth = () => {
   const { user, userData, loading, authError, setUser, setUserData, setLoading, setAuthError, handleSignOut } = useAuthStore();
-  const { setEndOfDay, setDayTasks, setGeneralTasks, setWeeklyTasks } = useScheduleStore();
+  const { setEndOfDay, setDayTasks, setGeneralTasks, setWeeklyTasks, setCalendarTasks } = useScheduleStore();
   const { setTaskCompletionsByProgressId, setOnboardingCompleted } = useProgressStore();
 
   useEffect(() => {
@@ -36,6 +36,7 @@ export const useAuth = () => {
             setEndOfDay(data.endOfDay);
             setDayTasks(data.dayTasks);
             setGeneralTasks(data.generalTasks);
+            setCalendarTasks(data.calendarTasks || []);
             setWeeklyTasks(data.weeklyTasks);
             setTaskCompletionsByProgressId(data.taskCompletionsByProgressId || {});
             setOnboardingCompleted(data.onboardingCompleted || false);
