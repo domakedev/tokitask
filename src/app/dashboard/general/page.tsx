@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Page, WeekDay, BaseTask, GeneralTask, WEEKDAY_LABELS } from "../../../types";
 import { useAuthStore } from "../../../stores/authStore";
+import LoadingScreen from "../../../components/LoadingScreen";
 import { useTaskManagement } from "../../../hooks/useTaskManagement";
 import { useAiSync } from "../../../hooks/useAiSync";
 import { toast } from "react-toastify";
@@ -663,15 +664,7 @@ export default function GeneralPage() {
 
   const generalViewComponent = useMemo(() => {
     if (!userData) {
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
-          <Icon
-            name="loader"
-            className="h-12 w-12 animate-spin text-emerald-400 mb-4"
-          />
-          <p className="text-lg text-white font-semibold">Cargando datos...</p>
-        </div>
-      );
+      return <LoadingScreen message="Cargando datos..." />;
     }
     return (
       <GeneralView

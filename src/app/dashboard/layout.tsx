@@ -5,7 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useAuthStore } from "../../stores/authStore";
 import BottomNav from "../../components/BottomNav";
 import FirebaseErrorScreen from "../../components/FirebaseErrorScreen";
-import Icon from "../../components/Icon";
+import LoadingScreen from "../../components/LoadingScreen";
 
 export default function DashboardLayout({
   children,
@@ -28,15 +28,7 @@ export default function DashboardLayout({
   }, [user, loading, router]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
-        <Icon
-          name="loader"
-          className="h-12 w-12 animate-spin text-emerald-400 mb-4"
-        />
-        <p className="text-lg text-white font-semibold">Cargando...</p>
-      </div>
-    );
+    return <LoadingScreen message="Cargando..." />;
   }
 
   if (authError) {
