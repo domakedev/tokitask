@@ -4,7 +4,7 @@ import Icon from './Icon';
 interface BadgeProps {
   label: string;
   icon?: string;
-  variant: 'flexible' | 'fixed' | 'habit' | 'unselected' | 'ai' | 'high' | 'medium' | 'low';
+  variant: 'flexible' | 'fixed' | 'habit' | 'unselected' | 'ai' | 'high' | 'medium' | 'low' | 'base';
   selected?: boolean;
   onClick?: () => void;
   className?: string;
@@ -35,6 +35,8 @@ const Badge: React.FC<BadgeProps> = ({
         return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'low':
         return 'bg-sky-500/20 text-sky-400 border-sky-500/30';
+      case "base":
+        return 'bg-slate-700 text-slate-300 border-slate-500/30';
       default:
         return 'bg-slate-600 text-slate-400 border-slate-500/30';
     }

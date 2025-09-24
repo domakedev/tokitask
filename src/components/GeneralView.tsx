@@ -7,6 +7,8 @@ import AllDaysTaskNotice from "./AllDaysTaskNotice";
 import CopyPasteButtons from "./CopyPasteButtons";
 import Icon from "./Icon";
 import { useScheduledTasks } from "../hooks/useScheduledTasks";
+import { formatDurationToHuman, parseDurationToMinutes } from "../utils/dateUtils";
+import Badge from "./Badge";
 
 interface GeneralViewProps {
   userData: UserData;
@@ -81,6 +83,16 @@ const GeneralView: React.FC<GeneralViewProps> = ({
     }
     return userData.weeklyTasks?.[activeTab] || [];
   }, [userData, activeTab]);
+
+  // Calcular el tiempo total de baseDuration para las tareas actuales
+  const totalDuration = useMemo(() => {
+    const totalMinutes = currentTasks.reduce((sum, task) => {
+      return sum + parseDurationToMinutes(task.baseDuration);
+    }, 0);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }, [currentTasks]);
 
   // Funciones específicas para tareas de días
   const handleDeleteWeeklyTask = useCallback((taskId: string) => {
@@ -459,8 +471,10 @@ const GeneralView: React.FC<GeneralViewProps> = ({
             {activeTab !== WeekDay.All && <DayTaskNotice />}
             {activeTab === WeekDay.All && <AllDaysTaskNotice />}
 
-            {/* Botones de copiar/pegar */}
-            <CopyPasteButtons activeTab={activeTab} />
+            <div className="flex items-center justify-between">
+              <Badge label={`Tiempo total: ${formatDurationToHuman(totalDuration)}`} variant="base" icon="timer" />
+              <CopyPasteButtons activeTab={activeTab} />
+            </div>
 
             <TaskList
               tasks={currentTasks}
