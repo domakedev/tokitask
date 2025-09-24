@@ -3,6 +3,7 @@ import { DayTask, GeneralTask } from "../types";
 import TaskItem from "./TaskItem";
 import { generateUniqueId } from "@/utils/idGenerator";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 
 type Task = DayTask | GeneralTask;
 
@@ -85,9 +86,11 @@ const TaskList: React.FC<TaskListProps> = ({
       setLocalTasks(newTasks);
       try {
         await onReorder(newTasks);
+        toast.success("Tarea movida hacia arriba.");
       } catch (error) {
         setLocalTasks(originalTasks);
         console.error('Error reordering tasks:', error);
+        toast.error("Error al mover la tarea.");
       }
     }
   };
@@ -100,9 +103,11 @@ const TaskList: React.FC<TaskListProps> = ({
       setLocalTasks(newTasks);
       try {
         await onReorder(newTasks);
+        toast.success("Tarea movida hacia abajo.");
       } catch (error) {
         setLocalTasks(originalTasks);
         console.error('Error reordering tasks:', error);
+        toast.error("Error al mover la tarea.");
       }
     }
   };
@@ -123,8 +128,10 @@ const TaskList: React.FC<TaskListProps> = ({
             showDeleteButton={showDeleteButton}
             showTimer={showTimer}
             index={index}
-            onMoveUp={() => handleMoveUp(index)}
-            onMoveDown={() => handleMoveDown(index)}
+            onMoveUp={index > 0 ? () => handleMoveUp(index) : undefined}
+            onMoveDown={index < localTasks.length - 1 ? () => handleMoveDown(index) : undefined}
+            isFirst={index === 0}
+            isLast={index === localTasks.length - 1}
             draggable={true}
             onDragStart={(e) => handleDragStart(e, index)}
             onDragEnter={(e) => handleDragEnter(e, index)}

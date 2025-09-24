@@ -24,6 +24,8 @@ interface TaskListItemProps {
   index?: number;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 const TaskListItem: React.FC<TaskListItemProps> = ({
@@ -41,6 +43,8 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   index,
   onMoveUp,
   onMoveDown,
+  isFirst,
+  isLast,
 }) => {
   const [showMoveModal, setShowMoveModal] = useState(false);
 
@@ -298,21 +302,23 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
       </div>
 
       {/* Botones de subir y bajar posicionados absolutamente */}
-      {index !== undefined && onMoveUp && onMoveDown && (
-        <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between items-center p-1">
+      {index !== undefined && (
+        <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between items-center p-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={onMoveUp}
-            className="p-1 rounded-md hover:bg-slate-700 transition-colors"
-            title="Subir tarea"
-            aria-label="Subir tarea"
+            disabled={!onMoveUp}
+            className={`p-1 rounded-md transition-colors ${onMoveUp ? 'hover:bg-slate-700' : 'opacity-30 cursor-not-allowed'}`}
+            title={onMoveUp ? "Subir tarea" : "No se puede subir más"}
+            aria-label={onMoveUp ? "Subir tarea" : "No se puede subir más"}
           >
             <Icon name="chevronup" className="h-4 w-4" />
           </button>
           <button
             onClick={onMoveDown}
-            className="p-1 rounded-md hover:bg-slate-700 transition-colors"
-            title="Bajar tarea"
-            aria-label="Bajar tarea"
+            disabled={!onMoveDown}
+            className={`p-1 rounded-md transition-colors ${onMoveDown ? 'hover:bg-slate-700' : 'opacity-30 cursor-not-allowed'}`}
+            title={onMoveDown ? "Bajar tarea" : "No se puede bajar más"}
+            aria-label={onMoveDown ? "Bajar tarea" : "No se puede bajar más"}
           >
             <Icon name="chevrondown" className="h-4 w-4" />
           </button>

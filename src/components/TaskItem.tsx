@@ -16,6 +16,8 @@ interface TaskItemProps {
   index?: number;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 const TaskItem: React.FC<
@@ -34,6 +36,8 @@ const TaskItem: React.FC<
   index,
   onMoveUp,
   onMoveDown,
+  isFirst,
+  isLast,
   className,
   ...divProps
 }) => {
@@ -68,6 +72,8 @@ const TaskItem: React.FC<
       index={index}
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
+      isFirst={isFirst}
+      isLast={isLast}
       className={`${getTaskSpecificClasses()} ${className}`}
       {...divProps}
     />
