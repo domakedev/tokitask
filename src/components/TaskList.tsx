@@ -82,15 +82,16 @@ const TaskList: React.FC<TaskListProps> = ({
     if (index > 0) {
       const originalTasks = [...localTasks];
       const newTasks = [...localTasks];
+      const taskName = newTasks[index].name;
       [newTasks[index], newTasks[index - 1]] = [newTasks[index - 1], newTasks[index]];
       setLocalTasks(newTasks);
       try {
         await onReorder(newTasks);
-        toast.success("Tarea movida hacia arriba.");
+        toast.success(`Tarea "${taskName}" movida hacia arriba.`);
       } catch (error) {
         setLocalTasks(originalTasks);
         console.error('Error reordering tasks:', error);
-        toast.error("Error al mover la tarea.");
+        toast.error(`Error al mover la tarea "${taskName}".`);
       }
     }
   };
@@ -99,15 +100,16 @@ const TaskList: React.FC<TaskListProps> = ({
     if (index < localTasks.length - 1) {
       const originalTasks = [...localTasks];
       const newTasks = [...localTasks];
+      const taskName = newTasks[index].name;
       [newTasks[index], newTasks[index + 1]] = [newTasks[index + 1], newTasks[index]];
       setLocalTasks(newTasks);
       try {
         await onReorder(newTasks);
-        toast.success("Tarea movida hacia abajo.");
+        toast.success(`Tarea "${taskName}" movida hacia abajo.`);
       } catch (error) {
         setLocalTasks(originalTasks);
         console.error('Error reordering tasks:', error);
-        toast.error("Error al mover la tarea.");
+        toast.error(`Error al mover la tarea "${taskName}".`);
       }
     }
   };

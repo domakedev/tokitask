@@ -16,6 +16,7 @@ import {
   parseDurationToMinutes,
 } from "../utils/dateUtils";
 import CopyPasteButtons from "./CopyPasteButtons";
+import { toast } from "react-toastify";
 
 interface DayViewProps {
   userData: UserData;
@@ -198,6 +199,7 @@ const DayView: React.FC<DayViewProps> = ({
 
     // Recalcular isCurrent: el primer no completado en el orden ordenado
     const firstPendingIndex = tasks.findIndex((task) => !task.completed);
+    toast.success("Aqui se ordenan cronológicamente.");
     return tasks.map((task, index) => ({
       ...task,
       isCurrent: index === firstPendingIndex,
