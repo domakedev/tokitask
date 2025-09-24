@@ -7,6 +7,7 @@ import CalendarView from "./CalendarView";
 import AiTipCard from "./AiTipCard";
 import FreeTimeCard from "./FreeTimeCard";
 import Icon from "./Icon";
+import ConfirmationModal from "./ConfirmationModal";
 import {
   getCurrentWeekDayName,
   getCurrentWeekDay,
@@ -54,6 +55,8 @@ const DayView: React.FC<DayViewProps> = ({
   onNavigateToGeneralCalendar,
 }) => {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [showPseudoAiModal, setShowPseudoAiModal] = useState(false);
 
   // Validación para desactivar botones si ya pasó la hora de fin del día
   const currentTime = new Date().toLocaleTimeString("es-ES", {
@@ -182,7 +185,7 @@ const DayView: React.FC<DayViewProps> = ({
             Clonar horario del día
           </button>
           <button
-            onClick={onSyncWithAI}
+            onClick={() => setShowAiModal(true)}
             disabled={
               isSyncing || isPastEndOfDay || userData.dayTasks.length === 0
             }
@@ -210,13 +213,13 @@ const DayView: React.FC<DayViewProps> = ({
           </button>
 
           <button
-            onClick={onSyncWithPseudoAI}
+            onClick={() => setShowPseudoAiModal(true)}
             disabled={
               isSyncing || isPastEndOfDay || userData.dayTasks.length === 0
             }
             className="flex-1 w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSyncing ? "Calculando..." : "Calcular con Pseudo IA"}
+            {isSyncing ? "Calculando..." : "Organización Express"}
           </button>
 
           <style jsx global>{`
@@ -251,24 +254,13 @@ const DayView: React.FC<DayViewProps> = ({
           `}</style>
         </div>
 
-        <div className="text-center text-xs text-slate-400 mt-2 space-y-1">
-          <p><strong>Organizar tiempos con IA:</strong> Respeta horarios fijos, demora hasta 1 minuto.</p>
-          <p><strong>Calcular con Pseudo IA:</strong> Responde en segundos, no respeta horarios fijos.</p>
-        </div>
-
         {/* Mensaje informativo para Día */}
         <div className="text-center mb-4">
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
             <p className="text-sm text-blue-300">
               <Icon name="info" className="inline mr-2 h-4 w-4" />
-              Esta es tu día de hoy. Aquí se mostraran tus tareas programadas:{" "}
-              <br /> <strong>semanales repetitivas</strong> +{" "}
-              <strong>las de calendario de día específico.</strong>
-            </p>
-            <p className="text-xs text-blue-400 mt-2">
-              <Icon name="bell" className="inline mr-1 h-3 w-3" />
-              Las tareas de calendario te avisarán automáticamente a las 6:00 AM
-            </p>
+              Aquí verás tus tareas semanales y de calendario para <strong>Hoy</strong>
+            </p>            
           </div>
         </div>
       </header>
@@ -384,6 +376,30 @@ const DayView: React.FC<DayViewProps> = ({
           </div>
         )}
       </main>
+
+      {/* Modal de confirmación para Organizar tiempos con IA */}
+      <ConfirmationModal
+        isOpen={showAiModal}
+        title="Organizar tiempos con IA"
+        message="😎Esta opción respeta los horarios fijos pero puede demorar hasta 1 minuto en responder😿."
+        onConfirm={() => {
+          setShowAiModal(false);
+          onSyncWithAI();
+        }}
+        onCancel={() => setShowAiModal(false)}
+      />
+
+      {/* Modal de confirmación para Organización Express */}
+      <ConfirmationModal
+        isOpen={showPseudoAiModal}
+        title="Organización Express"
+        message="⚡Esta opción responde al instante pero no respeta los horarios fijos de tus tareas 😿."
+        onConfirm={() => {
+          setShowPseudoAiModal(false);
+          onSyncWithPseudoAI();
+        }}
+        onCancel={() => setShowPseudoAiModal(false)}
+      />
     </div>
   );
 };
