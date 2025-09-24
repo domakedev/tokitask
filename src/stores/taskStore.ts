@@ -86,21 +86,45 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
       }
 
-      // Determinar dónde guardar la tarea basado en si tiene scheduledDate y desde dónde se está guardando
+      // Determinar dónde guardar la tarea
       const hasScheduledDate = task.scheduledDate && task.scheduledDate.trim() !== "";
       const isFromCalendarView = currentPage === Page.General && activeTab === undefined; // Cuando viene del calendario
 
-      if (currentPage === Page.Day) {
-        const updatedTasks = isEditing
-          ? dayTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
-          : (() => {
-              const taskName = task.name.trim().toLowerCase();
-              const existingTask = dayTasks.find(t => t.name.trim().toLowerCase() === taskName);
-              if (existingTask) {
-                toast.error(`Ya existe una tarea con el nombre "${task.name}" en el día actual.`);
-                throw new Error('Duplicate task name');
-              }
-              return [
+      let targetLocation: 'day' | 'general' | 'weekly' | 'calendar' = 'general';
+      if (isEditing) {
+        const taskId = (task as BaseTask).id;
+        if (dayTasks.some(t => t.id === taskId)) {
+          targetLocation = 'day';
+        } else if (generalTasks.some(t => t.id === taskId)) {
+          targetLocation = 'general';
+        } else if (Object.values(weeklyTasks).some(tasks => tasks.some(t => t.id === taskId))) {
+          targetLocation = 'weekly';
+        } else if (calendarTasks?.some(t => t.id === taskId)) {
+          targetLocation = 'calendar';
+        }
+      } else {
+        if (currentPage === Page.Day) {
+          targetLocation = 'day';
+        } else if (hasScheduledDate && isFromCalendarView) {
+          targetLocation = 'calendar';
+        } else if (activeTab && activeTab !== WeekDay.All) {
+          targetLocation = 'weekly';
+        } else {
+          targetLocation = 'general';
+        }
+      }
+
+      switch (targetLocation) {
+        case 'day':
+          const taskName = task.name.trim().toLowerCase();
+          const existingTask = dayTasks.find(t => t.name.trim().toLowerCase() === taskName && (!isEditing || t.id !== (task as BaseTask).id));
+          if (existingTask) {
+            toast.error(`Ya existe una tarea con el nombre "${task.name}" en el día actual.`);
+            throw new Error('Duplicate task name');
+          }
+          const updatedTasks = isEditing
+            ? dayTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
+            : [
                 ...dayTasks,
                 {
                   ...task,
@@ -113,104 +137,97 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                   isHabit: task.isHabit ?? false,
                 } as DayTask,
               ];
-            })();
-        const recalculatedTasks = get().recalculateCurrentDayTask(updatedTasks as DayTask[]);
-        setDayTasks(recalculatedTasks);
-        const updatedUserData = {
-          ...userData,
-          dayTasks: recalculatedTasks,
-        };
-        await updateUserData(user.uid, updatedUserData);
-        useAuthStore.getState().setUserData(updatedUserData);
-      } else if (hasScheduledDate && isFromCalendarView) {
-        // Guardar en calendarTasks cuando tiene fecha programada y viene del calendario
+          const recalculatedTasks = get().recalculateCurrentDayTask(updatedTasks as DayTask[]);
+          setDayTasks(recalculatedTasks);
+          const updatedUserData = {
+            ...userData,
+            dayTasks: recalculatedTasks,
+          };
+          await updateUserData(user.uid, updatedUserData);
+          useAuthStore.getState().setUserData(updatedUserData);
+          break;
+        case 'calendar':
         const currentCalendarTasks = calendarTasks || [];
-        const updatedTasks = isEditing
-          ? currentCalendarTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
-          : (() => {
-              const taskName = task.name.trim().toLowerCase();
-              const existingTask = currentCalendarTasks.find(t => t.name.trim().toLowerCase() === taskName && t.scheduledDate === task.scheduledDate);
-              if (existingTask) {
-                toast.error(`Ya existe una tarea con el nombre "${task.name}" programada para esta fecha.`);
-                throw new Error('Duplicate task name');
-              }
-              return [
-                ...currentCalendarTasks,
-                {
-                  ...task,
-                  id: generateTaskId(),
-                  progressId: generateTaskId(),
-                  completed: false,
-                  baseDuration: task.baseDuration || '',
-                  flexibleTime: task.flexibleTime ?? true,
-                  isHabit: task.isHabit ?? false,
-                } as GeneralTask,
-              ];
-            })();
-        setCalendarTasks(updatedTasks);
-        const updatedUserData = { ...userData, calendarTasks: updatedTasks };
-        await updateUserData(user.uid, updatedUserData);
-        useAuthStore.getState().setUserData(updatedUserData);
-      } else {
-        if (activeTab && activeTab !== WeekDay.All) {
-          // Guardar en weeklyTasks
-          const currentWeeklyTasks = weeklyTasks[activeTab] || [];
-          const updatedTasks = isEditing
-            ? currentWeeklyTasks.map((t: GeneralTask) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
-            : (() => {
-                const taskName = task.name.trim().toLowerCase();
-                const existingTask = currentWeeklyTasks.find((t: GeneralTask) => t.name.trim().toLowerCase() === taskName);
-                if (existingTask) {
-                  toast.error(`Ya existe una tarea con el nombre "${task.name}" en ${WEEKDAY_LABELS[activeTab]}.`);
-                  throw new Error('Duplicate task name');
-                }
-                return [
-                  ...currentWeeklyTasks,
-                  {
-                    ...task,
-                    id: generateTaskId(),
-                    progressId: generateTaskId(),
-                    completed: false,
-                    baseDuration: task.baseDuration || '',
-                    flexibleTime: task.flexibleTime ?? true,
-                    isHabit: task.isHabit ?? false,
-                  } as GeneralTask,
-                ];
-              })();
-          const updatedWeeklyTasks = { ...weeklyTasks, [activeTab]: updatedTasks };
-          setWeeklyTasks(updatedWeeklyTasks);
-          const updatedUserData = { ...userData, weeklyTasks: updatedWeeklyTasks };
-          await updateUserData(user.uid, updatedUserData);
-          useAuthStore.getState().setUserData(updatedUserData);
-        } else {
-          // Guardar en generalTasks
-          const updatedTasks = isEditing
-            ? generalTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
-            : (() => {
-                const taskName = task.name.trim().toLowerCase();
-                const existingTask = generalTasks.find(t => t.name.trim().toLowerCase() === taskName);
-                if (existingTask) {
-                  toast.error(`Ya existe una tarea con el nombre "${task.name}" en tareas generales.`);
-                  throw new Error('Duplicate task name');
-                }
-                return [
-                  ...generalTasks,
-                  {
-                    ...task,
-                    id: generateTaskId(),
-                    progressId: generateTaskId(),
-                    completed: false,
-                    baseDuration: task.baseDuration || '',
-                    flexibleTime: task.flexibleTime ?? true,
-                    isHabit: task.isHabit ?? false,
-                  } as GeneralTask,
-                ];
-              })();
-          setGeneralTasks(updatedTasks);
-          const updatedUserData = { ...userData, generalTasks: updatedTasks };
-          await updateUserData(user.uid, updatedUserData);
-          useAuthStore.getState().setUserData(updatedUserData);
+        const taskNameCal = task.name.trim().toLowerCase();
+        const existingTaskCal = currentCalendarTasks.find(t => t.name.trim().toLowerCase() === taskNameCal && t.scheduledDate === task.scheduledDate && (!isEditing || t.id !== (task as BaseTask).id));
+        if (existingTaskCal) {
+          toast.error(`Ya existe una tarea con el nombre "${task.name}" programada para esta fecha.`);
+          throw new Error('Duplicate task name');
         }
+        const updatedCalendarTasks = isEditing
+          ? currentCalendarTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
+          : [
+              ...currentCalendarTasks,
+              {
+                ...task,
+                id: generateTaskId(),
+                progressId: generateTaskId(),
+                completed: false,
+                baseDuration: task.baseDuration || '',
+                flexibleTime: task.flexibleTime ?? true,
+                isHabit: task.isHabit ?? false,
+              } as GeneralTask,
+            ];
+        setCalendarTasks(updatedCalendarTasks);
+        const updatedUserDataCal = { ...userData, calendarTasks: updatedCalendarTasks };
+        await updateUserData(user.uid, updatedUserDataCal);
+        useAuthStore.getState().setUserData(updatedUserDataCal);
+        break;
+      case 'weekly':
+        const day: WeekDay = isEditing ? (Object.keys(weeklyTasks).find(d => weeklyTasks[d as WeekDay].some(t => t.id === (task as BaseTask).id)) as WeekDay)! : activeTab!;
+        const currentWeeklyTasks = weeklyTasks[day] || [];
+        const taskNameWeek = task.name.trim().toLowerCase();
+        const existingTaskWeek = currentWeeklyTasks.find((t: GeneralTask) => t.name.trim().toLowerCase() === taskNameWeek && (!isEditing || t.id !== (task as BaseTask).id));
+        if (existingTaskWeek) {
+          toast.error(`Ya existe una tarea con el nombre "${task.name}" en ${WEEKDAY_LABELS[day]}.`);
+          throw new Error('Duplicate task name');
+        }
+        const updatedWeeklyTasks = isEditing
+          ? currentWeeklyTasks.map((t: GeneralTask) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
+          : [
+              ...currentWeeklyTasks,
+              {
+                ...task,
+                id: generateTaskId(),
+                progressId: generateTaskId(),
+                completed: false,
+                baseDuration: task.baseDuration || '',
+                flexibleTime: task.flexibleTime ?? true,
+                isHabit: task.isHabit ?? false,
+              } as GeneralTask,
+            ];
+        const updatedWeeklyTasksObj = { ...weeklyTasks, [day]: updatedWeeklyTasks };
+        setWeeklyTasks(updatedWeeklyTasksObj);
+        const updatedUserDataWeek = { ...userData, weeklyTasks: updatedWeeklyTasksObj };
+        await updateUserData(user.uid, updatedUserDataWeek);
+        useAuthStore.getState().setUserData(updatedUserDataWeek);
+        break;
+      case 'general':
+        const taskNameGen = task.name.trim().toLowerCase();
+        const existingTaskGen = generalTasks.find(t => t.name.trim().toLowerCase() === taskNameGen && (!isEditing || t.id !== (task as BaseTask).id));
+        if (existingTaskGen) {
+          toast.error(`Ya existe una tarea con el nombre "${task.name}" en tareas generales.`);
+          throw new Error('Duplicate task name');
+        }
+        const updatedGeneralTasks = isEditing
+          ? generalTasks.map((t) => (t.id === (task as BaseTask).id ? { ...t, ...task } : t))
+          : [
+              ...generalTasks,
+              {
+                ...task,
+                id: generateTaskId(),
+                progressId: generateTaskId(),
+                completed: false,
+                baseDuration: task.baseDuration || '',
+                flexibleTime: task.flexibleTime ?? true,
+                isHabit: task.isHabit ?? false,
+              } as GeneralTask,
+            ];
+        setGeneralTasks(updatedGeneralTasks);
+        const updatedUserDataGen = { ...userData, generalTasks: updatedGeneralTasks };
+        await updateUserData(user.uid, updatedUserDataGen);
+        useAuthStore.getState().setUserData(updatedUserDataGen);
+        break;
       }
 
       // Si se cambió isHabit, actualizar todas las tareas con el mismo nombre
