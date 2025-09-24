@@ -63,6 +63,11 @@ export default function DayPage() {
     handleUpdateHabitForAllTasks,
   } = useTaskManagement(user, userData, setUserData);
 
+  // Set current page
+  useEffect(() => {
+    setCurrentPage(Page.Day);
+  }, [setCurrentPage]);
+
   // Función para navegar al calendario de General
   const handleNavigateToGeneralCalendar = useCallback(() => {
     router.push("/dashboard/general?mode=calendar");

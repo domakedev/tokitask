@@ -50,16 +50,6 @@ export default function GeneralPage() {
     }
   }, [userData, setUserData]);
 
-  // Set mode from URL params
-  useEffect(() => {
-    const mode = searchParams.get("mode");
-    if (mode === "calendar") {
-      setGeneralViewMode("calendar");
-    } else {
-      setGeneralViewMode("week");
-    }
-  }, [searchParams]);
-
   const showNotification = useCallback(
     (message: string, type: "success" | "error" = "success") => {
       if (type === "success") {
@@ -92,6 +82,11 @@ export default function GeneralPage() {
     handleClearAllDayTasks,
     handleUpdateHabitForAllTasks,
   } = useTaskManagement(user, userData, setUserData);
+
+  // Set current page
+  useEffect(() => {
+    setCurrentPage(Page.General);
+  }, [setCurrentPage]);
 
   // Función para manejar cambios de pestaña en General
   const handleGeneralTabChange = useCallback((tab: WeekDay) => {
