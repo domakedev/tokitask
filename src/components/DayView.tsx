@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { DayTask, GeneralTask, UserData, Page } from "../types";
 import CurrentDate from "./CurrentDate";
 import RemainingTime from "./RemainingTime";
@@ -49,8 +49,6 @@ const DayView: React.FC<DayViewProps> = ({
   onReorder,
   onEdit,
   onUpdateAiDuration,
-  tempEndOfDay,
-  setTempEndOfDay,
   onDismissAiTip,
   onNavigate,
   onNavigateToGeneralCalendar,
@@ -58,6 +56,7 @@ const DayView: React.FC<DayViewProps> = ({
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [showAiModal, setShowAiModal] = useState(false);
   const [showPseudoAiModal, setShowPseudoAiModal] = useState(false);
+  const [areOrganizedTasks, setAreOrganizedTasks] = useState(false);
 
   // Validación para desactivar botones si ya pasó la hora de fin del día
   const currentTime = new Date().toLocaleTimeString("es-ES", {
@@ -68,7 +67,15 @@ const DayView: React.FC<DayViewProps> = ({
   const isPastEndOfDay = currentTime > userData.endOfDay;
 
   // Verificar si las tareas ya están organizadas (tienen aiDuration)
-  const isOrganized = userData.dayTasks.some(task => task.aiDuration && task.aiDuration.trim() !== '');
+
+  useEffect(() => {
+    const areTasksOrganized = userData.dayTasks.filter(t => !t.completed).every(task => task.aiDuration && task.aiDuration.trim() !== '');
+    if (areTasksOrganized) {
+      setAreOrganizedTasks(true);
+    } else {
+      setAreOrganizedTasks(false);
+    }
+  }, [userData.dayTasks]);
 
   // Calcular estadísticas
   const totalBaseMinutes = userData.dayTasks.reduce(
@@ -87,7 +94,7 @@ const DayView: React.FC<DayViewProps> = ({
     parseDurationToMinutes(userData.endOfDay) -
     parseDurationToMinutes(currentTime);
 
-  const overloadMinutes = (isOrganized ? totalAiMinutes : totalBaseMinutes) - availableMinutes;
+  const overloadMinutes = (areOrganizedTasks ? totalAiMinutes : totalBaseMinutes) - availableMinutes;
 
   // Determinar badges a mostrar
   const getOverloadBadges = () => {
@@ -103,12 +110,12 @@ const DayView: React.FC<DayViewProps> = ({
     });
 
     // Badge de tiempo requerido/organizado
-    const requiredMinutes = isOrganized ? totalAiMinutes : totalBaseMinutes;
+    const requiredMinutes = areOrganizedTasks ? totalAiMinutes : totalBaseMinutes;
     const requiredHours = Math.floor(requiredMinutes / 60);
     const requiredMins = requiredMinutes % 60;
     badges.push({
-      label: isOrganized ? `Organizado: ${requiredHours}h ${requiredMins}min` : `Requerido: ${requiredHours}h ${requiredMins}min`,
-      variant: isOrganized ? ('ai' as const) : ('flexible' as const),
+      label: areOrganizedTasks ? `Organizado: ${requiredHours}h ${requiredMins}min` : `Requerido: ${requiredHours}h ${requiredMins}min`,
+      variant: areOrganizedTasks ? ('ai' as const) : ('flexible' as const),
       icon: 'timer'
     });
 
@@ -138,14 +145,14 @@ const DayView: React.FC<DayViewProps> = ({
       });
 
       // Badge de consejo solo si no está organizado
-      if (!isOrganized) {
+      if (!areOrganizedTasks) {
         badges.push({
           label: '¡Organízate ahora!',
           variant: 'ai' as const,
           icon: 'lightbulb'
         });
       }
-      if (isOrganized) {
+      if (areOrganizedTasks) {
         // Badge positivo
         badges.push({
           label: `¡Bien, ahora solo necesitas: ${overloadHours}h y ${overloadMinutes % 60} min más`,
