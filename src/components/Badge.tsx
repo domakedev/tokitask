@@ -16,7 +16,8 @@ export interface BadgeProps {
     | "base"
     | "alert"
     | 'danger'
-    | 'success';
+    | 'success'
+    | 'blocked';
   selected?: boolean;
   onClick?: () => void;
   className?: string;
@@ -55,21 +56,27 @@ const Badge: React.FC<BadgeProps> = ({
         return "bg-red-700 text-red-300 border-red-500/30";
       case "success":
         return "bg-green-700 text-green-300 border-green-500/30";
+      case 'blocked':
+          return 'bg-gray-700 text-gray-300 border-gray-500/30';
       default:
         return "bg-slate-600 text-slate-400 border-slate-500/30";
     }
   };
 
   return (
-    <span
+    <button
       className={`font-medium px-2 py-0.5 rounded-full border text-xs whitespace-nowrap flex justify-center items-center ${getClasses()} ${
         onClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
       } ${className}`}
-      onClick={onClick}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick?.();
+      }}
+      disabled={variant === 'blocked'}
     >
       {icon && <Icon name={icon} className="h-3 w-3 inline mr-1" />}
       {label}
-    </span>
+    </button>
   );
 };
 

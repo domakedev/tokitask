@@ -419,13 +419,13 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
           <div className="bg-slate-800 p-3 md:p-4 rounded-lg shadow-lg">
             <p className="text-sm md:text-base text-white">
               {statistics.streak > 0 && (
-                <>¡Mantén la racha! Has completado al menos una de estas tareas por {statistics.streak} días consecutivos.</>
+                <>¡Mantén la racha semanal! Has completado este hábito por {statistics.streak} días consecutivos.</>
               )}
               {statistics.streak === 0 && statistics.totalCompletions > 0 && (
-                <>Has completado estas tareas {statistics.totalCompletions} veces en total. ¡Sigue adelante!</>
+                <>Has completado este hábito {statistics.totalCompletions} veces en total. ¡Sigue adelante!</>
               )}
               {statistics.totalCompletions === 0 && (
-                <>Aún no has completado estas tareas. ¡Empieza hoy!</>
+                <>Aún no has completado este hábito. ¡Empieza hoy!</>
               )}
             </p>
           </div>

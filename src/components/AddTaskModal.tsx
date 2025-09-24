@@ -275,14 +275,17 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                 <Badge
                                     label="Hábito"
                                     icon="repeat"
-                                    variant="habit"
+                                    variant={currentView !== 'day' ? 'habit' : 'blocked'}
                                     selected={isHabit}
-                                    onClick={() => setIsHabit(!isHabit)}
+                                    onClick={() => currentView !== 'day' && setIsHabit(!isHabit)}
                                     />
-                                    </div>
+                                </div>
                                 <div className="flex-1 p-2 bg-slate-700 rounded-md">
                                     <p className="text-xs text-slate-400">
-                                        Los hábitos se mostrarán en la vista de Progreso para seguimiento continuo.
+                                        {currentView === 'day'
+                                            ? 'Los hábitos se definen en Configurar Horario -> Semana para mantener su repetición semanal.'
+                                            : 'Los hábitos se mostrarán en la vista de Progreso para seguimiento continuo.'
+                                        }
                                     </p>
                                 </div>
                             </div>

@@ -220,7 +220,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       set({ isModalOpen: false, editingTask: null });
       const taskName = 'name' in task ? task.name : 'Tarea';
-      const action = isEditing ? 'actualizada' : 'añadida';
+      const action = isEditing ? 'actualizó' : 'añadida';
       toast.success(`Se ${action} tarea "${taskName}" en la base de datos.`);
     } catch (error) {
       console.error('Error en handleSaveTask:', error);
