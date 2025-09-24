@@ -432,6 +432,21 @@ export default function DashboardPage() {
             const currentCalendarTasks = userData.calendarTasks || [];
 
             if (isEditing) {
+              // Verificar si se está cambiando isHabit
+              let isHabitChanged = false;
+
+              // Buscar la tarea original para comparar isHabit
+              const allTasks = [
+                ...userData.dayTasks,
+                ...userData.generalTasks,
+                ...Object.values(userData.weeklyTasks || {}).flat(),
+                ...(userData.calendarTasks || []),
+              ];
+              const originalTask = allTasks.find((t) => t.id === task.id);
+              if (originalTask && 'isHabit' in task && originalTask.isHabit !== task.isHabit) {
+                isHabitChanged = true;
+              }
+
               // Editar tarea existente en calendarTasks
               const updatedTasks = currentCalendarTasks.map((t) =>
                 t.id === task.id ? { ...t, ...task } : t
@@ -444,6 +459,11 @@ export default function DashboardPage() {
 
               setUserData(updatedUserData);
               await handleUpdateUserData(updatedUserData);
+
+              // Si se cambió isHabit, actualizar todas las tareas con el mismo nombre
+              if (isHabitChanged && 'isHabit' in task) {
+                await handleUpdateHabitForAllTasks(task.id, task.isHabit!);
+              }
             } else {
               // Crear nueva tarea en calendarTasks
               const newTask = {
