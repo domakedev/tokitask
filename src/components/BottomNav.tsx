@@ -18,6 +18,7 @@ const NavLink: React.FC<{
 }> = ({ href, iconName, label, isActive, profilePhotoUrl }) => (
   <Link
     href={href}
+    prefetch={true}
     className={`flex flex-col items-center justify-center flex-1 py-2 transition-colors ${
       isActive ? "text-emerald-400" : "text-slate-400 hover:text-white"
     }`}
@@ -43,7 +44,7 @@ const NavLink: React.FC<{
   </Link>
 );
 
-const BottomNav: React.FC<BottomNavProps> = ({ profilePhotoUrl }) => {
+const BottomNav: React.FC<BottomNavProps> = React.memo(({ profilePhotoUrl }) => {
   const pathname = usePathname();
 
   const isActive = (path: string) => pathname === path;
@@ -79,6 +80,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ profilePhotoUrl }) => {
       </div>
     </nav>
   );
-};
+});
+
+BottomNav.displayName = "BottomNav";
 
 export default BottomNav;

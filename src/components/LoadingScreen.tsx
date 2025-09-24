@@ -5,7 +5,7 @@ interface LoadingScreenProps {
   message?: string;
 }
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({
+const LoadingScreen: React.FC<LoadingScreenProps> = React.memo(({
   message = "Cargando..."
 }) => {
   return (
@@ -17,6 +17,8 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
       <p className="text-lg text-white font-semibold">{message}</p>
     </div>
   );
-};
+});
+
+LoadingScreen.displayName = "LoadingScreen";
 
 export default LoadingScreen;
