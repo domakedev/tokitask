@@ -69,7 +69,9 @@ const DayView: React.FC<DayViewProps> = ({
   // Verificar si las tareas ya están organizadas (tienen aiDuration)
 
   useEffect(() => {
-    const areTasksOrganized = userData.dayTasks.filter(t => !t.completed).every(task => task.aiDuration && task.aiDuration.trim() !== '');
+    const areTasksOrganized = userData.dayTasks
+      .filter((t) => !t.completed)
+      .every((task) => task.aiDuration && task.aiDuration.trim() !== "");
     if (areTasksOrganized) {
       setAreOrganizedTasks(true);
     } else {
@@ -84,17 +86,15 @@ const DayView: React.FC<DayViewProps> = ({
   );
 
   const totalAiMinutes = userData.dayTasks
-    .filter(task => !task.completed)
-    .reduce(
-      (sum, task) => sum + parseDurationToMinutes(task.aiDuration),
-      0
-    );
+    .filter((task) => !task.completed)
+    .reduce((sum, task) => sum + parseDurationToMinutes(task.aiDuration), 0);
 
   const availableMinutes =
     parseDurationToMinutes(userData.endOfDay) -
     parseDurationToMinutes(currentTime);
 
-  const overloadMinutes = (areOrganizedTasks ? totalAiMinutes : totalBaseMinutes) - availableMinutes;
+  const overloadMinutes =
+    (areOrganizedTasks ? totalAiMinutes : totalBaseMinutes) - availableMinutes;
 
   // Determinar badges a mostrar
   const getOverloadBadges = () => {
@@ -105,67 +105,73 @@ const DayView: React.FC<DayViewProps> = ({
     const availableMins = availableMinutes % 60;
     badges.push({
       label: `Disponible: ${availableHours}h ${availableMins}min`,
-      variant: 'base' as const,
-      icon: 'clock'
+      variant: "base" as const,
+      icon: "clock",
     });
 
     // Badge de tiempo requerido/organizado
-    const requiredMinutes = areOrganizedTasks ? totalAiMinutes : totalBaseMinutes;
+    const requiredMinutes = areOrganizedTasks
+      ? totalAiMinutes
+      : totalBaseMinutes;
     const requiredHours = Math.floor(requiredMinutes / 60);
     const requiredMins = requiredMinutes % 60;
     badges.push({
-      label: areOrganizedTasks ? `Organizado: ${requiredHours}h ${requiredMins}min` : `Requerido: ${requiredHours}h ${requiredMins}min`,
-      variant: areOrganizedTasks ? ('ai' as const) : ('flexible' as const),
-      icon: 'timer'
+      label: areOrganizedTasks
+        ? `Organizado: ${requiredHours}h ${requiredMins}min`
+        : `Requerido: ${requiredHours}h ${requiredMins}min`,
+      variant: areOrganizedTasks ? ("ai" as const) : ("flexible" as const),
+      icon: "timer",
     });
 
     if (overloadMinutes > 0) {
       const overloadHours = Math.floor(overloadMinutes / 60);
-      let variant: BadgeProps['variant'];
-      let label = '';
+      let variant: BadgeProps["variant"];
+      let label = "";
 
       if (overloadHours >= 3) {
-        variant = 'danger' as const;
+        variant = "danger" as const;
         label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
       } else if (overloadHours >= 2) {
-        variant = 'danger' as const;
+        variant = "danger" as const;
         label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
       } else if (overloadHours >= 1) {
-        variant = 'alert' as const;
+        variant = "alert" as const;
         label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
       } else {
-        variant = 'success' as const;
+        variant = "success" as const;
         label = `Necesitas: +${overloadMinutes}min`;
       }
 
       badges.push({
         label,
         variant,
-        icon: 'trendingup'
+        icon: "trendingup",
       });
 
       // Badge de consejo solo si no está organizado
       if (!areOrganizedTasks) {
         badges.push({
-          label: '¡Organízate ahora!',
-          variant: 'ai' as const,
-          icon: 'lightbulb'
+          label: "¡Organízate ahora!",
+          variant: "ai" as const,
+          icon: "lightbulb",
         });
       }
       if (areOrganizedTasks) {
         // Badge positivo
         badges.push({
-          label: `¡Bien, ahora solo necesitas: ${overloadHours}h y ${overloadMinutes % 60} min más`,
-          variant: 'ai' as const,
-          icon: 'checkcircle'
+          label: `¡Bien, ahora solo necesitas: ${overloadHours}h y ${
+            overloadMinutes % 60
+          } min más`,
+          variant: "ai" as const,
+          icon: "checkcircle",
         });
       }
     } else {
       // Badge positivo
       badges.push({
-        label: '¡Bien, te sobra tiempo!',
-        variant: 'ai' as const,
-        icon: 'checkcircle'
+        label: "¡Bien, te sobra tiempo!",
+        variant: "ai" as const,
+        icon: "checkcircle",
       });
     }
 
@@ -186,10 +192,10 @@ const DayView: React.FC<DayViewProps> = ({
     });
 
     // Recalcular isCurrent: el primer no completado en el orden ordenado
-    const firstPendingIndex = tasks.findIndex(task => !task.completed);
+    const firstPendingIndex = tasks.findIndex((task) => !task.completed);
     return tasks.map((task, index) => ({
       ...task,
-      isCurrent: index === firstPendingIndex
+      isCurrent: index === firstPendingIndex,
     }));
   }, [userData.dayTasks]);
 
@@ -349,14 +355,14 @@ const DayView: React.FC<DayViewProps> = ({
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
             <p className="text-sm text-blue-300">
               <Icon name="info" className="inline mr-2 h-4 w-4" />
-              Aquí verás tus tareas semanales y de calendario para <strong>Hoy</strong>
-            </p>            
+              Aquí verás tus tareas semanales y de calendario para{" "}
+              <strong>Hoy</strong>
+            </p>
           </div>
         </div>
       </header>
       <main className="px-2 md:px-6 mt-2 md:mt-4">
         {/* Botones de copiar/pegar */}
-        <CopyPasteButtons />
         {userData.dayTasks.length > 0 ? (
           <>
             {aiTip && (
@@ -364,18 +370,21 @@ const DayView: React.FC<DayViewProps> = ({
                 <AiTipCard tip={aiTip} onDismiss={onDismissAiTip} />
               </div>
             )}
-            {overloadBadges.length > 0 && (
-              <div className="mb-2 md:mb-4 flex flex-wrap gap-2">
-                {overloadBadges.map((badge, index) => (
-                  <Badge
-                    key={index}
-                    label={badge.label}
-                    variant={badge.variant}
-                    icon={badge.icon}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="flex justify-around items-center mb-2">
+              {overloadBadges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {overloadBadges.map((badge, index) => (
+                    <Badge
+                      key={index}
+                      label={badge.label}
+                      variant={badge.variant}
+                      icon={badge.icon}
+                    />
+                  ))}
+                </div>
+              )}
+              <CopyPasteButtons />
+            </div>
             {viewMode === "list" ? (
               <TaskList
                 tasks={sortedTasks}
