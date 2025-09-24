@@ -1,19 +1,18 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuthStore } from "../../stores/authStore";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, userData, loading } = useAuth();
+  const user = useAuthStore(state => state.user);
+  const loading = useAuthStore(state => state.loading);
 
   useEffect(() => {
-    if (!loading && user && userData) {
+    if (!loading && user) {
       router.replace("/dashboard/day");
-    } else if (!loading && (!user || !userData)) {
-      router.replace("/");
     }
-  }, [user, userData, loading, router]);
+  }, [user, loading, router]);
 
   return null;
 }

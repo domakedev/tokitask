@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Page, WeekDay, BaseTask, GeneralTask, WEEKDAY_LABELS } from "../../../types";
-import { useAuth } from "../../../hooks/useAuth";
+import { useAuthStore } from "../../../stores/authStore";
 import { useTaskManagement } from "../../../hooks/useTaskManagement";
 import { useAiSync } from "../../../hooks/useAiSync";
 import { toast } from "react-toastify";
@@ -18,8 +18,9 @@ import { generateTaskId } from "../../../utils/idGenerator";
 export default function GeneralPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, userData, loading, authError, handleSignOut, setUserData } =
-    useAuth();
+  const user = useAuthStore(state => state.user);
+  const userData = useAuthStore(state => state.userData);
+  const setUserData = useAuthStore(state => state.setUserData);
 
   // Estado para trackear la pestaña activa en General
   const [activeGeneralTab, setActiveGeneralTab] = useState<WeekDay>(
@@ -655,20 +656,23 @@ export default function GeneralPage() {
     }
   }, [userData, tempEndOfDay, handleUpdateUserData]);
 
-  // Handle redirect to login when user is not authenticated
-  useEffect(() => {
-    if (!loading && (!user || !userData)) {
-      router.push("/");
-    }
-  }, [user, userData, loading, router]);
-
   const handleSaveTaskForDayWrapper = useCallback((task: BaseTask | Omit<BaseTask, "id">, day: WeekDay) => {
     // Wrapper to maintain compatibility, but since we now use selectedDays, this might not be called
     handleSaveTaskContextual(task, [day]);
   }, [handleSaveTaskContextual]);
 
   const generalViewComponent = useMemo(() => {
-    if (!userData) return null;
+    if (!userData) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
+          <Icon
+            name="loader"
+            className="h-12 w-12 animate-spin text-emerald-400 mb-4"
+          />
+          <p className="text-lg text-white font-semibold">Cargando datos...</p>
+        </div>
+      );
+    }
     return (
       <GeneralView
         userData={userData}
@@ -711,27 +715,6 @@ export default function GeneralPage() {
     handleGeneralTabChange,
     generalViewMode,
   ]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
-        <Icon
-          name="loader"
-          className="h-12 w-12 animate-spin text-emerald-400 mb-4"
-        />
-        <p className="text-lg text-white font-semibold">Cargando...</p>
-      </div>
-    );
-  }
-
-  if (authError) {
-    return <FirebaseErrorScreen />;
-  }
-
-  // Don't render anything while loading or if redirecting
-  if (loading || !user || !userData) {
-    return null;
-  }
 
   return (
     <div className="max-w-2xl mx-auto pb-28">

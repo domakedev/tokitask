@@ -1,8 +1,14 @@
 "use client";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Page, WeekDay, BaseTask, GeneralTask, WEEKDAY_LABELS } from "../../../types";
-import { useAuth } from "../../../hooks/useAuth";
+import {
+  Page,
+  WeekDay,
+  BaseTask,
+  GeneralTask,
+  WEEKDAY_LABELS,
+} from "../../../types";
+import { useAuthStore } from "../../../stores/authStore";
 import { useTaskManagement } from "../../../hooks/useTaskManagement";
 import { useAiSync } from "../../../hooks/useAiSync";
 import { toast } from "react-toastify";
@@ -17,8 +23,9 @@ import { generateTaskId } from "../../../utils/idGenerator";
 
 export default function DayPage() {
   const router = useRouter();
-  const { user, userData, loading, authError, handleSignOut, setUserData } =
-    useAuth();
+  const user = useAuthStore(state => state.user);
+  const userData = useAuthStore(state => state.userData);
+  const setUserData = useAuthStore(state => state.setUserData);
 
   const [showClearConfirmation, setShowClearConfirmation] = useState(false);
 
@@ -57,7 +64,7 @@ export default function DayPage() {
 
   // Función para navegar al calendario de General
   const handleNavigateToGeneralCalendar = useCallback(() => {
-    router.push('/dashboard/general?mode=calendar');
+    router.push("/dashboard/general?mode=calendar");
   }, [router]);
 
   const {
@@ -84,15 +91,18 @@ export default function DayPage() {
     setShowConfirmation(false);
   }, [handleCloneDaySchedule, setShowConfirmation]);
 
-  // Handle redirect to login when user is not authenticated
-  useEffect(() => {
-    if (!loading && (!user || !userData)) {
-      router.push("/");
-    }
-  }, [user, userData, loading, router]);
-
   const dayViewComponent = useMemo(() => {
-    if (!userData) return null;
+    if (!userData) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
+          <Icon
+            name="loader"
+            className="h-12 w-12 animate-spin text-emerald-400 mb-4"
+          />
+          <p className="text-lg text-white font-semibold">Cargando datos...</p>
+        </div>
+      );
+    }
     return (
       <DayView
         userData={userData}
@@ -134,27 +144,6 @@ export default function DayPage() {
     handleNavigateToGeneralCalendar,
   ]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
-        <Icon
-          name="loader"
-          className="h-12 w-12 animate-spin text-emerald-400 mb-4"
-        />
-        <p className="text-lg text-white font-semibold">Cargando...</p>
-      </div>
-    );
-  }
-
-  if (authError) {
-    return <FirebaseErrorScreen />;
-  }
-
-  // Don't render anything while loading or if redirecting
-  if (loading || !user || !userData) {
-    return null;
-  }
-
   return (
     <div className="max-w-2xl mx-auto pb-28">
       {dayViewComponent}
@@ -163,7 +152,7 @@ export default function DayPage() {
         className="fixed bottom-20 md:bottom-24 right-4 md:right-6 flex flex-col items-center z-20"
         style={{ width: "56px" }}
       >
-        {userData.dayTasks.length > 0 && (
+        {(userData?.dayTasks?.length ?? 0) > 0 && (
           <>
             <button
               onClick={() => setShowClearConfirmation(true)}
