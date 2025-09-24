@@ -23,6 +23,50 @@ const calculateDurationFromTimes = (startTime: string, endTime: string): string 
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 };
 
+// Función para convertir de 24 horas a 12 horas
+const convertTo12Hour = (hour24: string) => {
+    const h = parseInt(hour24, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return { hour12: hour12.toString().padStart(2, '0'), ampm };
+};
+
+// Función para convertir de 12 horas a 24 horas
+const convertTo24Hour = (hour12: string, ampm: string) => {
+    let h = parseInt(hour12, 10);
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return h.toString().padStart(2, '0');
+};
+
+// Opciones para horas en formato 12 horas (no usado, pero mantener por si acaso)
+const hourOptions = [
+    { value: '00', label: '12 AM' },
+    { value: '01', label: '1 AM' },
+    { value: '02', label: '2 AM' },
+    { value: '03', label: '3 AM' },
+    { value: '04', label: '4 AM' },
+    { value: '05', label: '5 AM' },
+    { value: '06', label: '6 AM' },
+    { value: '07', label: '7 AM' },
+    { value: '08', label: '8 AM' },
+    { value: '09', label: '9 AM' },
+    { value: '10', label: '10 AM' },
+    { value: '11', label: '11 AM' },
+    { value: '12', label: '12 PM' },
+    { value: '13', label: '1 PM' },
+    { value: '14', label: '2 PM' },
+    { value: '15', label: '3 PM' },
+    { value: '16', label: '4 PM' },
+    { value: '17', label: '5 PM' },
+    { value: '18', label: '6 PM' },
+    { value: '19', label: '7 PM' },
+    { value: '20', label: '8 PM' },
+    { value: '21', label: '9 PM' },
+    { value: '22', label: '10 PM' },
+    { value: '23', label: '11 PM' },
+];
+
 interface TaskModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -44,13 +88,18 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
     const [selectedDays, setSelectedDays] = useState<WeekDay[]>([]);
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
+    const [startHour12, setStartHour12] = useState('');
+    const [startAmPm, setStartAmPm] = useState('');
+    const [startMinutes, setStartMinutes] = useState('');
+    const [endHour12, setEndHour12] = useState('');
+    const [endAmPm, setEndAmPm] = useState('');
+    const [endMinutes, setEndMinutes] = useState('');
     const [scheduledDate, setScheduledDate] = useState('');
     const [validationError, setValidationError] = useState('');
     const isEditing = !!taskToEdit;
 
     // Función para manejar cambios en startTime y calcular automáticamente endTime o duration
     const handleStartTimeChange = (value: string) => {
-        setStartTime(value);
         if (value && endTime) {
             // Si hay endTime, calcular duration
             const newDuration = calculateDurationFromTimes(value, endTime);
@@ -60,12 +109,17 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
             const durationMinutes = parseDurationToMinutes(duration);
             const newEndTime = addMinutesToTime(value, durationMinutes);
             setEndTime(newEndTime);
+            // También actualizar endHour12, endAmPm y endMinutes
+            const [h, m] = newEndTime.split(':');
+            const { hour12, ampm } = convertTo12Hour(h);
+            setEndHour12(hour12);
+            setEndAmPm(ampm);
+            setEndMinutes(m);
         }
     };
 
     // Función para manejar cambios en endTime y calcular automáticamente startTime o duration
     const handleEndTimeChange = (value: string) => {
-        setEndTime(value);
         if (value && startTime) {
             // Si hay startTime, calcular duration
             const newDuration = calculateDurationFromTimes(startTime, value);
@@ -75,6 +129,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
             const durationMinutes = parseDurationToMinutes(duration);
             const newStartTime = addMinutesToTime(value, -durationMinutes);
             setStartTime(newStartTime);
+            // También actualizar startHour12, startAmPm y startMinutes
+            const [h, m] = newStartTime.split(':');
+            const { hour12, ampm } = convertTo12Hour(h);
+            setStartHour12(hour12);
+            setStartAmPm(ampm);
+            setStartMinutes(m);
         }
     };
 
@@ -85,6 +145,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
             const durationMinutes = parseDurationToMinutes(newDuration);
             const newEndTime = addMinutesToTime(startTime, durationMinutes);
             setEndTime(newEndTime);
+            // También actualizar endHour12, endAmPm y endMinutes
+            const [h, m] = newEndTime.split(':');
+            const { hour12, ampm } = convertTo12Hour(h);
+            setEndHour12(hour12);
+            setEndAmPm(ampm);
+            setEndMinutes(m);
         }
     };
 
@@ -104,6 +170,28 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 setIsHabit(taskToEdit.isHabit ?? false);
                 setStartTime(taskToEdit.startTime || '');
                 setEndTime(taskToEdit.endTime || '');
+                if (taskToEdit.startTime) {
+                    const [h, m] = taskToEdit.startTime.split(':');
+                    const { hour12, ampm } = convertTo12Hour(h);
+                    setStartHour12(hour12);
+                    setStartAmPm(ampm);
+                    setStartMinutes(m);
+                } else {
+                    setStartHour12('');
+                    setStartAmPm('');
+                    setStartMinutes('');
+                }
+                if (taskToEdit.endTime) {
+                    const [h, m] = taskToEdit.endTime.split(':');
+                    const { hour12, ampm } = convertTo12Hour(h);
+                    setEndHour12(hour12);
+                    setEndAmPm(ampm);
+                    setEndMinutes(m);
+                } else {
+                    setEndHour12('');
+                    setEndAmPm('');
+                    setEndMinutes('');
+                }
                 setScheduledDate(taskToEdit.scheduledDate || '');
                 // For editing, don't show day selection or preselect days
                 setSelectedDays([]);
@@ -116,12 +204,42 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                 setIsHabit(false);
                 setStartTime('');
                 setEndTime('');
+                setStartHour12('');
+                setStartAmPm('');
+                setStartMinutes('');
+                setEndHour12('');
+                setEndAmPm('');
+                setEndMinutes('');
                 setScheduledDate(initialScheduledDate || '');
                 // Preselect current day if provided
                 setSelectedDays(currentDay ? [currentDay] : []);
             }
         }
     }, [isOpen, taskToEdit, isEditing, currentDay]);
+
+    // useEffect para sincronizar startTime con startHour12, startAmPm y startMinutes
+    useEffect(() => {
+        if (startHour12 && startAmPm && startMinutes) {
+            const startHours = convertTo24Hour(startHour12, startAmPm);
+            const newStartTime = `${startHours}:${startMinutes}`;
+            setStartTime(newStartTime);
+            handleStartTimeChange(newStartTime);
+        } else {
+            setStartTime('');
+        }
+    }, [startHour12, startAmPm, startMinutes]);
+
+    // useEffect para sincronizar endTime con endHour12, endAmPm y endMinutes
+    useEffect(() => {
+        if (endHour12 && endAmPm && endMinutes) {
+            const endHours = convertTo24Hour(endHour12, endAmPm);
+            const newEndTime = `${endHours}:${endMinutes}`;
+            setEndTime(newEndTime);
+            handleEndTimeChange(newEndTime);
+        } else {
+            setEndTime('');
+        }
+    }, [endHour12, endAmPm, endMinutes]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -245,23 +363,80 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                         {/* Campos de horario opcionales */}
                         <div className="mb-4 flex items-end gap-4 justify-between">
                             <div>
-                                <label htmlFor="start-time" className="block text-xs font-medium text-slate-300 mb-1">Hora de inicio (opcional)</label>
-                                <input
-                                    type="time"
-                                    id="start-time"
-                                    value={startTime}
-                                    onChange={(e) => handleStartTimeChange(e.target.value)}
-                                    min="00:01"
-                                    max="23:59"
-                                    className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                />
+                                <label className="block text-xs font-medium text-slate-300 mb-1">Hora de inicio (opcional)</label>
+                                <div className="flex gap-2 mb-2">
+                                    <div className="flex-1">
+                                        <label htmlFor="start-hours" className="block text-xs font-medium text-slate-400 mb-1">Horas</label>
+                                        <select
+                                            id="start-hours"
+                                            value={startHour12}
+                                            onChange={(e) => {
+                                                setStartHour12(e.target.value);
+                                                if (e.target.value && !startMinutes) setStartMinutes('00');
+                                            }}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            <option value="">--</option>
+                                            {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((hour) => (
+                                                <option key={hour} value={hour}>
+                                                    {hour}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex-1">
+                                        <label htmlFor="start-minutes" className="block text-xs font-medium text-slate-400 mb-1">Minutos</label>
+                                        <select
+                                            id="start-minutes"
+                                            value={startMinutes}
+                                            onChange={(e) => setStartMinutes(e.target.value)}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            <option value="">--</option>
+                                            {[0, 10, 20, 30, 40, 50].map((min) => (
+                                                <option key={min} value={min.toString().padStart(2, '0')}>
+                                                    {min.toString().padStart(2, '0')}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Badge
+                                        label="AM"
+                                        selected={startAmPm === 'AM'}
+                                        onClick={() => {
+                                            setStartAmPm('AM');
+                                            if (!startMinutes) setStartMinutes('00');
+                                        }}
+                                        variant="hour"
+                                    />
+                                    <Badge
+                                        label="PM"
+                                        selected={startAmPm === 'PM'}
+                                        onClick={() => {
+                                            setStartAmPm('PM');
+                                            if (!startMinutes) setStartMinutes('00');
+                                        }}
+                                        variant="hour"
+                                    />
+                                </div>
                             </div>
                             {/* si existe hora de inicio/fin, mostrar botón de limpiar */}
                             {(startTime || endTime) && (
                             <div>
                                 <button
                                     type="button"
-                                    onClick={() => { setStartTime(''); setEndTime(''); }}
+                                    onClick={() => {
+                                        setStartTime('');
+                                        setEndTime('');
+                                        setStartHour12('');
+                                        setStartAmPm('');
+                                        setStartMinutes('');
+                                        setEndHour12('');
+                                        setEndAmPm('');
+                                        setEndMinutes('');
+                                    }}
                                     className="flex items-center gap-1 px-2 py-1 text-xs bg-slate-700 text-slate-400 hover:text-slate-300 hover:bg-red-600 rounded transition-colors"
                                 >
                                     <Icon name="cleaningbrush" className="h-3 w-3" />
@@ -270,18 +445,66 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                             </div>
                             )}
                             <div>
-                                <label htmlFor="end-time" className="block text-xs font-medium text-slate-300 mb-1">Hora de fin (opcional)</label>
-                                <input
-                                    type="time"
-                                    id="end-time"
-                                    value={endTime}
-                                    onChange={(e) => handleEndTimeChange(e.target.value)}
-                                    min="00:01"
-                                    max="23:59"
-                                    className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                />
+                                <label className="block text-xs font-medium text-slate-300 mb-1">Hora de fin (opcional)</label>
+                                <div className="flex gap-2 mb-2">
+                                    <div className="flex-1">
+                                        <label htmlFor="end-hours" className="block text-xs font-medium text-slate-400 mb-1">Horas</label>
+                                        <select
+                                            id="end-hours"
+                                            value={endHour12}
+                                            onChange={(e) => {
+                                                setEndHour12(e.target.value);
+                                                if (e.target.value && !endMinutes) setEndMinutes('00');
+                                            }}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            <option value="">--</option>
+                                            {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((hour) => (
+                                                <option key={hour} value={hour}>
+                                                    {hour}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex-1">
+                                        <label htmlFor="end-minutes" className="block text-xs font-medium text-slate-400 mb-1">Minutos</label>
+                                        <select
+                                            id="end-minutes"
+                                            value={endMinutes}
+                                            onChange={(e) => setEndMinutes(e.target.value)}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            <option value="">--</option>
+                                            {[0, 10, 20, 30, 40, 50].map((min) => (
+                                                <option key={min} value={min.toString().padStart(2, '0')}>
+                                                    {min.toString().padStart(2, '0')}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Badge
+                                        label="AM"
+                                        selected={endAmPm === 'AM'}
+                                        onClick={() => {
+                                            setEndAmPm('AM');
+                                            if (!endMinutes) setEndMinutes('00');
+                                        }}
+                                        variant="hour"
+                                    />
+                                    <Badge
+                                        label="PM"
+                                        selected={endAmPm === 'PM'}
+                                        onClick={() => {
+                                            setEndAmPm('PM');
+                                            if (!endMinutes) setEndMinutes('00');
+                                        }}
+                                        variant="hour"
+                                    />
+                                </div>
                             </div>
-                        
+
                         </div>
 
                         {showScheduledDateField ? (

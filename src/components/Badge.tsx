@@ -17,7 +17,8 @@ export interface BadgeProps {
     | "alert"
     | 'danger'
     | 'success'
-    | 'blocked';
+    | 'blocked'
+    | 'hour';
   selected?: boolean;
   onClick?: () => void;
   className?: string;
@@ -58,6 +59,8 @@ const Badge: React.FC<BadgeProps> = ({
         return "bg-green-700 text-green-300 border-green-500/30";
       case 'blocked':
           return 'bg-gray-700 text-gray-300 border-gray-500/30';
+      case 'hour':
+          return 'bg-indigo-700 text-indigo-300 border-indigo-500/30';
       default:
         return "bg-slate-600 text-slate-400 border-slate-500/30";
     }
