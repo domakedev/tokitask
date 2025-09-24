@@ -33,7 +33,8 @@ import {
   Copy,
   Clipboard,
   ChevronDown,
-  ArrowBigRightDashIcon
+  ArrowBigRightDashIcon,
+  BrushCleaning
 } from "lucide-react";
 
 interface IconProps {
@@ -75,7 +76,8 @@ const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> 
   copy: Copy,
   clipboard: Clipboard,
   chevrondown: ChevronDown,
-  arrowbigrightdash: ArrowBigRightDashIcon
+  arrowbigrightdash: ArrowBigRightDashIcon,
+  cleaningbrush: BrushCleaning
 };
 
 const Icon: React.FC<IconProps> = ({ name, className = "h-6 w-6" }) => {

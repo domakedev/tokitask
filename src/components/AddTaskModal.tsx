@@ -100,8 +100,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
             priority,
             flexibleTime,
             isHabit,
-            ...(startTime && { startTime }),
-            ...(endTime && { endTime }),
+            startTime: startTime || '',
+            endTime: endTime || '',
             scheduledDate: showScheduledDateField ? (scheduledDate || "") : (taskToEdit?.scheduledDate || ""), // Mantener fecha existente si no se puede editar
         };
 
@@ -185,7 +185,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                         </div>
 
                         {/* Campos de horario opcionales */}
-                        <div className="mb-4 grid grid-cols-2 gap-4">
+                        <div className="mb-4 flex items-end gap-4 justify-between">
                             <div>
                                 <label htmlFor="start-time" className="block text-xs font-medium text-slate-300 mb-1">Hora de inicio (opcional)</label>
                                 <input
@@ -198,6 +198,19 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                     className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                             </div>
+                            {/* si existe hora de inicio/fin, mostrar botón de limpiar */}
+                            {(startTime || endTime) && (
+                            <div>
+                                <button
+                                    type="button"
+                                    onClick={() => { setStartTime(''); setEndTime(''); }}
+                                    className="flex items-center gap-1 px-2 py-1 text-xs bg-slate-700 text-slate-400 hover:text-slate-300 hover:bg-red-600 rounded transition-colors"
+                                >
+                                    <Icon name="cleaningbrush" className="h-3 w-3" />
+                                    Limpiar
+                                </button>
+                            </div>
+                            )}
                             <div>
                                 <label htmlFor="end-time" className="block text-xs font-medium text-slate-300 mb-1">Hora de fin (opcional)</label>
                                 <input
@@ -210,6 +223,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                     className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                             </div>
+                        
                         </div>
 
                         {showScheduledDateField ? (
