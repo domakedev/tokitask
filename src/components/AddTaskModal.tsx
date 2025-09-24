@@ -5,6 +5,24 @@ import { parseDurationToMinutes, calculateTimeDifferenceInMinutes, formatDateStr
 import Badge from './Badge';
 import Icon from './Icon';
 
+// Función auxiliar para sumar minutos a una hora y devolver la nueva hora en formato HH:MM
+const addMinutesToTime = (time: string, minutesToAdd: number): string => {
+    const [hours, mins] = time.split(':').map(Number);
+    const totalMinutes = hours * 60 + mins + minutesToAdd;
+    const newHours = Math.floor(totalMinutes / 60) % 24;
+    const newMins = totalMinutes % 60;
+    return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
+};
+
+// Función auxiliar para calcular duración entre dos horas, redondeando minutos a múltiplo de 10 más cercano
+const calculateDurationFromTimes = (startTime: string, endTime: string): string => {
+    const diffMinutes = calculateTimeDifferenceInMinutes(startTime, endTime);
+    if (diffMinutes <= 0) return '00:00';
+    const hours = Math.floor(diffMinutes / 60);
+    const mins = Math.round((diffMinutes % 60) / 10) * 10; // Redondear a múltiplo de 10
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+};
+
 interface TaskModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -29,6 +47,46 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
     const [scheduledDate, setScheduledDate] = useState('');
     const [validationError, setValidationError] = useState('');
     const isEditing = !!taskToEdit;
+
+    // Función para manejar cambios en startTime y calcular automáticamente endTime o duration
+    const handleStartTimeChange = (value: string) => {
+        setStartTime(value);
+        if (value && endTime) {
+            // Si hay endTime, calcular duration
+            const newDuration = calculateDurationFromTimes(value, endTime);
+            setDuration(newDuration);
+        } else if (value && duration) {
+            // Si hay duration, calcular endTime
+            const durationMinutes = parseDurationToMinutes(duration);
+            const newEndTime = addMinutesToTime(value, durationMinutes);
+            setEndTime(newEndTime);
+        }
+    };
+
+    // Función para manejar cambios en endTime y calcular automáticamente startTime o duration
+    const handleEndTimeChange = (value: string) => {
+        setEndTime(value);
+        if (value && startTime) {
+            // Si hay startTime, calcular duration
+            const newDuration = calculateDurationFromTimes(startTime, value);
+            setDuration(newDuration);
+        } else if (value && duration) {
+            // Si hay duration, calcular startTime
+            const durationMinutes = parseDurationToMinutes(duration);
+            const newStartTime = addMinutesToTime(value, -durationMinutes);
+            setStartTime(newStartTime);
+        }
+    };
+
+    // Función para manejar cambios en duration y calcular endTime si hay startTime
+    const handleDurationChange = (newDuration: string) => {
+        setDuration(newDuration);
+        if (startTime) {
+            const durationMinutes = parseDurationToMinutes(newDuration);
+            const newEndTime = addMinutesToTime(startTime, durationMinutes);
+            setEndTime(newEndTime);
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -149,7 +207,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                         onChange={(e) => {
                                             const hours = e.target.value;
                                             const minutes = duration.split(':')[1] || '00';
-                                            setDuration(`${hours}:${minutes}`);
+                                            handleDurationChange(`${hours}:${minutes}`);
                                         }}
                                         className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         required
@@ -169,7 +227,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                         onChange={(e) => {
                                             const hours = duration.split(':')[0] || '00';
                                             const minutes = e.target.value;
-                                            setDuration(`${hours}:${minutes}`);
+                                            handleDurationChange(`${hours}:${minutes}`);
                                         }}
                                         className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         required
@@ -192,7 +250,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                     type="time"
                                     id="start-time"
                                     value={startTime}
-                                    onChange={(e) => setStartTime(e.target.value)}
+                                    onChange={(e) => handleStartTimeChange(e.target.value)}
                                     min="00:01"
                                     max="23:59"
                                     className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -217,7 +275,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                     type="time"
                                     id="end-time"
                                     value={endTime}
-                                    onChange={(e) => setEndTime(e.target.value)}
+                                    onChange={(e) => handleEndTimeChange(e.target.value)}
                                     min="00:01"
                                     max="23:59"
                                     className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
