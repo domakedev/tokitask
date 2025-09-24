@@ -199,7 +199,6 @@ const DayView: React.FC<DayViewProps> = ({
 
     // Recalcular isCurrent: el primer no completado en el orden ordenado
     const firstPendingIndex = tasks.findIndex((task) => !task.completed);
-    toast.success("Aqui se ordenan cronológicamente.");
     return tasks.map((task, index) => ({
       ...task,
       isCurrent: index === firstPendingIndex,
