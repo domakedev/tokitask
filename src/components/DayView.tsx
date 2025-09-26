@@ -100,7 +100,12 @@ const DayView: React.FC<DayViewProps> = ({
 
   // Calcular estadísticas de completadas
   const completedCount = userData.dayTasks.filter(task => task.completed).length;
-  const totalTasks = userData.dayTasks.length;
+
+  // Calcular total de tareas programadas para hoy (no las clonadas)
+  const today = new Date().toLocaleDateString('en-CA');
+  const currentWeekDay = getCurrentWeekDay();
+  const scheduledTasks = userData.calendarTasks?.filter(task => task.scheduledDate === today) || [];
+  const totalTasks = userData.generalTasks.length + (userData.weeklyTasks?.[currentWeekDay]?.length || 0) + scheduledTasks.length;
 
   // Determinar badges a mostrar
   const getOverloadBadges = () => {
