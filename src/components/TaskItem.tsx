@@ -42,12 +42,12 @@ const TaskItem: React.FC<
   ...divProps
 }) => {
   const getTaskSpecificClasses = () => {
-    if (!isDaily) {
-      return "border-slate-600 bg-slate-800";
-    }
     if (task.completed) {
       // Fainter border and opacity for completed tasks
       return "border-slate-700 bg-slate-800 opacity-50";
+    }
+    if (!isDaily) {
+      return "border-slate-600 bg-slate-800";
     }
     if (task.isCurrent) {
       // Prominent border for the current task

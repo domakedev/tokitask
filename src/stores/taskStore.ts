@@ -308,9 +308,26 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         });
         const recalculatedTasks = get().recalculateCurrentDayTask(updatedTasks);
         setDayTasks(recalculatedTasks);
+
+        // Si la tarea completada/incompletada vino de calendarTasks, actualizar también calendarTasks
+        let updatedCalendarTasks = calendarTasks || [];
+        const dayTask = dayTasks.find((t) => t.id === taskId);
+        if (dayTask && taskProgressId) {
+          const today = new Date().toLocaleDateString('en-CA');
+          const calendarTaskIndex = updatedCalendarTasks.findIndex(ct => ct.progressId === taskProgressId && ct.scheduledDate === today);
+          if (calendarTaskIndex !== -1) {
+            const newCompleted = !dayTask.completed; // The new completed status for dayTask
+            updatedCalendarTasks = updatedCalendarTasks.map((ct, index) =>
+              index === calendarTaskIndex ? { ...ct, completed: newCompleted } : ct
+            );
+            setCalendarTasks(updatedCalendarTasks);
+          }
+        }
+
         const updatedUserData = {
           ...userData,
           dayTasks: recalculatedTasks,
+          calendarTasks: updatedCalendarTasks,
           taskCompletionsByProgressId: completions,
         };
         await updateUserData(user.uid, updatedUserData);

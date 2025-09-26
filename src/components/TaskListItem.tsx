@@ -160,9 +160,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
         {/* Primera fila: nombre y acciones */}
         <div className="relative flex items-start justify-between gap-2">
           <p
-            className={`font-semibold text-white text-sm md:text-base truncate flex-1 ${
-              isDaily && task.completed ? "line-through" : ""
-            }`}
+            className={`font-semibold text-white text-sm md:text-base truncate flex-1 ${task.completed ? "line-through" : ""}`}
           >
             {task.name}
           </p>
