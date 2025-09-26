@@ -26,6 +26,7 @@ interface DayViewProps {
   onStartDay: () => void;
   onSyncWithAI: () => void;
   onSyncWithPseudoAI: () => void;
+  onGetAiAdvice: () => Promise<void>;
   onToggleComplete: (id: string) => void;
   onDelete: (id: string) => void;
   onReorder: (tasks: (DayTask | GeneralTask)[]) => Promise<void>;
@@ -46,6 +47,7 @@ const DayView: React.FC<DayViewProps> = ({
   onStartDay,
   onSyncWithAI,
   onSyncWithPseudoAI,
+  onGetAiAdvice,
   onToggleComplete,
   onDelete,
   onReorder,
@@ -327,6 +329,16 @@ const DayView: React.FC<DayViewProps> = ({
             className="flex-1 w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSyncing ? "Calculando..." : "Organización Express⚡"}
+          </button>
+
+          <button
+            onClick={onGetAiAdvice}
+            disabled={
+              isSyncing || userData.dayTasks.length === 0
+            }
+            className="flex-1 w-full bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSyncing ? "Pensando..." : "Pedir consejo a IA 💡"}
           </button>
 
           <style jsx global>{`

@@ -84,6 +84,7 @@ export default function DayPage() {
     syncWithPseudoAI,
     handleUpdateAiDuration,
     handleCloneDaySchedule,
+    getAiAdvice,
   } = useAiSync(userData, handleUpdateUserData, showNotification);
 
   // Función para mostrar el modal de confirmación antes de clonar
@@ -96,6 +97,16 @@ export default function DayPage() {
     await handleCloneDaySchedule();
     setShowConfirmation(false);
   }, [handleCloneDaySchedule, setShowConfirmation]);
+
+  // Función para pedir consejo a la IA
+  const handleGetAiAdvice = useCallback(async () => {
+    if (!userData?.dayTasks) return;
+    const advice = await getAiAdvice(userData.dayTasks);
+    if (advice) {
+      setAiTip(advice);
+      showNotification("Consejo recibido de la IA.", "success");
+    }
+  }, [userData?.dayTasks, getAiAdvice, setAiTip, showNotification]);
 
   const dayViewComponent = useMemo(() => {
     if (!userData) {
@@ -110,6 +121,7 @@ export default function DayPage() {
         onStartDay={handleShowCloneConfirmation}
         onSyncWithAI={syncWithAI}
         onSyncWithPseudoAI={syncWithPseudoAI}
+        onGetAiAdvice={handleGetAiAdvice}
         onToggleComplete={handleToggleComplete}
         onDelete={handleDeleteTask}
         onReorder={handleReorderTasks}
@@ -130,6 +142,7 @@ export default function DayPage() {
     handleShowCloneConfirmation,
     syncWithAI,
     syncWithPseudoAI,
+    handleGetAiAdvice,
     handleToggleComplete,
     handleDeleteTask,
     handleReorderTasks,

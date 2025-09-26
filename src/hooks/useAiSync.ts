@@ -681,6 +681,37 @@ export const useAiSync = (
     ]
   );
 
+  const getAiAdvice = useCallback(
+    async (tasks: DayTask[]) => {
+      if (!userData) return null;
+
+      try {
+        const response = await fetch('/api/advice', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tasks: tasks,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error al obtener consejo de la IA');
+        }
+
+        const { advice } = await response.json();
+        return advice;
+      } catch (error) {
+        console.error("Error getting AI advice:", error);
+        showNotification("Error al obtener consejo de la IA.", "error");
+        return null;
+      }
+    },
+    [userData, showNotification]
+  );
+
   return {
     isSyncing,
     aiTip,
@@ -692,5 +723,6 @@ export const useAiSync = (
     syncWithPseudoAI,
     handleUpdateAiDuration,
     handleCloneDaySchedule,
+    getAiAdvice,
   };
 };
