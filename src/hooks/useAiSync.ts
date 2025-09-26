@@ -16,7 +16,7 @@ export const useAiSync = (
   showNotification: (message: string, type?: "success" | "error") => void
 ) => {
   const [isSyncing, setIsSyncing] = useState(false);
-  const [aiTip, setAiTip] = useState<string | null>(null);
+  const [aiTip, setAiTip] = useState<{ message: string; type: 'tip' | 'warning' } | null>(null);
   const [freeTime, setFreeTime] = useState<string | null>(null);
   const [tempEndOfDay, setTempEndOfDay] = useState<string>(userData?.endOfDay || "18:00");
   const lastSyncRef = useRef<Date | null>(null);
@@ -198,7 +198,7 @@ export const useAiSync = (
 
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
-        setAiTip(tip || null);
+        setAiTip(tip ? { message: tip, type: 'tip' } : null);
         showNotification("Horario actualizado con IA.", "success");
         lastSyncRef.current = new Date();
       } catch (error) {
@@ -330,6 +330,7 @@ export const useAiSync = (
       setIsSyncing(true);
 
       try {
+        console.log("🚀 ~ useAiSync ~ userData.dayTasks IIIII:", userData.dayTasks)
         // --- 1. PREPARACIÓN INICIAL (sin cambios) ---
         const tasksForSync = userData.dayTasks || [];
         const endOfDayForSync =
@@ -429,6 +430,8 @@ export const useAiSync = (
         // NUEVA LÓGICA: RESPETAR HORARIOS FIJOS Y LLENAR ESPACIOS CON FLEXIBLES
         // =================================================================================
 
+        const warnings: string[] = [];
+
         // --- FASE 1: Crear estructura de tiempo con tareas fijas ---
         interface TimeSlot {
           startTime: string;
@@ -441,9 +444,24 @@ export const useAiSync = (
         let currentTime = HORA_INICIO_ALINEADA;
 
         // Ordenar tareas fijas por hora de inicio
-        const tareasFixasOrdenadas = [...tareasConHorarioFijo].sort((a, b) =>
-          (a.startTime || '').localeCompare(b.startTime || '')
-        );
+        const tareasFixasOrdenadas = [...tareasConHorarioFijo]
+          .map(tarea => {
+            const start = tarea.startTime!;
+            const end = tarea.endTime!;
+            console.log("🚀 ~ useAiSync ~ userTime >= end:", {userTime, end})
+            if (userTime >= end) {
+              // Omitir tarea porque ya terminó
+              warnings.push(`La tarea "${tarea.name}" no se pudo programar porque su horario de inicio o fin estaba fuera de tiempo.`);
+              return null;
+            } else if (userTime > start) {
+              // Ajustar startTime a la hora actual
+              return { ...tarea, startTime: userTime };
+            } else {
+              return tarea;
+            }
+          })
+          .filter(tarea => tarea !== null)
+          .sort((a, b) => (a!.startTime || '').localeCompare(b!.startTime || ''));
 
         // Colocar tareas fijas y crear espacios libres entre ellas
         for (const tareaFija of tareasFixasOrdenadas) {
@@ -650,7 +668,11 @@ export const useAiSync = (
           if (!tareasFlexiblesProcesadas.has(tareaNoFlexible.id)) {
             const duracionExacta = tareaNoFlexible.baseDurationMinutes;
             const taskEndTime = addMinutesToTime(tiempoFinal, duracionExacta);
-            
+
+            if (taskEndTime > HORA_FIN) {
+              warnings.push(`La tarea "${tareaNoFlexible.name}" excede la hora de fin del día.`);
+            }
+
             const formattedAiDuration = duracionExacta >= 60
               ? `${Math.floor(duracionExacta / 60).toString().padStart(2, '0')}:${(duracionExacta % 60).toString().padStart(2, '0')}`
               : `00:${(duracionExacta % 60).toString().padStart(2, '0')}`;
@@ -710,11 +732,17 @@ export const useAiSync = (
           endOfDay: endOfDayForSync,
         };
 
+        console.log("🚀 ~ useAiSync ~ updatedUserData OOOOOOO:", updatedUserData.dayTasks)
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
-        setAiTip(
-          "Planificación local completa. ¡Revisa tu horario actualizado! Las tareas con horarios fijos se respetan completamente."
-        );
+        if (warnings.length > 0) {
+          setAiTip({ message: warnings.join('\n'), type: 'warning' });
+        } else {
+          setAiTip({
+            message: "Planificación local completa. ¡Revisa tu horario actualizado! Las tareas con horarios fijos se respetan completamente.",
+            type: 'tip'
+          });
+        }
         showNotification("Horario calculado localmente.", "success");
       } catch (error) {
         console.error("Error in pseudoAI sync:", error);

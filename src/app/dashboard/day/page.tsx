@@ -103,7 +103,7 @@ export default function DayPage() {
     if (!userData?.dayTasks) return;
     const advice = await getAiAdvice(userData.dayTasks);
     if (advice) {
-      setAiTip(advice);
+      setAiTip({ message: advice, type: 'tip' });
       showNotification("Consejo recibido de la IA.", "success");
     }
   }, [userData?.dayTasks, getAiAdvice, setAiTip, showNotification]);

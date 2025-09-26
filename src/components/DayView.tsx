@@ -21,7 +21,7 @@ import { toast } from "react-toastify";
 interface DayViewProps {
   userData: UserData;
   isSyncing: boolean;
-  aiTip: string | null;
+  aiTip: { message: string; type: 'tip' | 'warning' } | null;
   freeTime: string | null;
   onStartDay: () => void;
   onSyncWithAI: () => void;
@@ -390,7 +390,7 @@ const DayView: React.FC<DayViewProps> = ({
           <>
             {aiTip && (
               <div className="mb-2 md:mb-4">
-                <AiTipCard tip={aiTip} onDismiss={onDismissAiTip} />
+                <AiTipCard tip={aiTip.message} type={aiTip.type} onDismiss={onDismissAiTip} />
               </div>
             )}
             {completedCount > 0 && (
