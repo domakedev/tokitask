@@ -59,14 +59,14 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
 
   // Group completed tasks by name
   const completedTaskGroups = useMemo(() => {
-    const groups = new Map<string, BaseTask[]>();
+    const groups = new Map<string, { originalName: string, tasks: BaseTask[] }>();
 
     completedTasks.forEach(task => {
-      const name = task.name.trim().toLowerCase();
-      if (!groups.has(name)) {
-        groups.set(name, []);
+      const normalizedName = task.name.trim().toLowerCase();
+      if (!groups.has(normalizedName)) {
+        groups.set(normalizedName, { originalName: task.name.trim(), tasks: [] });
       }
-      groups.get(name)!.push(task);
+      groups.get(normalizedName)!.tasks.push(task);
     });
 
     return groups;
@@ -74,7 +74,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
 
   // Get unique completed task names for display
   const uniqueCompletedTaskNames = useMemo(() => {
-    return Array.from(completedTaskGroups.keys()).sort();
+    return Array.from(completedTaskGroups.values()).map(g => g.originalName).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
   }, [completedTaskGroups]);
 
   // Get completion dates for selected tasks (aggregate by progressId)
@@ -93,7 +93,8 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
 
   // Get all tasks for a given task name
   const getTasksForName = (taskName: string): BaseTask[] => {
-    return completedTaskGroups.get(taskName.toLowerCase()) || [];
+    const normalizedName = taskName.toLowerCase();
+    return completedTaskGroups.get(normalizedName)?.tasks || [];
   };
 
   // Get all progressIds for a given task name
@@ -103,9 +104,9 @@ const ProgressView: React.FC<ProgressViewProps> = ({ userData, onNavigate }) => 
 
   // Get task name by progressId
   const getTaskNameByProgressId = (progressId: string): string => {
-    for (const [name, tasks] of completedTaskGroups) {
-      const task = tasks.find(t => t.progressId === progressId);
-      if (task) return task.name;
+    for (const group of completedTaskGroups.values()) {
+      const task = group.tasks.find(t => t.progressId === progressId);
+      if (task) return group.originalName;
     }
     return "";
   };
