@@ -506,8 +506,11 @@ const GeneralView: React.FC<GeneralViewProps> = ({
             {activeTab !== WeekDay.All && <DayTaskNotice />}
             {activeTab === WeekDay.All && <AllDaysTaskNotice />}
 
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1">
+            <div>
+              <div className="flex justify-center">
+                <CopyPasteButtons activeTab={activeTab} />
+              </div>
+              <div className="flex justify-center flex-wrap gap-1 mb-2">
                 {activeTab === WeekDay.All ? (
                   <Badge label={`Tiempo total: ${formatDurationToHuman(totalDuration)}`} variant="base" icon="timer" />
                 ) : (
@@ -518,7 +521,6 @@ const GeneralView: React.FC<GeneralViewProps> = ({
                   </>
                 )}
               </div>
-              <CopyPasteButtons activeTab={activeTab} />
             </div>
 
             <TaskList

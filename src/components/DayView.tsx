@@ -386,9 +386,12 @@ const DayView: React.FC<DayViewProps> = ({
                 <CongratulationsCard completedCount={completedCount} totalTasks={totalTasks} />
               </div>
             )}
-            <div className="flex justify-around items-center mb-2">
+            <div className="mb-2">
+              <div className="flex justify-center">
+                <CopyPasteButtons />
+              </div>
               {overloadBadges.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-2 justify-center">
                   {overloadBadges.map((badge, index) => (
                     <Badge
                       key={index}
@@ -399,7 +402,6 @@ const DayView: React.FC<DayViewProps> = ({
                   ))}
                 </div>
               )}
-              <CopyPasteButtons />
             </div>
             {viewMode === "list" ? (
               <TaskList
