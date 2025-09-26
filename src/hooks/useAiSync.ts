@@ -572,7 +572,12 @@ export const useAiSync = (
         for (const slot of timeSlots) {
           if (slot.isFixed && slot.task) {
             // Agregar tarea fija con su horario original
-            const taskDurationMinutes = parseDurationToMinutes(slot.task.baseDuration);
+            let taskDurationMinutes;
+            if (slot.task.startTime && slot.task.endTime) {
+              taskDurationMinutes = calculateTimeDifferenceInMinutes(slot.task.startTime, slot.task.endTime);
+            } else {
+              taskDurationMinutes = parseDurationToMinutes(slot.task.baseDuration);
+            }
             const formattedAiDuration = taskDurationMinutes >= 60
               ? `${Math.floor(taskDurationMinutes / 60).toString().padStart(2, '0')}:${(taskDurationMinutes % 60).toString().padStart(2, '0')}`
               : `00:${(taskDurationMinutes % 60).toString().padStart(2, '0')}`;
@@ -719,6 +724,11 @@ export const useAiSync = (
         }, 0);
         const freeTimeMinutes = Math.max(0, totalAvailableMinutes - totalOccupiedMinutes);
         const newFreeTime = freeTimeMinutes > 0 ? `${freeTimeMinutes} min` : null;
+
+        //console de los datos
+        console.log("🚀 ~ useAiSync ~ HORA_INICIO_ALINEADA:", {HORA_INICIO_ALINEADA, 
+        HORA_FIN, totalAvailableMinutes, totalOccupiedMinutes, freeTimeMinutes, newFreeTime
+        })
         
         // --- 7. Finalizar y devolver resultado ---
         const completedOriginalTasks = tasksForSync.filter((t) => t.completed);
