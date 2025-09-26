@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useMemo } from "react";
-import { GeneralTask, UserData, BaseTask, WeekDay } from "../types";
+import { GeneralTask, UserData, BaseTask, WeekDay, WEEKDAY_LABELS } from "../types";
 import TaskList from "./TaskList";
 import WeekDayTabs from "./WeekDayTabs";
 import DayTaskNotice from "./DayTaskNotice";
@@ -95,6 +95,39 @@ const GeneralView: React.FC<GeneralViewProps> = ({
     const minutes = totalMinutes % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }, [currentTasks]);
+
+  // Calcular tiempo de todos los días
+  const totalAllDaysDuration = useMemo(() => {
+    const totalMinutes = userData.generalTasks.reduce((sum, task) => {
+      return sum + parseDurationToMinutes(task.baseDuration);
+    }, 0);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }, [userData.generalTasks]);
+
+  // Calcular tiempo solo de hoy
+  const totalTodayOnlyDuration = useMemo(() => {
+    if (activeTab === WeekDay.All) return "00:00";
+    const tasks = userData.weeklyTasks?.[activeTab] || [];
+    const totalMinutes = tasks.reduce((sum, task) => {
+      return sum + parseDurationToMinutes(task.baseDuration);
+    }, 0);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }, [userData.weeklyTasks, activeTab]);
+
+  // Calcular tiempo total de hoy
+  const totalTodayDuration = useMemo(() => {
+    if (activeTab === WeekDay.All) return totalAllDaysDuration;
+    const all = parseDurationToMinutes(totalAllDaysDuration);
+    const today = parseDurationToMinutes(totalTodayOnlyDuration);
+    const total = all + today;
+    const hours = Math.floor(total / 60);
+    const minutes = total % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }, [totalAllDaysDuration, totalTodayOnlyDuration, activeTab]);
 
   // Funciones específicas para tareas de días
   const handleDeleteWeeklyTask = useCallback((taskId: string) => {
@@ -474,7 +507,17 @@ const GeneralView: React.FC<GeneralViewProps> = ({
             {activeTab === WeekDay.All && <AllDaysTaskNotice />}
 
             <div className="flex items-center justify-between">
-              <Badge label={`Tiempo total: ${formatDurationToHuman(totalDuration)}`} variant="base" icon="timer" />
+              <div className="flex gap-1">
+                {activeTab === WeekDay.All ? (
+                  <Badge label={`Tiempo total: ${formatDurationToHuman(totalDuration)}`} variant="base" icon="timer" />
+                ) : (
+                  <>
+                    <Badge label={`Todos los días: ${formatDurationToHuman(totalAllDaysDuration)}`} variant="base" icon="calendar" />
+                    <Badge label={`Solo los ${WEEKDAY_LABELS[activeTab]}: ${formatDurationToHuman(totalTodayOnlyDuration)}`} variant="base" icon="clock" />
+                    <Badge label={`Todo el ${WEEKDAY_LABELS[activeTab]}: ${formatDurationToHuman(totalTodayDuration)}`} variant="base" icon="timer" />
+                  </>
+                )}
+              </div>
               <CopyPasteButtons activeTab={activeTab} />
             </div>
 
