@@ -569,22 +569,22 @@ export const useAiSync = (
             // Llenar espacio libre con tareas flexibles
             let slotTime = slot.startTime;
             const slotEndTime = slot.endTime;
-            
-            // Primero procesar tareas no flexibles sin horario (respetando su baseDuration)
+
+            // Primero procesar tareas no flexibles sin horario (respetando su baseDuration completa como bloque)
             for (const tareaNoFlexible of tareasNoFlexiblesSinHorario) {
               if (tareasFlexiblesProcesadas.has(tareaNoFlexible.id)) continue;
               if (slotTime >= slotEndTime) break;
-              
+
               const duracionExacta = tareaNoFlexible.baseDurationMinutes;
               const tiempoRestanteEnSlot = calculateTimeDifferenceInMinutes(slotTime, slotEndTime);
-              const duracionAUsar = Math.min(duracionExacta, tiempoRestanteEnSlot);
-              
-              if (duracionAUsar > 0) {
-                const taskEndTime = addMinutesToTime(slotTime, duracionAUsar);
-                
-                const formattedAiDuration = duracionAUsar >= 60
-                  ? `${Math.floor(duracionAUsar / 60).toString().padStart(2, '0')}:${(duracionAUsar % 60).toString().padStart(2, '0')}`
-                  : `00:${(duracionAUsar % 60).toString().padStart(2, '0')}`;
+
+              // Solo asignar si el slot completo puede acomodar toda la duración base
+              if (tiempoRestanteEnSlot >= duracionExacta) {
+                const taskEndTime = addMinutesToTime(slotTime, duracionExacta);
+
+                const formattedAiDuration = duracionExacta >= 60
+                  ? `${Math.floor(duracionExacta / 60).toString().padStart(2, '0')}:${(duracionExacta % 60).toString().padStart(2, '0')}`
+                  : `00:${(duracionExacta % 60).toString().padStart(2, '0')}`;
 
                 updatedTasks.push({
                   ...tareaNoFlexible,
@@ -596,6 +596,7 @@ export const useAiSync = (
                 slotTime = taskEndTime;
                 tareasFlexiblesProcesadas.add(tareaNoFlexible.id);
               }
+              // Si no cabe completa, omitir en este slot (se agregará al final)
             }
             
             // Luego procesar tareas flexibles
