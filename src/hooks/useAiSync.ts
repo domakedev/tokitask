@@ -41,8 +41,30 @@ export const useAiSync = (
     const fixedTasks = tasks.filter(task => !task.completed && task.flexibleTime === false);
     if (fixedTasks.length === 0) return true; // No hay tareas fijas, continuar
 
+    const parseTimeToMinutes = (time: string): number => {
+      const [hour, minute] = time.split(':').map(Number);
+      return hour * 60 + minute;
+    };
+
     const totalFixedMinutes = fixedTasks.reduce((total, task) => {
-      return total + parseDurationToMinutes(task.baseDuration);
+      let remaining = 0;
+      if (!task.startTime || !task.endTime) {
+        // Tarea no programada, usar duración completa
+        remaining = parseDurationToMinutes(task.baseDuration);
+      } else {
+        // Tarea programada, calcular tiempo restante
+        const startTotal = parseTimeToMinutes(task.startTime);
+        const endTotal = parseTimeToMinutes(task.endTime);
+        const currentTotal = parseTimeToMinutes(currentTime);
+        if (currentTotal >= endTotal) {
+          remaining = 0; // Ya terminó
+        } else if (currentTotal >= startTotal) {
+          remaining = endTotal - currentTotal; // Tiempo restante
+        } else {
+          remaining = parseDurationToMinutes(task.baseDuration); // No ha empezado, duración completa
+        }
+      }
+      return total + remaining;
     }, 0);
 
     // Calcular tiempo disponible en minutos
@@ -366,6 +388,35 @@ export const useAiSync = (
             endTime: t.endTime ? normalizeTime(t.endTime) : undefined,
           }));
 
+        // Validar tiempo de tareas fijas antes de sincronizar
+        if (!validateFixedTasksTime(tareas, endOfDayForSync, userTime)) {
+          const totalFixedMinutes = tareas
+            .filter(task => task.flexibleTime === false)
+            .reduce((total, task) => total + parseDurationToMinutes(task.baseDuration), 0);
+
+          toast.error(
+            `⚠️ No te queda suficiente tiempo para completar las tareas fijas, requieren de: ${Math.floor(totalFixedMinutes / 60)} horas ${totalFixedMinutes % 60} min. \n\n Ajusta la hora de fin del día o modifica las tareas fijas.`,
+            {
+              position: "top-right",
+              autoClose: false,
+              closeOnClick: false,
+              draggable: false,
+              theme: "dark",
+              style: {
+                backgroundColor: "#1f2937",
+                color: "#f87171",
+                border: "1px solid #dc2626",
+                borderRadius: "8px",
+                fontSize: "14px",
+                lineHeight: "1.5",
+                whiteSpace: "pre-line"
+              }
+            }
+          );
+          setIsSyncing(false);
+          return;
+        }
+
         // Separar tareas fijas y flexibles
         const tareasNoFlexibles = tareas.filter(t => t.flexibleTime === false);
         const tareasFlexibles = tareas.filter(t => t.flexibleTime !== false);
@@ -678,6 +729,7 @@ export const useAiSync = (
       showNotification,
       recalculateCurrentDayTask,
       parseDurationToMinutes,
+      validateFixedTasksTime,
     ]
   );
 
