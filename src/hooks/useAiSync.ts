@@ -713,12 +713,11 @@ export const useAiSync = (
         updatedTasks.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 
         // --- 5. Calcular tiempo libre ---
-        const ultimaTareaEndTime = updatedTasks.length > 0
-          ? updatedTasks[updatedTasks.length - 1].endTime || HORA_INICIO_ALINEADA
-          : HORA_INICIO_ALINEADA;
-        const lastTask = updatedTasks.length > 0 ? updatedTasks[updatedTasks.length - 1] : null;
-        const isNextDay = lastTask && lastTask.endTime && lastTask.startTime && lastTask.endTime < lastTask.startTime;
-        const freeTimeMinutes = isNextDay ? 0 : calculateTimeDifferenceInMinutes(ultimaTareaEndTime, HORA_FIN);
+        const totalAvailableMinutes = calculateTimeDifferenceInMinutes(HORA_INICIO_ALINEADA, HORA_FIN);
+        const totalOccupiedMinutes = updatedTasks.reduce((sum, task) => {
+          return sum + parseDurationToMinutes(task.aiDuration || task.baseDuration);
+        }, 0);
+        const freeTimeMinutes = Math.max(0, totalAvailableMinutes - totalOccupiedMinutes);
         const newFreeTime = freeTimeMinutes > 0 ? `${freeTimeMinutes} min` : null;
         
         // --- 7. Finalizar y devolver resultado ---
