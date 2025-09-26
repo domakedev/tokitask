@@ -664,7 +664,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       // Calcular fecha de mañana
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+      console.log("🚀 ~ tomorrowStr:", tomorrowStr)
 
       const calendarTasks = userData.calendarTasks || [];
       let updatedCalendarTasks;
