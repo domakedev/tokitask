@@ -716,7 +716,9 @@ export const useAiSync = (
         const ultimaTareaEndTime = updatedTasks.length > 0
           ? updatedTasks[updatedTasks.length - 1].endTime || HORA_INICIO_ALINEADA
           : HORA_INICIO_ALINEADA;
-        const freeTimeMinutes = calculateTimeDifferenceInMinutes(ultimaTareaEndTime, HORA_FIN);
+        const lastTask = updatedTasks.length > 0 ? updatedTasks[updatedTasks.length - 1] : null;
+        const isNextDay = lastTask && lastTask.endTime && lastTask.startTime && lastTask.endTime < lastTask.startTime;
+        const freeTimeMinutes = isNextDay ? 0 : calculateTimeDifferenceInMinutes(ultimaTareaEndTime, HORA_FIN);
         const newFreeTime = freeTimeMinutes > 0 ? `${freeTimeMinutes} min` : null;
         
         // --- 7. Finalizar y devolver resultado ---
