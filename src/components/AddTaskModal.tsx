@@ -361,70 +361,132 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                         </div>
 
                         {/* Campos de horario opcionales */}
-                        <div className="mb-4 flex items-end gap-4 justify-between">
-                            <div>
-                                <label className="block text-xs font-medium text-slate-300 mb-1">Hora de inicio (opcional)</label>
-                                <div className="flex gap-2 mb-2">
-                                    <div className="flex-1">
-                                        <label htmlFor="start-hours" className="block text-xs font-medium text-slate-400 mb-1">Horas</label>
-                                        <select
-                                            id="start-hours"
-                                            value={startHour12}
-                                            onChange={(e) => {
-                                                setStartHour12(e.target.value);
-                                                if (e.target.value && !startMinutes) setStartMinutes('00');
-                                            }}
-                                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                        >
-                                            <option value="">--</option>
-                                            {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((hour) => (
-                                                <option key={hour} value={hour}>
-                                                    {hour}
-                                                </option>
-                                            ))}
-                                        </select>
+                        <div className="mb-4">
+                            <div className="flex items-end gap-4 justify-between">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-300 mb-1">Hora de inicio (opcional)</label>
+                                    <div className="flex gap-2 mb-2">
+                                        <div className="w-fit">
+                                            <label htmlFor="start-hours" className="block text-xs font-medium text-slate-400 mb-1">Horas</label>
+                                            <select
+                                                id="start-hours"
+                                                value={startHour12}
+                                                onChange={(e) => {
+                                                    setStartHour12(e.target.value);
+                                                    if (e.target.value && !startMinutes) setStartMinutes('00');
+                                                }}
+                                                className="bg-slate-700 border border-slate-600 rounded-md p-1 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                            >
+                                                <option value="">--</option>
+                                                {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((hour) => (
+                                                    <option key={hour} value={hour}>
+                                                        {hour}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex-1">
+                                            <label htmlFor="start-minutes" className="block text-xs font-medium text-slate-400 mb-1">Minutos</label>
+                                            <select
+                                                id="start-minutes"
+                                                value={startMinutes}
+                                                onChange={(e) => setStartMinutes(e.target.value)}
+                                                className="bg-slate-700 border border-slate-600 rounded-md p-1 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                            >
+                                                <option value="">--</option>
+                                                {[0, 10, 20, 30, 40, 50].map((min) => (
+                                                    <option key={min} value={min.toString().padStart(2, '0')}>
+                                                        {min.toString().padStart(2, '0')}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <label htmlFor="start-minutes" className="block text-xs font-medium text-slate-400 mb-1">Minutos</label>
-                                        <select
-                                            id="start-minutes"
-                                            value={startMinutes}
-                                            onChange={(e) => setStartMinutes(e.target.value)}
-                                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                        >
-                                            <option value="">--</option>
-                                            {[0, 10, 20, 30, 40, 50].map((min) => (
-                                                <option key={min} value={min.toString().padStart(2, '0')}>
-                                                    {min.toString().padStart(2, '0')}
-                                                </option>
-                                            ))}
-                                        </select>
+                                    <div className="flex gap-2">
+                                        <Badge
+                                            label="AM"
+                                            selected={startAmPm === 'AM'}
+                                            onClick={() => {
+                                                setStartAmPm('AM');
+                                                if (!startMinutes) setStartMinutes('00');
+                                            }}
+                                            variant="hour"
+                                        />
+                                        <Badge
+                                            label="PM"
+                                            selected={startAmPm === 'PM'}
+                                            onClick={() => {
+                                                setStartAmPm('PM');
+                                                if (!startMinutes) setStartMinutes('00');
+                                            }}
+                                            variant="hour"
+                                        />
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Badge
-                                        label="AM"
-                                        selected={startAmPm === 'AM'}
-                                        onClick={() => {
-                                            setStartAmPm('AM');
-                                            if (!startMinutes) setStartMinutes('00');
-                                        }}
-                                        variant="hour"
-                                    />
-                                    <Badge
-                                        label="PM"
-                                        selected={startAmPm === 'PM'}
-                                        onClick={() => {
-                                            setStartAmPm('PM');
-                                            if (!startMinutes) setStartMinutes('00');
-                                        }}
-                                        variant="hour"
-                                    />
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-300 mb-1">Hora de fin (opcional)</label>
+                                    <div className="flex gap-2 mb-2">
+                                        <div className="w-fit">
+                                            <label htmlFor="end-hours" className="block text-xs font-medium text-slate-400 mb-1">Horas</label>
+                                            <select
+                                                id="end-hours"
+                                                value={endHour12}
+                                                onChange={(e) => {
+                                                    setEndHour12(e.target.value);
+                                                    if (e.target.value && !endMinutes) setEndMinutes('00');
+                                                }}
+                                                className="bg-slate-700 border border-slate-600 rounded-md p-1 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                            >
+                                                <option value="">--</option>
+                                                {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((hour) => (
+                                                    <option key={hour} value={hour}>
+                                                        {hour}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex-1">
+                                            <label htmlFor="end-minutes" className="block text-xs font-medium text-slate-400 mb-1">Minutos</label>
+                                            <select
+                                                id="end-minutes"
+                                                value={endMinutes}
+                                                onChange={(e) => setEndMinutes(e.target.value)}
+                                                className="bg-slate-700 border border-slate-600 rounded-md p-1 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                            >
+                                                <option value="">--</option>
+                                                {[0, 10, 20, 30, 40, 50].map((min) => (
+                                                    <option key={min} value={min.toString().padStart(2, '0')}>
+                                                        {min.toString().padStart(2, '0')}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Badge
+                                            label="AM"
+                                            selected={endAmPm === 'AM'}
+                                            onClick={() => {
+                                                setEndAmPm('AM');
+                                                if (!endMinutes) setEndMinutes('00');
+                                            }}
+                                            variant="hour"
+                                        />
+                                        <Badge
+                                            label="PM"
+                                            selected={endAmPm === 'PM'}
+                                            onClick={() => {
+                                                setEndAmPm('PM');
+                                                if (!endMinutes) setEndMinutes('00');
+                                            }}
+                                            variant="hour"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             {/* si existe hora de inicio/fin, mostrar botón de limpiar */}
                             {(startTime || endTime) && (
-                            <div>
+                            <div className="mt-2 flex justify-center">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -444,67 +506,6 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, taskTo
                                 </button>
                             </div>
                             )}
-                            <div>
-                                <label className="block text-xs font-medium text-slate-300 mb-1">Hora de fin (opcional)</label>
-                                <div className="flex gap-2 mb-2">
-                                    <div className="flex-1">
-                                        <label htmlFor="end-hours" className="block text-xs font-medium text-slate-400 mb-1">Horas</label>
-                                        <select
-                                            id="end-hours"
-                                            value={endHour12}
-                                            onChange={(e) => {
-                                                setEndHour12(e.target.value);
-                                                if (e.target.value && !endMinutes) setEndMinutes('00');
-                                            }}
-                                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                        >
-                                            <option value="">--</option>
-                                            {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((hour) => (
-                                                <option key={hour} value={hour}>
-                                                    {hour}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex-1">
-                                        <label htmlFor="end-minutes" className="block text-xs font-medium text-slate-400 mb-1">Minutos</label>
-                                        <select
-                                            id="end-minutes"
-                                            value={endMinutes}
-                                            onChange={(e) => setEndMinutes(e.target.value)}
-                                            className="w-full bg-slate-700 border border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                        >
-                                            <option value="">--</option>
-                                            {[0, 10, 20, 30, 40, 50].map((min) => (
-                                                <option key={min} value={min.toString().padStart(2, '0')}>
-                                                    {min.toString().padStart(2, '0')}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Badge
-                                        label="AM"
-                                        selected={endAmPm === 'AM'}
-                                        onClick={() => {
-                                            setEndAmPm('AM');
-                                            if (!endMinutes) setEndMinutes('00');
-                                        }}
-                                        variant="hour"
-                                    />
-                                    <Badge
-                                        label="PM"
-                                        selected={endAmPm === 'PM'}
-                                        onClick={() => {
-                                            setEndAmPm('PM');
-                                            if (!endMinutes) setEndMinutes('00');
-                                        }}
-                                        variant="hour"
-                                    />
-                                </div>
-                            </div>
-
                         </div>
 
                         {showScheduledDateField ? (
