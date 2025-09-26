@@ -42,6 +42,16 @@ export default function GeneralPage() {
     new Date().toLocaleDateString("en-CA")
   );
 
+  // Inicializar el modo de vista desde la URL
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'calendar') {
+      setGeneralViewMode('calendar');
+    } else {
+      setGeneralViewMode('week');
+    }
+  }, [searchParams]);
+
   // Inicializar calendarTasks si no existe
   useEffect(() => {
     if (userData && !userData.calendarTasks) {
