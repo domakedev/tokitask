@@ -11,6 +11,9 @@ interface LegacyUserData {
   generalTasks: GeneralTask[];
   dayTasks: DayTask[];
   weeklyTasks?: Record<WeekDay, GeneralTask[]>;
+  calendarTasks?: GeneralTask[];
+  taskCompletionsByProgressId?: Record<string, string[]>;
+  onboardingCompleted?: boolean;
 }
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
@@ -29,7 +32,23 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
     if (docSnap.exists()) {
       // Adaptar los datos para asegurar que las tareas tengan los nuevos campos
       const data = docSnap.data() as LegacyUserData;
+      let needsUpdate = false;
+
       if (data) {
+        // Limpiar campos undefined
+        if (data.calendarTasks === undefined) {
+          data.calendarTasks = [];
+          needsUpdate = true;
+        }
+        if (data.taskCompletionsByProgressId === undefined) {
+          data.taskCompletionsByProgressId = {};
+          needsUpdate = true;
+        }
+        if (data.onboardingCompleted === undefined) {
+          data.onboardingCompleted = false;
+          needsUpdate = true;
+        }
+
         // Migrar datos antiguos si no tienen weeklyTasks
         if (!data.weeklyTasks) {
           (data as UserData).weeklyTasks = {
@@ -42,46 +61,57 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
             saturday: [],
             sunday: []
           };
+          needsUpdate = true;
         }
 
         // Migrar weeklyTasks para agregar flexibleTime
         if (data.weeklyTasks) {
           Object.keys(data.weeklyTasks).forEach((day) => {
             if (Array.isArray(data.weeklyTasks![day as WeekDay])) {
+              const originalTasks = data.weeklyTasks![day as WeekDay];
               data.weeklyTasks![day as WeekDay] = data.weeklyTasks![day as WeekDay].map((t) => ({
                 ...t,
                 baseDuration: t.baseDuration || "",
                 flexibleTime: t.flexibleTime ?? true,
               }));
+              if (data.weeklyTasks![day as WeekDay].some((t, i) => t !== originalTasks[i])) {
+                needsUpdate = true;
+              }
             }
           });
         }
 
         if (Array.isArray(data.generalTasks)) {
+          const originalTasks = data.generalTasks;
           data.generalTasks = data.generalTasks.map((t) => ({
             ...t,
             baseDuration: t.baseDuration || "",
             flexibleTime: t.flexibleTime ?? true,
           }));
+          if (data.generalTasks.some((t, i) => t !== originalTasks[i])) {
+            needsUpdate = true;
+          }
         }
         if (Array.isArray(data.dayTasks)) {
+          const originalTasks = data.dayTasks;
           data.dayTasks = data.dayTasks.map((t) => ({
             ...t,
             baseDuration: t.baseDuration || "",
             aiDuration: t.aiDuration || "",
             flexibleTime: t.flexibleTime ?? true,
           }));
+          if (data.dayTasks.some((t, i) => t !== originalTasks[i])) {
+            needsUpdate = true;
+          }
+        }
+
+        // Si se hicieron cambios, actualizar el documento
+        if (needsUpdate) {
+          await setDoc(userDocRef, data, { merge: true });
         }
       }
       return data as UserData;
     } else {
-      ErrorLogger.log(
-        new FirebaseError("User document not found", undefined, {
-          component: 'FirestoreService',
-          operation: 'getUserData',
-          uid
-        })
-      );
       return null;
     }
   }, { component: 'FirestoreService', operation: 'getUserData', uid });
@@ -122,6 +152,35 @@ export const createUserDocument = async (userData: UserData) => {
   }, { component: 'FirestoreService', operation: 'createUserDocument', uid: userData.uid });
 };
 
+export const createDefaultUserDocument = async (uid: string, email: string | null) => {
+  return withErrorHandling(async () => {
+    console.log("🚀 ~ createDefaultUserDocument ~ string:", {uid,email})
+    const defaultUserData: UserData = {
+      uid,
+      email,
+      endOfDay: "22:00",
+      generalTasks: [],
+      dayTasks: [],
+      weeklyTasks: {
+        all: [],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: []
+      },
+      calendarTasks: [],
+      taskCompletionsByProgressId: {},
+      onboardingCompleted: false
+    };
+
+    await createUserDocument(defaultUserData);
+    return defaultUserData;
+  }, { component: 'FirestoreService', operation: 'createDefaultUserDocument', uid });
+};
+
 export const updateUserData = async (uid: string, data: Partial<UserData>) => {
   return withErrorHandling(async () => {
     if (!db) {
@@ -133,15 +192,44 @@ export const updateUserData = async (uid: string, data: Partial<UserData>) => {
     }
 
     const userDocRef = doc(db, "users", uid);
-    // Asegurar que weeklyTasks y calendarTasks estén incluidos si se están actualizando
-    const dataToUpdate = {
-      ...data,
-      weeklyTasks: data.weeklyTasks,
-      generalTasks: data.generalTasks?.map(t => ({ ...t })),
-      dayTasks: data.dayTasks?.map(t => ({ ...t })),
-      calendarTasks: data.calendarTasks?.map(t => ({ ...t })),
-    };
-    await updateDoc(userDocRef, dataToUpdate);
+    // Solo incluir campos que se están actualizando para evitar sobrescribir con undefined
+    const dataToUpdate: Partial<UserData> = {};
+
+    if (data.weeklyTasks !== undefined) {
+      dataToUpdate.weeklyTasks = data.weeklyTasks;
+    }
+    if (data.generalTasks !== undefined) {
+      dataToUpdate.generalTasks = data.generalTasks.map(t => ({ ...t }));
+    }
+    if (data.dayTasks !== undefined) {
+      dataToUpdate.dayTasks = data.dayTasks.map(t => ({ ...t }));
+    }
+    if (data.calendarTasks !== undefined) {
+      dataToUpdate.calendarTasks = data.calendarTasks.map(t => ({ ...t }));
+    }
+    if (data.taskCompletionsByProgressId !== undefined) {
+      dataToUpdate.taskCompletionsByProgressId = data.taskCompletionsByProgressId;
+    }
+    if (data.onboardingCompleted !== undefined) {
+      dataToUpdate.onboardingCompleted = data.onboardingCompleted;
+    }
+    if (data.phoneNumber !== undefined) {
+      dataToUpdate.phoneNumber = data.phoneNumber;
+    }
+    if (data.whatsappConfigured !== undefined) {
+      dataToUpdate.whatsappConfigured = data.whatsappConfigured;
+    }
+    if (data.whatsappConfiguredAt !== undefined) {
+      dataToUpdate.whatsappConfiguredAt = data.whatsappConfiguredAt;
+    }
+    if (data.endOfDay !== undefined) {
+      dataToUpdate.endOfDay = data.endOfDay;
+    }
+    if (data.email !== undefined) {
+      dataToUpdate.email = data.email;
+    }
+
+    await setDoc(userDocRef, dataToUpdate, { merge: true });
   }, { component: 'FirestoreService', operation: 'updateUserData', uid });
 };
 

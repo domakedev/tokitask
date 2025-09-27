@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth, firebaseInitializationError } from "../services/firebase";
-import { getUserData } from "../services/firestoreService";
+import { getUserData, createDefaultUserDocument } from "../services/firestoreService";
 import { UserData } from "../types";
 import { useAuthStore } from "../stores/authStore";
 import { useScheduleStore } from "../stores/scheduleStore";
@@ -29,7 +29,13 @@ export const useAuth = () => {
       if (currentUser) {
         setUser(currentUser);
         try {
-          const data = await getUserData(currentUser.uid);
+          let data = await getUserData(currentUser.uid);
+
+          // Si no existe documento, crear uno por defecto
+          if (!data) {
+            data = await createDefaultUserDocument(currentUser.uid, currentUser.email);
+          }
+
           setUserData(data);
           // Inicializar stores con userData
           if (data) {

@@ -449,8 +449,8 @@ export const useAiSync = (
             const start = tarea.startTime!;
             const end = tarea.endTime!;
             console.log("🚀 ~ useAiSync ~ userTime >= end:", {userTime, end})
-            if (userTime >= end) {
-              // Omitir tarea porque ya terminó
+            if (userTime >= end && !(end < start)) {
+              // Omitir tarea porque ya terminó (solo si no cruza medianoche)
               warnings.push(`La tarea "${tarea.name}" no se pudo programar porque su horario de inicio o fin estaba fuera de tiempo.`);
               return null;
             } else if (userTime > start) {

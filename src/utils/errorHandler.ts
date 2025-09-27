@@ -268,6 +268,7 @@ export const withErrorHandling = async <T>(
   try {
     return await operation();
   } catch (error) {
+    console.log("🚀 ~ withErrorHandling ~ error:", error)
     const appError = error instanceof TokiTaskError
       ? error
       : ErrorFactory.unknown(
