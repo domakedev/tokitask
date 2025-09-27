@@ -50,6 +50,13 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
 
   const { userData } = useAuthStore.getState();
 
+  const timeToMinutes = (time: string): number => {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const isOutsideSchedule = userData && task.startTime && timeToMinutes(task.startTime) > timeToMinutes(userData.endOfDay);
+
   const isFromGeneralTasks = useMemo(() => {
     return userData?.generalTasks?.some(gt => gt.name === task.name) ?? false;
   }, [userData, task.name]);
@@ -236,6 +243,13 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
                 label={`${task.startTime} - ${task.endTime}`}
                 icon="clock"
                 variant="ai"
+              />
+            )}
+            {isDaily && !task.completed && isOutsideSchedule && (
+              <Badge
+                label="Este horario pasa el final del día"
+                icon="clock"
+                variant="danger"
               />
             )}
           </div>
