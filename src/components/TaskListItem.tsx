@@ -54,8 +54,8 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
     const [h, m] = time.split(':').map(Number);
     return h * 60 + m;
   };
-
-  const isOutsideSchedule = userData && task.startTime && timeToMinutes(task.startTime) > timeToMinutes(userData.endOfDay);
+  // Verificar si la tarea tiene startTime y si este es mayor o igual al endOfDay del usuario
+  const isOutsideSchedule = userData && task.startTime && timeToMinutes(task.startTime) >= timeToMinutes(userData.endOfDay);
 
   const isFromGeneralTasks = useMemo(() => {
     return userData?.generalTasks?.some(gt => gt.name === task.name) ?? false;
