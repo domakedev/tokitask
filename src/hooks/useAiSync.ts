@@ -431,6 +431,7 @@ export const useAiSync = (
         // =================================================================================
 
         const warnings: string[] = [];
+        const passedTasks: DayTask[] = [];
 
         // --- FASE 1: Crear estructura de tiempo con tareas fijas ---
         interface TimeSlot {
@@ -450,8 +451,9 @@ export const useAiSync = (
             const end = tarea.endTime!;
             console.log("🚀 ~ useAiSync ~ userTime >= end:", {userTime, end})
             if (userTime >= end && !(end < start)) {
-              // Omitir tarea porque ya terminó (solo si no cruza medianoche)
-              warnings.push(`La tarea "${tarea.name}" no se pudo programar porque su horario de inicio o fin estaba fuera de tiempo.`);
+              // Mantener tarea visible pero con duración cero para no interferir
+              console.log("🚀 ~ useAiSync ~ tarea:", tarea.name)
+              passedTasks.push({ ...tarea, aiDuration: "00:00" });
               return null;
             } else if (userTime > start) {
               // Ajustar startTime a la hora actual
@@ -713,6 +715,9 @@ export const useAiSync = (
             tiempoFinal = taskEndTime;
           }
         }
+
+        // Agregar tareas pasadas con duración cero
+        updatedTasks.push(...passedTasks);
 
         // Ordenar tareas finales por hora de inicio para mantener continuidad
         updatedTasks.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
