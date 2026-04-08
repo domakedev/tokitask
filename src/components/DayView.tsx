@@ -84,10 +84,12 @@ const DayView: React.FC<DayViewProps> = ({
   }, [userData.dayTasks]);
 
   // Calcular estadísticas
-  const totalBaseMinutes = userData.dayTasks.reduce(
-    (sum, task) => sum + parseDurationToMinutes(task.baseDuration),
-    0
-  );
+  const totalBaseMinutes = userData.dayTasks
+    .filter((task) => !task.completed)
+    .reduce(
+      (sum, task) => sum + parseDurationToMinutes(task.baseDuration),
+      0
+    );
 
   const totalAiMinutes = userData.dayTasks
     .filter((task) => !task.completed)
