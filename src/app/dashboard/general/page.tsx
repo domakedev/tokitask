@@ -823,7 +823,7 @@ export default function GeneralPage() {
   return (
     <div className="max-w-2xl mx-auto pb-28">
       {/* Botón para obtener opinión de la IA */}
-      <div className="mb-4">
+      <div className="m-4">
         <button
           onClick={getAiOpinion}
           disabled={isLoadingAiOpinion}
