@@ -19,6 +19,7 @@ import ConfirmationModal from "../../../components/ConfirmationModal";
 import FirebaseErrorScreen from "../../../components/FirebaseErrorScreen";
 import OnboardingModal from "../../../components/OnboardingModal";
 import AiSyncOverlay from "../../../components/AiSyncOverlay";
+import AiTipForGeneral from "../../../components/AiTipForGeneral";
 import Icon from "../../../components/Icon";
 import { generateTaskId } from "../../../utils/idGenerator";
 
@@ -41,6 +42,10 @@ export default function GeneralPage() {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(
     new Date().toLocaleDateString("en-CA")
   );
+
+  // Estado para el tip de la IA sobre el horario general
+  const [aiOpinion, setAiOpinion] = useState<string | null>(null);
+  const [isLoadingAiOpinion, setIsLoadingAiOpinion] = useState(false);
 
   // Inicializar el modo de vista desde la URL
   useEffect(() => {
@@ -70,6 +75,38 @@ export default function GeneralPage() {
     },
     []
   );
+
+  // Función para obtener la opinión de la IA sobre el horario general
+  const getAiOpinion = useCallback(async () => {
+    if (!userData) return;
+
+    setIsLoadingAiOpinion(true);
+    try {
+      const response = await fetch("/api/ai-opinion", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          generalTasks: userData.generalTasks || [],
+          weeklyTasks: userData.weeklyTasks || {},
+          calendarTasks: userData.calendarTasks || [],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al obtener la opinión de la IA");
+      }
+
+      const data = await response.json();
+      setAiOpinion(data.opinion);
+    } catch (error) {
+      console.error("Error getting AI opinion:", error);
+      toast.error("Error al obtener la opinión de la IA. Inténtalo de nuevo.");
+    } finally {
+      setIsLoadingAiOpinion(false);
+    }
+  }, [userData]);
 
   const {
     currentPage,
@@ -785,6 +822,36 @@ export default function GeneralPage() {
 
   return (
     <div className="max-w-2xl mx-auto pb-28">
+      {/* Botón para obtener opinión de la IA */}
+      <div className="mb-4">
+        <button
+          onClick={getAiOpinion}
+          disabled={isLoadingAiOpinion}
+          className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+        >
+          {isLoadingAiOpinion ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>Analizando...</span>
+            </>
+          ) : (
+            <>
+              <Icon name="brain" className="h-5 w-5" />
+              <span>¿Qué opina la IA de tu horario?</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Componente para mostrar la opinión de la IA */}
+      {aiOpinion && (
+        <AiTipForGeneral
+          opinion={aiOpinion}
+          isLoading={isLoadingAiOpinion}
+          onClose={() => setAiOpinion(null)}
+        />
+      )}
+
       {generalViewComponent}
 
       <div
