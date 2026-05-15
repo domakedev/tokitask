@@ -21,7 +21,8 @@ export enum Page {
     Day = 'day',
     General = 'general',
     Profile = 'profile',
-    Progress = 'progress'
+    Progress = 'progress',
+    AiPlan = 'ai-plan'
 }
 
 export enum WeekDay {
@@ -94,4 +95,51 @@ export interface UserData {
     phoneNumber?: string; // Número de teléfono para WhatsApp
     whatsappConfigured?: boolean; // Si WhatsApp está configurado
     whatsappConfiguredAt?: Date; // Fecha de configuración
+    aiPlanner?: AiPlannerState;
+}
+
+export type AiPlannerPriority = 'high' | 'medium' | 'low';
+
+export interface AiPlannerMicrotask {
+    id: string;
+    title: string;
+    estimatedMinutes: number;
+    order: number;
+    completed: boolean;
+    completedAt?: string;
+}
+
+export interface AiPlannerTask {
+    id: string;
+    title: string;
+    priority: AiPlannerPriority;
+    estimatedMinutes: number;
+    order: number;
+    completed: boolean;
+    completedAt?: string;
+    startedDate: string;
+    assignedDate: string;
+    movedFromDates: string[];
+    movedToDate?: string;
+    archivedAt?: string;
+    microtasks: AiPlannerMicrotask[];
+    aiReason?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface AiPlannerDay {
+    date: string;
+    sourceText: string;
+    createdAt: string;
+    updatedAt: string;
+    endOfDay: string;
+    tasks: AiPlannerTask[];
+    coachMessages: string[];
+    rolloverPromptSeenAt?: string;
+}
+
+export interface AiPlannerState {
+    selectedDate?: string;
+    days: Record<string, AiPlannerDay>;
 }

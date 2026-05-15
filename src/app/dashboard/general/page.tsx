@@ -19,7 +19,9 @@ import ConfirmationModal from "../../../components/ConfirmationModal";
 import FirebaseErrorScreen from "../../../components/FirebaseErrorScreen";
 import OnboardingModal from "../../../components/OnboardingModal";
 import AiSyncOverlay from "../../../components/AiSyncOverlay";
-import AiTipForGeneral from "../../../components/AiTipForGeneral";
+import AiTipForGeneral, {
+  type AiTipForGeneralOpinion,
+} from "../../../components/AiTipForGeneral";
 import Icon from "../../../components/Icon";
 import { generateTaskId } from "../../../utils/idGenerator";
 
@@ -44,7 +46,7 @@ export default function GeneralPage() {
   );
 
   // Estado para el tip de la IA sobre el horario general
-  const [aiOpinion, setAiOpinion] = useState<string | null>(null);
+  const [aiOpinion, setAiOpinion] = useState<AiTipForGeneralOpinion>(null);
   const [isLoadingAiOpinion, setIsLoadingAiOpinion] = useState(false);
 
   // Inicializar el modo de vista desde la URL
@@ -99,7 +101,7 @@ export default function GeneralPage() {
       }
 
       const data = await response.json();
-      setAiOpinion(data.opinion);
+      setAiOpinion(data.opinion ?? null);
     } catch (error) {
       console.error("Error getting AI opinion:", error);
       toast.error("Error al obtener la opinión de la IA. Inténtalo de nuevo.");
@@ -847,7 +849,6 @@ export default function GeneralPage() {
       {aiOpinion && (
         <AiTipForGeneral
           opinion={aiOpinion}
-          isLoading={isLoadingAiOpinion}
           onClose={() => setAiOpinion(null)}
         />
       )}

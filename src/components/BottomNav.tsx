@@ -2,7 +2,6 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Page } from "../types";
 import Icon from "./Icon";
 
 interface BottomNavProps {
@@ -61,8 +60,14 @@ const BottomNav: React.FC<BottomNavProps> = React.memo(({ profilePhotoUrl }) => 
         <NavLink
           href="/dashboard/general"
           iconName="settings"
-          label="Configurar Horario"
+          label="Horario"
           isActive={isActive("/dashboard/general")}
+        />
+        <NavLink
+          href="/dashboard/ai-plan"
+          iconName="sparkles"
+          label="Plan IA"
+          isActive={isActive("/dashboard/ai-plan")}
         />
         <NavLink
           href="/dashboard/progress"

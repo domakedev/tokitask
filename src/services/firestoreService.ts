@@ -14,7 +14,26 @@ interface LegacyUserData {
   calendarTasks?: GeneralTask[];
   taskCompletionsByProgressId?: Record<string, string[]>;
   onboardingCompleted?: boolean;
+  aiPlanner?: UserData["aiPlanner"];
 }
+
+const removeUndefinedFields = <T>(value: T): T => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => removeUndefinedFields(item))
+      .filter((item) => item !== undefined) as T;
+  }
+
+  if (value && typeof value === "object") {
+    return Object.entries(value).reduce<Record<string, unknown>>((acc, [key, entry]) => {
+      if (entry === undefined) return acc;
+      acc[key] = removeUndefinedFields(entry);
+      return acc;
+    }, {}) as T;
+  }
+
+  return value;
+};
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
   return withErrorHandling(async () => {
@@ -46,6 +65,13 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
         }
         if (data.onboardingCompleted === undefined) {
           data.onboardingCompleted = false;
+          needsUpdate = true;
+        }
+        if (data.aiPlanner === undefined) {
+          data.aiPlanner = { days: {} };
+          needsUpdate = true;
+        } else if (!data.aiPlanner.days) {
+          data.aiPlanner = { ...data.aiPlanner, days: {} };
           needsUpdate = true;
         }
 
@@ -107,7 +133,7 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
 
         // Si se hicieron cambios, actualizar el documento
         if (needsUpdate) {
-          await setDoc(userDocRef, data, { merge: true });
+          await setDoc(userDocRef, removeUndefinedFields(data), { merge: true });
         }
       }
       return data as UserData;
@@ -147,7 +173,7 @@ export const createUserDocument = async (userData: UserData) => {
         generalTasks: userData.generalTasks.map(t => ({ ...t })),
         dayTasks: userData.dayTasks.map(t => ({ ...t })),
       };
-      await setDoc(userDocRef, userDataToSave);
+      await setDoc(userDocRef, removeUndefinedFields(userDataToSave));
     }
   }, { component: 'FirestoreService', operation: 'createUserDocument', uid: userData.uid });
 };
@@ -172,8 +198,9 @@ export const createDefaultUserDocument = async (uid: string, email: string | nul
         sunday: []
       },
       calendarTasks: [],
-      taskCompletionsByProgressId: {},
-      onboardingCompleted: false
+        taskCompletionsByProgressId: {},
+        onboardingCompleted: false,
+        aiPlanner: { days: {} }
     };
 
     await createUserDocument(defaultUserData);
@@ -228,8 +255,11 @@ export const updateUserData = async (uid: string, data: Partial<UserData>) => {
     if (data.email !== undefined) {
       dataToUpdate.email = data.email;
     }
+    if (data.aiPlanner !== undefined) {
+      dataToUpdate.aiPlanner = removeUndefinedFields(data.aiPlanner);
+    }
 
-    await setDoc(userDocRef, dataToUpdate, { merge: true });
+    await setDoc(userDocRef, removeUndefinedFields(dataToUpdate), { merge: true });
   }, { component: 'FirestoreService', operation: 'updateUserData', uid });
 };
 
