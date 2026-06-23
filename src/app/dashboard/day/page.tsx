@@ -132,6 +132,7 @@ export default function DayPage() {
         onDismissAiTip={() => setAiTip(null)}
         onNavigate={setCurrentPage}
         onNavigateToGeneralCalendar={handleNavigateToGeneralCalendar}
+        onRequestClearDay={() => setShowClearConfirmation(true)}
       />
     );
   }, [
@@ -156,44 +157,31 @@ export default function DayPage() {
   ]);
 
   return (
-    <div className="max-w-2xl mx-auto pb-28">
+    <div className="max-w-2xl lg:max-w-5xl mx-auto pb-28">
       {dayViewComponent}
 
-      <div
-        className="fixed bottom-20 md:bottom-24 right-4 md:right-6 flex flex-col items-center z-20"
-        style={{ width: "56px" }}
-      >
-        {(userData?.dayTasks?.length ?? 0) > 0 && (
-          <>
+      {/* FAB anclado al borde derecho de la columna de contenido (no del viewport) */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 md:bottom-24 z-20">
+        <div className="max-w-2xl lg:max-w-5xl mx-auto px-4 md:px-6 flex justify-end">
+          <div
+            className="pointer-events-auto flex flex-col items-center"
+            style={{ width: "56px" }}
+          >
             <button
-              onClick={() => setShowClearConfirmation(true)}
-              className="w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-150 ease-in-out mb-1 md:mb-2 flex items-center justify-center"
+              onClick={() => setModalOpen(true)}
+              className="w-12 h-12 md:w-14 md:h-14 bg-emerald-500 text-white rounded-full shadow-lg hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors duration-150 ease-in-out flex items-center justify-center"
+              aria-label="Crear nueva tarea"
             >
-              <Icon
-                name="trash2"
-                className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6"
-              />
+              <Icon name="plus" className="h-5 w-5 md:h-6 md:w-6" />
             </button>
             <span
-              className="w-full mb-2 md:mb-4 bg-red-500 text-white sm:text-xs font-medium px-1 py-0.5 sm:px-2 sm:py-1 rounded-full shadow  text-[10px] text-center"
+              className="w-full mt-1 md:mt-2 bg-emerald-500 text-white text-[10px] sm:text-xs font-medium px-1 py-0.5 rounded-full sm:px-2 sm:py-1 shadow text-center"
               style={{ opacity: 0.95, display: "block", lineHeight: "1" }}
             >
-              Limpiar
+              Nueva
             </span>
-          </>
-        )}
-        <button
-          onClick={() => setModalOpen(true)}
-          className="w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 bg-emerald-500 text-white rounded-full shadow-lg hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors duration-150 ease-in-out flex items-center justify-center"
-        >
-          <Icon name="plus" className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
-        </button>
-        <span
-          className="w-full mt-1 md:mt-2 bg-emerald-500 text-white text-[10px] sm:text-xs font-medium px-1 py-0.5 rounded-full sm:px-2 sm:py-1 shadow text-center"
-          style={{ opacity: 0.95, display: "block", lineHeight: "1" }}
-        >
-          Nueva
-        </span>
+          </div>
+        </div>
       </div>
 
       {isModalOpen && (

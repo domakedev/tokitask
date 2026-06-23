@@ -7,16 +7,16 @@ import CalendarView from "./CalendarView";
 import AiTipCard from "./AiTipCard";
 import CongratulationsCard from "./CongratulationsCard";
 import FreeTimeCard from "./FreeTimeCard";
+import NowFocusCard from "./NowFocusCard";
+import TimeBudgetBar from "./TimeBudgetBar";
 import Icon from "./Icon";
 import ConfirmationModal from "./ConfirmationModal";
-import Badge, { BadgeProps } from "./Badge";
 import {
   getCurrentWeekDayName,
   getCurrentWeekDay,
   parseDurationToMinutes,
 } from "../utils/dateUtils";
 import CopyPasteButtons from "./CopyPasteButtons";
-import { toast } from "react-toastify";
 
 interface DayViewProps {
   userData: UserData;
@@ -37,6 +37,7 @@ interface DayViewProps {
   onDismissAiTip: () => void;
   onNavigate: (page: Page) => void;
   onNavigateToGeneralCalendar: () => void;
+  onRequestClearDay?: () => void;
 }
 
 const DayView: React.FC<DayViewProps> = ({
@@ -56,11 +57,14 @@ const DayView: React.FC<DayViewProps> = ({
   onDismissAiTip,
   onNavigate,
   onNavigateToGeneralCalendar,
+  onRequestClearDay,
 }) => {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [showAiModal, setShowAiModal] = useState(false);
   const [showPseudoAiModal, setShowPseudoAiModal] = useState(false);
   const [areOrganizedTasks, setAreOrganizedTasks] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [showDiscarded, setShowDiscarded] = useState(false);
 
   // Validación para desactivar botones si ya pasó la hora de fin del día
   const currentTime = new Date().toLocaleTimeString("es-ES", {
@@ -71,25 +75,18 @@ const DayView: React.FC<DayViewProps> = ({
   const isPastEndOfDay = currentTime > userData.endOfDay;
 
   // Verificar si las tareas ya están organizadas (tienen aiDuration)
-
   useEffect(() => {
-    const areTasksOrganized = userData.dayTasks
-      .filter((t) => !t.completed)
-      .every((task) => task.aiDuration && task.aiDuration.trim() !== "");
-    if (areTasksOrganized) {
-      setAreOrganizedTasks(true);
-    } else {
-      setAreOrganizedTasks(false);
-    }
+    const pending = userData.dayTasks.filter((t) => !t.completed);
+    const areTasksOrganized =
+      pending.length > 0 &&
+      pending.every((task) => task.aiDuration && task.aiDuration.trim() !== "");
+    setAreOrganizedTasks(areTasksOrganized);
   }, [userData.dayTasks]);
 
-  // Calcular estadísticas
+  // Calcular estadísticas de tiempo
   const totalBaseMinutes = userData.dayTasks
     .filter((task) => !task.completed)
-    .reduce(
-      (sum, task) => sum + parseDurationToMinutes(task.baseDuration),
-      0
-    );
+    .reduce((sum, task) => sum + parseDurationToMinutes(task.baseDuration), 0);
 
   const totalAiMinutes = userData.dayTasks
     .filter((task) => !task.completed)
@@ -99,101 +96,20 @@ const DayView: React.FC<DayViewProps> = ({
     parseDurationToMinutes(userData.endOfDay) -
     parseDurationToMinutes(currentTime);
 
-  const overloadMinutes =
-    (areOrganizedTasks ? totalAiMinutes : totalBaseMinutes) - availableMinutes;
+  const requiredMinutes = areOrganizedTasks ? totalAiMinutes : totalBaseMinutes;
 
-  // Calcular estadísticas de completadas
-  const completedCount = userData.dayTasks.filter(task => task.completed).length;
+  // Estadísticas de completadas
+  const completedCount = userData.dayTasks.filter((task) => task.completed).length;
 
-  // Calcular total de tareas programadas para hoy (no las clonadas)
-  const today = new Date().toLocaleDateString('en-CA');
+  // Total de tareas programadas para hoy (referencia para el progreso)
+  const today = new Date().toLocaleDateString("en-CA");
   const currentWeekDay = getCurrentWeekDay();
-  const scheduledTasks = userData.calendarTasks?.filter(task => task.scheduledDate === today) || [];
-  const totalTasks = userData.generalTasks.length + (userData.weeklyTasks?.[currentWeekDay]?.length || 0) + scheduledTasks.length;
-
-  // Determinar badges a mostrar
-  const getOverloadBadges = () => {
-    const badges = [];
-
-    // Badge de tiempo disponible
-    const availableHours = Math.floor(availableMinutes / 60);
-    const availableMins = availableMinutes % 60;
-    badges.push({
-      label: `Disponible: ${availableHours}h ${availableMins}min`,
-      variant: "base" as const,
-      icon: "clock",
-    });
-
-    // Badge de tiempo requerido/organizado
-    const requiredMinutes = areOrganizedTasks
-      ? totalAiMinutes
-      : totalBaseMinutes;
-    const requiredHours = Math.floor(requiredMinutes / 60);
-    const requiredMins = requiredMinutes % 60;
-    badges.push({
-      label: areOrganizedTasks
-        ? `Organizado: ${requiredHours}h ${requiredMins}min`
-        : `Requerido: ${requiredHours}h ${requiredMins}min`,
-      variant: areOrganizedTasks ? ("ai" as const) : ("flexible" as const),
-      icon: "timer",
-    });
-
-    if (overloadMinutes > 0) {
-      const overloadHours = Math.floor(overloadMinutes / 60);
-      let variant: BadgeProps["variant"];
-      let label = "";
-
-      if (overloadHours >= 3) {
-        variant = "danger" as const;
-        label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
-      } else if (overloadHours >= 2) {
-        variant = "danger" as const;
-        label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
-      } else if (overloadHours >= 1) {
-        variant = "alert" as const;
-        label = `Necesitas: +${overloadHours}h ${overloadMinutes % 60}min`;
-      } else {
-        variant = "success" as const;
-        label = `Necesitas: +${overloadMinutes}min`;
-      }
-
-      badges.push({
-        label,
-        variant,
-        icon: "trendingup",
-      });
-
-      // Badge de consejo solo si no está organizado
-      if (!areOrganizedTasks) {
-        badges.push({
-          label: "¡Organízate ahora!",
-          variant: "ai" as const,
-          icon: "lightbulb",
-        });
-      }
-      if (areOrganizedTasks) {
-        // Badge positivo
-        badges.push({
-          label: `¡Bien, ahora solo necesitas: ${overloadHours}h y ${
-            overloadMinutes % 60
-          } min más`,
-          variant: "ai" as const,
-          icon: "checkcircle",
-        });
-      }
-    } else {
-      // Badge positivo
-      badges.push({
-        label: "¡Bien, te sobra tiempo!",
-        variant: "ai" as const,
-        icon: "checkcircle",
-      });
-    }
-
-    return badges;
-  };
-
-  const overloadBadges = getOverloadBadges();
+  const scheduledTasks =
+    userData.calendarTasks?.filter((task) => task.scheduledDate === today) || [];
+  const totalTasks =
+    userData.generalTasks.length +
+    (userData.weeklyTasks?.[currentWeekDay]?.length || 0) +
+    scheduledTasks.length;
 
   const sortedTasks = useMemo(() => {
     const tasks = [...userData.dayTasks];
@@ -206,227 +122,278 @@ const DayView: React.FC<DayViewProps> = ({
       return a.startTime.localeCompare(b.startTime);
     });
 
-    // Recalcular isCurrent: el primer no completado en el orden ordenado
-    const firstPendingIndex = tasks.findIndex((task) => !task.completed);
+    // Recalcular isCurrent: la primera no completada y realizable (no descartada)
+    const firstPendingIndex = tasks.findIndex(
+      (task) => !task.completed && task.aiDuration !== "00:00"
+    );
     return tasks.map((task, index) => ({
       ...task,
       isCurrent: index === firstPendingIndex,
     }));
   }, [userData.dayTasks]);
 
-  return (
-    <div>
-      <header className="p-2 md:p-4 space-y-2 md:space-y-4 bg-slate-900/80 backdrop-blur-sm z-10">
-        <div>
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-lg md:text-2xl font-bold text-white">
-                Mi día {getCurrentWeekDayName()}
-              </h1>
-              <CurrentDate />
-            </div>
-            <div className="text-right">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 md:space-x-6 space-y-1 sm:space-y-0">
-                <div>
-                  <p className="text-xs text-slate-400">Fin del día</p>
-                  <p className="font-semibold text-emerald-400">
-                    {userData.endOfDay}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Tiempo restante</p>
-                  <RemainingTime endOfDay={userData.endOfDay} />
-                </div>
-              </div>
+  const pendingTasks = useMemo(
+    () => sortedTasks.filter((t) => !t.completed && t.aiDuration !== "00:00"),
+    [sortedTasks]
+  );
+  // Tareas que el planificador dejó "fuera del día" (aiDuration 00:00)
+  const discardedTasks = useMemo(
+    () => sortedTasks.filter((t) => !t.completed && t.aiDuration === "00:00"),
+    [sortedTasks]
+  );
+  const completedTasks = useMemo(
+    () => sortedTasks.filter((t) => t.completed),
+    [sortedTasks]
+  );
+  const currentTask = pendingTasks[0];
+
+  const hasTemplate =
+    !!userData.generalTasks?.length ||
+    !!userData.weeklyTasks?.[getCurrentWeekDay()]?.length;
+
+  // Reorden seguro: reconstruye el array completo para no perder los otros grupos
+  const handleReorderPending = async (reordered: (DayTask | GeneralTask)[]) => {
+    await onReorder([...reordered, ...discardedTasks, ...completedTasks]);
+  };
+  const handleReorderDiscarded = async (reordered: (DayTask | GeneralTask)[]) => {
+    await onReorder([...pendingTasks, ...reordered, ...completedTasks]);
+  };
+  const handleReorderCompleted = async (reordered: (DayTask | GeneralTask)[]) => {
+    await onReorder([...pendingTasks, ...discardedTasks, ...reordered]);
+  };
+
+  const headerBlock = (
+    <header className="p-3 md:p-4 lg:p-0 space-y-3 md:space-y-4 bg-slate-900/80 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none z-10">
+      {/* Título + tiempo restante (lo más importante, destacado) */}
+      <div className="flex justify-between items-start gap-3">
+        <div className="min-w-0">
+          <h1 className="text-lg md:text-2xl font-bold text-white truncate">
+            Mi día · {getCurrentWeekDayName()}
+          </h1>
+          <CurrentDate />
+        </div>
+        <div className="text-right flex-shrink-0">
+          <p className="text-xs text-slate-400">Te queda</p>
+          <RemainingTime
+            endOfDay={userData.endOfDay}
+            className="text-lg md:text-xl font-bold text-emerald-400"
+          />
+          <p className="text-[11px] text-slate-500">
+            Fin del día {userData.endOfDay}
+          </p>
+        </div>
+      </div>
+
+      {/* Aviso cuando ya pasó el fin del día */}
+      {isPastEndOfDay && userData.dayTasks.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5 text-sm text-amber-300 flex items-start gap-2">
+          <Icon name="alerttriangle" className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>
+            Ya pasó tu hora de fin del día. Ajusta tu hora de fin en tu perfil
+            o pasa las tareas pendientes a mañana.
+          </span>
+        </div>
+      )}
+
+      {/* Acciones con jerarquía */}
+      {userData.dayTasks.length === 0 ? (
+          <button
+            onClick={onStartDay}
+            disabled={isSyncing || isPastEndOfDay || !hasTemplate}
+            className="w-full bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Armar mi día
+          </button>
+        ) : (
+          <div className="space-y-2">
+            {/* Acción principal: organizar con IA */}
+            <button
+              onClick={() => setShowAiModal(true)}
+              disabled={isSyncing || isPastEndOfDay}
+              className="relative w-full overflow-hidden text-white font-semibold py-3 px-4 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span
+                className="absolute inset-0 z-0 animate-gradient"
+                style={{
+                  background:
+                    "linear-gradient(270deg, #22d3ee, #34d399, #2563eb, #22d3ee)",
+                  backgroundSize: "600% 600%",
+                  opacity: 0.95,
+                }}
+              />
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <Icon name="sparkles" className="h-5 w-5" />
+                {isSyncing ? "Calculando..." : "Organizarme con IA"}
+              </span>
+            </button>
+
+            {/* Acciones secundarias */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => setShowPseudoAiModal(true)}
+                disabled={isSyncing || isPastEndOfDay}
+                className="flex items-center justify-center gap-1 bg-slate-800 border border-slate-600 text-slate-200 text-sm font-medium py-2 px-2 rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Organiza al instante respetando horarios fijos"
+              >
+                <Icon name="flame" className="h-4 w-4 text-purple-400" />
+                Express
+              </button>
+              <button
+                onClick={onGetAiAdvice}
+                disabled={isSyncing}
+                className="flex items-center justify-center gap-1 bg-slate-800 border border-slate-600 text-slate-200 text-sm font-medium py-2 px-2 rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Pide un consejo contextual a la IA"
+              >
+                <Icon name="lightbulb" className="h-4 w-4 text-orange-400" />
+                Consejo
+              </button>
+              <button
+                onClick={onStartDay}
+                disabled={isSyncing || isPastEndOfDay || !hasTemplate}
+                className="flex items-center justify-center gap-1 bg-slate-800 border border-slate-600 text-slate-200 text-sm font-medium py-2 px-2 rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Vuelve a clonar tu horario para hoy"
+              >
+                <Icon name="repeat" className="h-4 w-4 text-emerald-400" />
+                Rehacer
+              </button>
             </div>
           </div>
-          {/* Toggle de vista */}
-          {userData.dayTasks.length > 0 && (
-            <div className="flex justify-center mt-4">
+        )}
+
+        <style jsx global>{`
+          @keyframes gradientMove {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+          .animate-gradient {
+            animation: gradientMove 10s ease-in-out infinite;
+          }
+        `}</style>
+    </header>
+  );
+
+  return (
+    <div>
+      {userData.dayTasks.length > 0 ? (
+        <div className="lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-6 lg:items-start lg:px-6 lg:mt-4">
+          {/* Panel de control (izquierda en desktop) */}
+          <div className="space-y-3 md:space-y-4 lg:sticky lg:top-4">
+            {headerBlock}
+            <div className="px-2 md:px-6 lg:px-0 space-y-3 md:space-y-4">
+              {aiTip && (
+                <AiTipCard
+                  tip={aiTip.message}
+                  type={aiTip.type}
+                  onDismiss={onDismissAiTip}
+                />
+              )}
+
+              {/* Bloque AHORA: la respuesta a "¿qué hago ahora?" */}
+              {currentTask && !isPastEndOfDay && (
+                <NowFocusCard
+                  task={currentTask}
+                  endOfDay={userData.endOfDay}
+                  onComplete={onToggleComplete}
+                  onEdit={onEdit}
+                />
+              )}
+
+              {/* Medidor de carga del día */}
+              <TimeBudgetBar
+                availableMinutes={availableMinutes}
+                requiredMinutes={requiredMinutes}
+                isOrganized={areOrganizedTasks}
+                isPastEndOfDay={isPastEndOfDay}
+              />
+
+              {completedCount > 0 && (
+                <CongratulationsCard
+                  completedCount={completedCount}
+                  totalTasks={totalTasks}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Listas (derecha en desktop) */}
+          <div className="px-2 md:px-6 lg:px-0 mt-2 md:mt-4 lg:mt-0 space-y-3 md:space-y-4 min-w-0">
+            {/* Selector de vista + pegar */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="bg-slate-800 rounded-lg p-1 flex">
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === "list"
                       ? "bg-emerald-600 text-white"
                       : "text-slate-300 hover:text-white"
                   }`}
                 >
-                  <Icon name="list" className="inline mr-2 h-4 w-4" />
-                  Hoy modo Lista
+                  <Icon name="list" className="inline mr-1.5 h-4 w-4" />
+                  Lista
                 </button>
                 <button
                   onClick={() => setViewMode("calendar")}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === "calendar"
                       ? "bg-emerald-600 text-white"
                       : "text-slate-300 hover:text-white"
                   }`}
                 >
-                  <Icon name="calendar" className="inline mr-2 h-4 w-4" />
-                  Hoy modo Calendario
+                  <Icon name="calendar" className="inline mr-1.5 h-4 w-4" />
+                  Calendario
                 </button>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Botón para ir al calendario de General */}
-        <div className="flex justify-center mt-2">
-          <button
-            onClick={onNavigateToGeneralCalendar}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm font-medium"
-          >
-            <Icon name="calendar" className="h-4 w-4" />
-            Ver Calendario General
-          </button>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-center items-center sm:space-x-2 md:space-x-3 gap-2">
-          <button
-            onClick={onStartDay}
-            disabled={
-              isSyncing ||
-              isPastEndOfDay ||
-              (!userData.generalTasks?.length &&
-                !userData.weeklyTasks?.[getCurrentWeekDay()]?.length)
-            }
-            className="flex-1 w-full bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Clonar horario del día
-          </button>
-          <button
-            onClick={() => setShowAiModal(true)}
-            disabled={
-              isSyncing || isPastEndOfDay || userData.dayTasks.length === 0
-            }
-            className="flex-1 w-full text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-75 transition-transform transform disabled:opacity-50 disabled:cursor-not-allowed border-none animate-float animate-gradient"
-            style={{
-              position: "relative",
-              overflow: "hidden",
-              boxShadow:
-                "0 4px 16px 0 rgba(0, 212, 255, 0.15), 0 1.5px 6px 0 rgba(16, 185, 129, 0.12)",
-            }}
-          >
-            <span
-              className="absolute inset-0 z-0 animate-gradient"
-              style={{
-                background:
-                  "linear-gradient(270deg, #22d3ee, #34d399, #2563eb, #22d3ee)",
-                backgroundSize: "600% 600%",
-                filter: "blur(0.5px)",
-                opacity: 0.95,
-              }}
-            />
-            <span className="relative z-10">
-              {isSyncing ? "Calculando..." : "Organizarme con IA"}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setShowPseudoAiModal(true)}
-            disabled={
-              isSyncing || isPastEndOfDay || userData.dayTasks.length === 0
-            }
-            className="flex-1 w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSyncing ? "Calculando..." : "Organización Express⚡"}
-          </button>
-
-          <button
-            onClick={onGetAiAdvice}
-            disabled={
-              isSyncing || userData.dayTasks.length === 0
-            }
-            className="flex-1 w-full bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSyncing ? "Pensando..." : "Pedir consejo a IA 💡"}
-          </button>
-
-          <style jsx global>{`
-            @keyframes float {
-              0% {
-                transform: translateY(0);
-              }
-              50% {
-                transform: translateY(-6px);
-              }
-              100% {
-                transform: translateY(0);
-              }
-            }
-            .animate-float {
-              animation: float 2.2s ease-in-out infinite;
-            }
-            @keyframes gradientMove {
-              0% {
-                background-position: 0% 50%;
-              }
-              50% {
-                background-position: 100% 50%;
-              }
-              100% {
-                background-position: 0% 50%;
-              }
-            }
-            .animate-gradient {
-              animation: gradientMove 10s ease-in-out infinite;
-            }
-          `}</style>
-        </div>
-
-        {/* Mensaje informativo para Día */}
-        <div className="text-center mb-4">
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-            <p className="text-sm text-blue-300">
-              <Icon name="info" className="inline mr-2 h-4 w-4" />
-              Aquí verás tus tareas semanales y de calendario para{" "}
-              <strong>Hoy</strong>
-            </p>
-          </div>
-        </div>
-      </header>
-      <main className="px-2 md:px-6 mt-2 md:mt-4">
-        {/* Botones de copiar/pegar */}
-        {userData.dayTasks.length > 0 ? (
-          <>
-            {aiTip && (
-              <div className="mb-2 md:mb-4">
-                <AiTipCard tip={aiTip.message} type={aiTip.type} onDismiss={onDismissAiTip} />
-              </div>
-            )}
-            {completedCount > 0 && (
-              <div className="mb-2 md:mb-4">
-                <CongratulationsCard completedCount={completedCount} totalTasks={totalTasks} />
-              </div>
-            )}
-            <div className="mb-2">
-              <div className="flex justify-center">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onNavigateToGeneralCalendar}
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
+                >
+                  <Icon name="calendar" className="h-4 w-4" />
+                  Calendario general
+                </button>
+                {onRequestClearDay && (
+                  <button
+                    onClick={onRequestClearDay}
+                    className="text-xs text-red-400/80 hover:text-red-300 flex items-center gap-1 transition-colors"
+                    title="Eliminar todas las tareas de hoy"
+                  >
+                    <Icon name="trash2" className="h-4 w-4" />
+                    Limpiar día
+                  </button>
+                )}
                 <CopyPasteButtons />
               </div>
-              {overloadBadges.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2 justify-center">
-                  {overloadBadges.map((badge, index) => (
-                    <Badge
-                      key={index}
-                      label={badge.label}
-                      variant={badge.variant}
-                      icon={badge.icon}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
+
             {viewMode === "list" ? (
-              <TaskList
-                tasks={sortedTasks}
-                isDaily={true}
-                onToggleComplete={onToggleComplete}
-                onDelete={onDelete}
-                onReorder={onReorder}
-                onEdit={onEdit}
-                onUpdateAiDuration={onUpdateAiDuration}
-              />
+              pendingTasks.length > 0 ? (
+                <TaskList
+                  tasks={pendingTasks}
+                  isDaily={true}
+                  onToggleComplete={onToggleComplete}
+                  onDelete={onDelete}
+                  onReorder={handleReorderPending}
+                  onEdit={onEdit}
+                  onUpdateAiDuration={onUpdateAiDuration}
+                />
+              ) : (
+                <div className="text-center py-8 px-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                  <Icon
+                    name="checkcircle"
+                    className="h-10 w-10 text-emerald-500 mx-auto"
+                  />
+                  <p className="mt-2 font-semibold text-white">
+                    ¡No te queda nada pendiente!
+                  </p>
+                </div>
+              )
             ) : (
               <CalendarView
                 tasks={sortedTasks}
@@ -436,17 +403,82 @@ const DayView: React.FC<DayViewProps> = ({
                 onReorder={onReorder}
               />
             )}
+
+            {/* Tareas fuera del día: el planificador no les encontró tiempo */}
+            {viewMode === "list" && discardedTasks.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setShowDiscarded((v) => !v)}
+                  className="w-full flex items-center justify-between text-sm text-amber-300/90 hover:text-amber-200 py-2 px-1 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Icon
+                      name={showDiscarded ? "chevrondown" : "chevronright"}
+                      className="h-4 w-4"
+                    />
+                    Fuera del día ({discardedTasks.length})
+                  </span>
+                </button>
+                {showDiscarded && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-400 px-1">
+                      No alcanzó el tiempo de hoy. Puedes pasarlas a mañana,
+                      acortarlas o completarlas igual.
+                    </p>
+                    <TaskList
+                      tasks={discardedTasks}
+                      isDaily={true}
+                      onToggleComplete={onToggleComplete}
+                      onDelete={onDelete}
+                      onReorder={handleReorderDiscarded}
+                      onEdit={onEdit}
+                      onUpdateAiDuration={onUpdateAiDuration}
+                      showTimer={false}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tareas completadas, agrupadas y colapsadas */}
+            {viewMode === "list" && completedTasks.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setShowCompleted((v) => !v)}
+                  className="w-full flex items-center justify-between text-sm text-slate-300 hover:text-white py-2 px-1 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Icon
+                      name={showCompleted ? "chevrondown" : "chevronright"}
+                      className="h-4 w-4"
+                    />
+                    Completadas ({completedTasks.length})
+                  </span>
+                </button>
+                {showCompleted && (
+                  <TaskList
+                    tasks={completedTasks}
+                    isDaily={true}
+                    onToggleComplete={onToggleComplete}
+                    onDelete={onDelete}
+                    onReorder={handleReorderCompleted}
+                    onEdit={onEdit}
+                    onUpdateAiDuration={onUpdateAiDuration}
+                    showTimer={false}
+                  />
+                )}
+              </div>
+            )}
+
             {freeTime ? (
               <FreeTimeCard duration={freeTime} />
             ) : (
-              <div className="mt-2 md:mt-4 p-2 md:p-4 rounded-lg border border-dashed border-slate-500/30 bg-slate-800/20 flex items-center space-x-2 md:space-x-4">
-                <div className="flex-shrink-0">
-                  <Icon
-                    name="clock"
-                    className="h-4 w-4 md:h-6 md:w-6 text-slate-400"
-                  />
-                </div>
-                <div className="flex-grow">
+              <div className="p-3 md:p-4 rounded-lg border border-dashed border-slate-500/30 bg-slate-800/20 flex items-center space-x-3">
+                <Icon
+                  name="clock"
+                  className="h-5 w-5 md:h-6 md:w-6 text-slate-400 flex-shrink-0"
+                />
+                <div>
                   <p className="font-semibold text-white">Sin tiempo libre</p>
                   <p className="text-xs md:text-sm text-slate-300">
                     No hay tiempo libre disponible para hoy
@@ -454,59 +486,63 @@ const DayView: React.FC<DayViewProps> = ({
                 </div>
               </div>
             )}
-          </>
-        ) : userData.generalTasks.length > 0 ? (
-          <div className="text-center py-8 md:py-16 px-4 md:px-6 bg-slate-800/50 rounded-lg border border-slate-700">
-            <Icon
-              name="sunrise"
-              className="h-8 w-8 md:h-12 md:w-12 text-slate-500 mx-auto"
-            />
-            <h2 className="mt-2 md:mt-4 text-lg md:text-xl font-bold text-white">
-              ¿Listo para empezar?
-            </h2>
-            <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
-              Haz clic en{" "}
-              <span className="font-semibold text-emerald-400">
-                Clonar horario del día
-              </span>{" "}
-              para usar tu plantilla de &quot;Horario General&quot; y generar tu
-              plan de hoy con IA. <br /> <br /> O crea tareas independientes.
-              <span className="inline-flex items-center justify-center rounded-full bg-emerald-500 w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 ml-1 md:ml-2">
+          </div>
+        </div>
+      ) : (
+        <div>
+          {headerBlock}
+          <main className="px-2 md:px-6 mt-2 md:mt-4">
+            {hasTemplate ? (
+              <div className="text-center py-8 md:py-16 px-4 md:px-6 bg-slate-800/50 rounded-lg border border-slate-700">
                 <Icon
-                  name="plus"
-                  className="text-slate-100 w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5"
+                  name="sunrise"
+                  className="h-8 w-8 md:h-12 md:w-12 text-slate-500 mx-auto"
                 />
-              </span>
-            </p>
-          </div>
-        ) : (
-          <div className="text-center py-8 md:py-16 px-4 md:px-6 bg-slate-800/50 rounded-lg border border-slate-700">
-            <Icon
-              name="clipboard-list"
-              className="h-8 w-8 md:h-12 md:w-12 text-slate-500 mx-auto"
-            />
-            <h2 className="mt-2 md:mt-4 text-lg md:text-xl font-bold text-white">
-              Crea tu plantilla primero
-            </h2>
-            <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
-              Para poder clonar un horario, primero necesitas crear uno con sus
-              tareas en la sección &quot;Horario&quot;.
-            </p>
-            <button
-              onClick={() => onNavigate(Page.General)}
-              className="mt-4 md:mt-6 bg-emerald-500 text-white font-semibold py-2 px-4 md:py-3 md:px-6 rounded-lg shadow-lg hover:bg-emerald-600 transition-colors duration-150 ease-in-out"
-            >
-              Ir a Horario para crear uno
-            </button>
-          </div>
-        )}
-      </main>
+                <h2 className="mt-2 md:mt-4 text-lg md:text-xl font-bold text-white">
+                  ¿Listo para empezar?
+                </h2>
+                <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
+                  Pulsa{" "}
+                  <span className="font-semibold text-emerald-400">
+                    Armar mi día
+                  </span>{" "}
+                  para traer tus tareas de hoy desde tu horario, o crea una tarea
+                  suelta con el botón
+                  <span className="inline-flex items-center justify-center rounded-full bg-emerald-500 w-5 h-5 ml-1 align-middle">
+                    <Icon name="plus" className="text-slate-100 w-3 h-3" />
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-8 md:py-16 px-4 md:px-6 bg-slate-800/50 rounded-lg border border-slate-700">
+                <Icon
+                  name="clipboardList"
+                  className="h-8 w-8 md:h-12 md:w-12 text-slate-500 mx-auto"
+                />
+                <h2 className="mt-2 md:mt-4 text-lg md:text-xl font-bold text-white">
+                  Crea tu plantilla primero
+                </h2>
+                <p className="mt-1 md:mt-2 text-xs md:text-sm text-slate-400">
+                  Para poder armar tu día, primero crea un horario con tus tareas
+                  en la sección &quot;Horario&quot;.
+                </p>
+                <button
+                  onClick={() => onNavigate(Page.General)}
+                  className="mt-4 md:mt-6 bg-emerald-500 text-white font-semibold py-2 px-4 md:py-3 md:px-6 rounded-lg shadow-lg hover:bg-emerald-600 transition-colors"
+                >
+                  Ir a Horario para crear uno
+                </button>
+              </div>
+            )}
+          </main>
+        </div>
+      )}
 
       {/* Modal de confirmación para Organizar tiempos con IA */}
       <ConfirmationModal
         isOpen={showAiModal}
         title="Organizar tiempos con IA"
-        message="😎Esta opción respeta los horarios fijos y piensa más pero puede demorar hasta 1 minuto en responder😿."
+        message="Esta opción respeta los horarios fijos y piensa mejor tu plan, pero puede tardar hasta 1 minuto en responder."
         onConfirm={() => {
           setShowAiModal(false);
           onSyncWithAI();
@@ -518,7 +554,7 @@ const DayView: React.FC<DayViewProps> = ({
       <ConfirmationModal
         isOpen={showPseudoAiModal}
         title="Organización Express"
-        message="⚡Esta opción responde al instante y respeta los horarios fijos de tus tareas 😺."
+        message="Esta opción responde al instante y respeta los horarios fijos de tus tareas."
         onConfirm={() => {
           setShowPseudoAiModal(false);
           onSyncWithPseudoAI();

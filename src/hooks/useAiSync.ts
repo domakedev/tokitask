@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { DayTask, UserData, WEEKDAY_LABELS } from "../types";
+import { DayTask, UserData, WEEKDAY_LABELS, Priority } from "../types";
 import {
   getCurrentWeekDay,
   calculateTimeDifferenceInMinutes,
@@ -378,8 +378,17 @@ export const useAiSync = (
           return;
         }
 
+        // Deduplicar por progressId: si una corrida previa dividió una tarea flexible
+        // en varios segmentos, colapsarlos en una sola tarea antes de replanificar.
+        const progressIdsVistos = new Set<string>();
         const tareas = tasksForSync
           .filter((t) => !t.completed)
+          .filter((t) => {
+            const key = t.progressId || t.id;
+            if (progressIdsVistos.has(key)) return false;
+            progressIdsVistos.add(key);
+            return true;
+          })
           .map((t, index) => ({
             ...t,
             baseDurationMinutes: parseDurationToMinutes(t.baseDuration),
@@ -509,218 +518,232 @@ export const useAiSync = (
         
         const tiempoDisponibleParaFlexibles = Math.max(0, tiempoTotalDisponible - tiempoReservadoParaNoFlexibles);
 
-        // --- FASE 3: Distribuir tareas flexibles en espacios disponibles ---
-        const totalFlexibleBaseDuration = tareasFlexibles.reduce((sum, t) => sum + t.baseDurationMinutes, 0);
+        // --- FASE 3: Asignar DURACIONES a las flexibles, ponderado por PRIORIDAD ---
+        // Se reparte el presupuesto por tiers (Muy importante → Importante → Opcional).
+        // Si falta tiempo, las opcionales pueden quedar en 0 ("no realizable") antes de
+        // recortar a las importantes.
+        const BLOCK_SIZE = 5; // minutos (múltiplos de 5, igual que la IA)
+
+        // Reparte `budget` minutos entre `grupo` proporcional a baseDuration, en bloques,
+        // sin exceder la baseDuration de cada tarea (método de mayor resto / Hamilton).
+        const repartirEnBloques = (
+          grupo: { id: string; baseDurationMinutes: number }[],
+          budget: number
+        ): Record<string, number> => {
+          const res: Record<string, number> = {};
+          grupo.forEach((t) => (res[t.id] = 0));
+          const totalBase = grupo.reduce((s, t) => s + t.baseDurationMinutes, 0);
+          const totalBloques = Math.floor(budget / BLOCK_SIZE);
+          if (totalBloques <= 0 || totalBase <= 0) return res;
+
+          const items = grupo.map((t) => {
+            const ideal = totalBloques * (t.baseDurationMinutes / totalBase);
+            return {
+              id: t.id,
+              maxBloques: Math.max(1, Math.round(t.baseDurationMinutes / BLOCK_SIZE)),
+              asignados: Math.floor(ideal),
+              fraccion: ideal - Math.floor(ideal),
+            };
+          });
+
+          let restantes = totalBloques - items.reduce((s, i) => s + i.asignados, 0);
+          [...items]
+            .sort((a, b) => b.fraccion - a.fraccion)
+            .forEach((it) => {
+              if (restantes > 0) {
+                it.asignados += 1;
+                restantes -= 1;
+              }
+            });
+
+          let surplus = 0;
+          items.forEach((it) => {
+            if (it.asignados > it.maxBloques) {
+              surplus += it.asignados - it.maxBloques;
+              it.asignados = it.maxBloques;
+            }
+          });
+          for (const it of items) {
+            if (surplus <= 0) break;
+            const cap = it.maxBloques - it.asignados;
+            if (cap > 0) {
+              const add = Math.min(surplus, cap);
+              it.asignados += add;
+              surplus -= add;
+            }
+          }
+          items.forEach((it) => (res[it.id] = it.asignados * BLOCK_SIZE));
+          return res;
+        };
+
         const duracionesFlexibles: { [id: string]: number } = {};
-        
-        const BLOCK_SIZE = 10;
-        const totalBloques = Math.floor(tiempoDisponibleParaFlexibles / BLOCK_SIZE);
+        tareasFlexibles.forEach((t) => (duracionesFlexibles[t.id] = 0));
 
-        if (totalBloques > 0 && totalFlexibleBaseDuration > 0) {
-            const tareasConBloques = tareasFlexibles.map(tarea => {
-                const proportion = tarea.baseDurationMinutes / totalFlexibleBaseDuration;
-                const bloquesIdeales = totalBloques * proportion;
-                return {
-                    ...tarea,
-                    bloquesIdeales,
-                    fraccion: bloquesIdeales - Math.floor(bloquesIdeales),
-                    bloquesAsignados: Math.floor(bloquesIdeales),
-                    maxBloques: Math.floor(tarea.baseDurationMinutes / BLOCK_SIZE),
-                };
-            });
+        // Tiers en orden de protección: Muy importante → Importante → Opcional
+        const tiersPorPrioridad = [Priority.High, Priority.Medium, Priority.Low].map(
+          (p) => tareasFlexibles.filter((t) => (t.priority ?? Priority.Medium) === p)
+        );
 
-            const bloquesAsignadosInicialmente = tareasConBloques.reduce((sum, t) => sum + t.bloquesAsignados, 0);
-            let bloquesRestantes = totalBloques - bloquesAsignadosInicialmente;
-
-            tareasConBloques.sort((a, b) => b.fraccion - a.fraccion);
-
-            for (const tarea of tareasConBloques) {
-                if (bloquesRestantes <= 0) break;
-                tarea.bloquesAsignados += 1;
-                bloquesRestantes -= 1;
-            }
-    
-            let surplusBloques = 0;
-            for (const tarea of tareasConBloques) {
-                if (tarea.bloquesAsignados > tarea.maxBloques) {
-                    surplusBloques += tarea.bloquesAsignados - tarea.maxBloques;
-                    tarea.bloquesAsignados = tarea.maxBloques;
-                }
-            }
-
-            if (surplusBloques > 0) {
-                tareasConBloques.sort((a, b) => a.baseDurationMinutes - b.baseDurationMinutes);
-        
-                for (const tarea of tareasConBloques) {
-                    if (surplusBloques <= 0) break;
-                    const puedeRecibir = tarea.maxBloques - tarea.bloquesAsignados;
-                    if (puedeRecibir > 0) {
-                        const aAsignar = Math.min(surplusBloques, puedeRecibir);
-                        tarea.bloquesAsignados += aAsignar;
-                        surplusBloques -= aAsignar;
-                    }
-                }
-            }
-
-            tareasConBloques.forEach(t => {
-                duracionesFlexibles[t.id] = t.bloquesAsignados * BLOCK_SIZE;
-            });
+        let presupuestoFlex = tiempoDisponibleParaFlexibles;
+        for (const tier of tiersPorPrioridad) {
+          if (tier.length === 0) continue;
+          const sumaBase = tier.reduce((s, t) => s + t.baseDurationMinutes, 0);
+          const budgetTier = Math.min(presupuestoFlex, sumaBase);
+          const reparto = repartirEnBloques(
+            tier.map((t) => ({ id: t.id, baseDurationMinutes: t.baseDurationMinutes })),
+            budgetTier
+          );
+          let usado = 0;
+          tier.forEach((t) => {
+            duracionesFlexibles[t.id] = reparto[t.id] ?? 0;
+            usado += duracionesFlexibles[t.id];
+          });
+          presupuestoFlex = Math.max(0, presupuestoFlex - usado);
         }
-        
-        // --- FASE 4: Construir el horario final llenando espacios libres ---
+
+        // --- FASE 4: Construir el horario recorriendo los slots EN ORDEN ---
+        // Respeta el orden del usuario. Las flexibles pueden DIVIDIRSE entre slots
+        // (p. ej. continuar después de una tarea fija). Las no-flexibles sin horario
+        // necesitan un bloque contiguo.
         const updatedTasks: DayTask[] = [];
-        const tareasFlexiblesProcesadas = new Set<string>();
+
+        const fmt = (mins: number) => {
+          const m = Math.max(0, mins);
+          return `${Math.floor(m / 60).toString().padStart(2, "0")}:${(m % 60)
+            .toString()
+            .padStart(2, "0")}`;
+        };
+
+        type ColaItem = {
+          task: (typeof tareas)[number];
+          remaining: number;
+          target: number;
+          splittable: boolean;
+          placed: boolean;
+        };
+
+        // Cola de colocables en orden de array (no-flexibles-sin-horario + flexibles).
+        // Las fijas con horario van como anclas (slots isFixed), no entran aquí.
+        const cola: ColaItem[] = tareas
+          .filter((t) => t.flexibleTime !== false || !(t.startTime && t.endTime))
+          .map((t) => {
+            const splittable = t.flexibleTime !== false;
+            const target = splittable
+              ? duracionesFlexibles[t.id] ?? 0
+              : t.baseDurationMinutes;
+            return { task: t, remaining: target, target, splittable, placed: false };
+          });
+
+        const pushSegment = (item: ColaItem, start: string, mins: number): string => {
+          const end = addMinutesToTime(start, mins);
+          updatedTasks.push({
+            ...item.task,
+            // los segmentos de continuación llevan id único (mismo progressId)
+            id: item.placed ? generateTaskId() : item.task.id,
+            startTime: start,
+            endTime: end,
+            aiDuration: fmt(mins),
+          });
+          item.placed = true;
+          item.remaining -= mins;
+          return end;
+        };
 
         for (const slot of timeSlots) {
           if (slot.isFixed && slot.task) {
-            // Agregar tarea fija con su horario original
-            let taskDurationMinutes;
-            if (slot.task.startTime && slot.task.endTime) {
-              taskDurationMinutes = calculateTimeDifferenceInMinutes(slot.task.startTime, slot.task.endTime);
-            } else {
-              taskDurationMinutes = parseDurationToMinutes(slot.task.baseDuration);
-            }
-            const formattedAiDuration = taskDurationMinutes >= 60
-              ? `${Math.floor(taskDurationMinutes / 60).toString().padStart(2, '0')}:${(taskDurationMinutes % 60).toString().padStart(2, '0')}`
-              : `00:${(taskDurationMinutes % 60).toString().padStart(2, '0')}`;
-
+            const dur =
+              slot.task.startTime && slot.task.endTime
+                ? calculateTimeDifferenceInMinutes(slot.task.startTime, slot.task.endTime)
+                : parseDurationToMinutes(slot.task.baseDuration);
             updatedTasks.push({
               ...slot.task,
               startTime: slot.startTime,
               endTime: slot.endTime,
-              aiDuration: formattedAiDuration,
+              aiDuration: fmt(dur),
             });
-          } else {
-            // Llenar espacio libre con tareas flexibles
-            let slotTime = slot.startTime;
-            const slotEndTime = slot.endTime;
+            continue;
+          }
 
-            // Primero procesar tareas no flexibles sin horario (respetando su baseDuration completa como bloque)
-            for (const tareaNoFlexible of tareasNoFlexiblesSinHorario) {
-              if (tareasFlexiblesProcesadas.has(tareaNoFlexible.id)) continue;
-              if (slotTime >= slotEndTime) break;
+          // Slot libre: llenarlo con la cola, respetando el orden
+          let slotTime = slot.startTime;
+          let guard = 0;
+          while (slotTime < slot.endTime && guard++ < 1000) {
+            const libre = calculateTimeDifferenceInMinutes(slotTime, slot.endTime);
+            if (libre <= 0) break;
 
-              const duracionExacta = tareaNoFlexible.baseDurationMinutes;
-              const tiempoRestanteEnSlot = calculateTimeDifferenceInMinutes(slotTime, slotEndTime);
+            const head = cola.find((c) => c.remaining > 0);
+            if (!head) break;
 
-              // Solo asignar si el slot completo puede acomodar toda la duración base
-              if (tiempoRestanteEnSlot >= duracionExacta) {
-                const taskEndTime = addMinutesToTime(slotTime, duracionExacta);
-
-                const formattedAiDuration = duracionExacta >= 60
-                  ? `${Math.floor(duracionExacta / 60).toString().padStart(2, '0')}:${(duracionExacta % 60).toString().padStart(2, '0')}`
-                  : `00:${(duracionExacta % 60).toString().padStart(2, '0')}`;
-
-                updatedTasks.push({
-                  ...tareaNoFlexible,
-                  startTime: slotTime,
-                  endTime: taskEndTime,
-                  aiDuration: formattedAiDuration,
-                });
-
-                slotTime = taskEndTime;
-                tareasFlexiblesProcesadas.add(tareaNoFlexible.id);
-              }
-              // Si no cabe completa, omitir en este slot (se agregará al final)
-            }
-            
-            // Luego procesar tareas flexibles
-            for (const tareaFlexible of tareasFlexibles) {
-              if (tareasFlexiblesProcesadas.has(tareaFlexible.id)) continue;
-              if (slotTime >= slotEndTime) break;
-              
-              const aiDurationMinutes = duracionesFlexibles[tareaFlexible.id] ?? 0;
-              
-              // Si la tarea no tiene duración asignada, darle al menos 10 minutos
-              const duracionFinal = aiDurationMinutes > 0 ? aiDurationMinutes : 10;
-              
-              const tiempoRestanteEnSlot = calculateTimeDifferenceInMinutes(slotTime, slotEndTime);
-              const duracionAUsar = Math.min(duracionFinal, tiempoRestanteEnSlot);
-              
-              if (duracionAUsar > 0) {
-                const taskEndTime = addMinutesToTime(slotTime, duracionAUsar);
-                
-                const formattedAiDuration = duracionAUsar >= 60
-                  ? `${Math.floor(duracionAUsar / 60).toString().padStart(2, '0')}:${(duracionAUsar % 60).toString().padStart(2, '0')}`
-                  : `00:${(duracionAUsar % 60).toString().padStart(2, '0')}`;
-
-                updatedTasks.push({
-                  ...tareaFlexible,
-                  startTime: slotTime,
-                  endTime: taskEndTime,
-                  aiDuration: formattedAiDuration,
-                });
-
-                slotTime = taskEndTime;
-                
-                // SIEMPRE marcar como procesada, independientemente de si se usó toda la duración
-                tareasFlexiblesProcesadas.add(tareaFlexible.id);
-                
-                // Si no usamos toda la duración, actualizar la duración restante para referencia
-                if (duracionAUsar < duracionFinal) {
-                  duracionesFlexibles[tareaFlexible.id] = duracionFinal - duracionAUsar;
-                }
-              }
+            if (head.splittable) {
+              // Flexible: usa lo que quepa; si sobra, continúa en el siguiente slot
+              slotTime = pushSegment(head, slotTime, Math.min(head.remaining, libre));
+            } else if (head.remaining <= libre) {
+              // No flexible: cabe entera en lo que queda del slot
+              slotTime = pushSegment(head, slotTime, head.remaining);
+            } else {
+              // No flexible que no cabe entera: rellena el hueco con la próxima flexible
+              // para no desperdiciar y deja la no-flexible para el siguiente slot.
+              const flex = cola.find((c) => c.splittable && c.remaining > 0);
+              if (!flex) break;
+              slotTime = pushSegment(flex, slotTime, Math.min(flex.remaining, libre));
             }
           }
         }
 
-        // --- FASE 5: Agregar tareas flexibles no procesadas al final ---
-        let tiempoFinal = updatedTasks.length > 0
-          ? updatedTasks[updatedTasks.length - 1].endTime || HORA_INICIO_ALINEADA
-          : HORA_INICIO_ALINEADA;
+        // --- FASE 5: Tareas que no entraron en ningún slot ---
+        let tiempoFinal = updatedTasks.reduce(
+          (max, t) => ((t.endTime || "") > max ? t.endTime || max : max),
+          HORA_INICIO_ALINEADA
+        );
 
-        // Procesar tareas no flexibles sin horario no procesadas (con su duración exacta)
-        for (const tareaNoFlexible of tareasNoFlexiblesSinHorario) {
-          if (!tareasFlexiblesProcesadas.has(tareaNoFlexible.id)) {
-            const duracionExacta = tareaNoFlexible.baseDurationMinutes;
-            const taskEndTime = addMinutesToTime(tiempoFinal, duracionExacta);
+        for (const item of cola) {
+          if (item.remaining <= 0) continue;
 
-            if (taskEndTime > HORA_FIN) {
-              warnings.push(`La tarea "${tareaNoFlexible.name}" excede la hora de fin del día.`);
-            }
-
-            const formattedAiDuration = duracionExacta >= 60
-              ? `${Math.floor(duracionExacta / 60).toString().padStart(2, '0')}:${(duracionExacta % 60).toString().padStart(2, '0')}`
-              : `00:${(duracionExacta % 60).toString().padStart(2, '0')}`;
-
+          // Opcional que no alcanzó nada de tiempo → "no realizable" (0 min)
+          if (
+            item.splittable &&
+            (item.task.priority ?? Priority.Medium) === Priority.Low &&
+            !item.placed
+          ) {
             updatedTasks.push({
-              ...tareaNoFlexible,
-              startTime: tiempoFinal,
-              endTime: taskEndTime,
-              aiDuration: formattedAiDuration,
+              ...item.task,
+              startTime: HORA_FIN,
+              endTime: HORA_FIN,
+              aiDuration: "00:00",
             });
-
-            tiempoFinal = taskEndTime;
+            warnings.push(
+              `Sin tiempo para "${item.task.name}" (opcional): queda como no realizable hoy.`
+            );
+            continue;
           }
-        }
-        
-        // Procesar tareas flexibles no procesadas
-        for (const tareaFlexible of tareasFlexibles) {
-          if (!tareasFlexiblesProcesadas.has(tareaFlexible.id)) {
-            const duracionRestante = duracionesFlexibles[tareaFlexible.id] ?? 10; // Mínimo 10 minutos
-            const taskEndTime = addMinutesToTime(tiempoFinal, duracionRestante);
-            
-            const formattedAiDuration = duracionRestante >= 60
-              ? `${Math.floor(duracionRestante / 60).toString().padStart(2, '0')}:${(duracionRestante % 60).toString().padStart(2, '0')}`
-              : `00:${(duracionRestante % 60).toString().padStart(2, '0')}`;
 
-            updatedTasks.push({
-              ...tareaFlexible,
-              startTime: tiempoFinal,
-              endTime: taskEndTime,
-              aiDuration: formattedAiDuration,
-            });
-
-            tiempoFinal = taskEndTime;
+          // Importantes (o ya iniciadas): se agregan al final aunque excedan el fin del día
+          const start = tiempoFinal;
+          const end = addMinutesToTime(start, item.remaining);
+          updatedTasks.push({
+            ...item.task,
+            id: item.placed ? generateTaskId() : item.task.id,
+            startTime: start,
+            endTime: end,
+            aiDuration: fmt(item.remaining),
+          });
+          if (end > HORA_FIN) {
+            warnings.push(`La tarea "${item.task.name}" excede la hora de fin del día.`);
           }
+          tiempoFinal = end;
+          item.remaining = 0;
         }
 
-        // Agregar tareas pasadas con duración cero
+        // Agregar tareas fijas ya vencidas (duración cero)
         updatedTasks.push(...passedTasks);
 
-        // Ordenar tareas finales por hora de inicio para mantener continuidad
-        updatedTasks.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+        // Ordenar por hora de inicio (numérico)
+        const toMin = (t?: string) => {
+          if (!t) return Number.MAX_SAFE_INTEGER;
+          const [h, m] = t.split(":").map(Number);
+          return h * 60 + m;
+        };
+        updatedTasks.sort((a, b) => toMin(a.startTime) - toMin(b.startTime));
 
         // --- 5. Calcular tiempo libre ---
         const totalAvailableMinutes = calculateTimeDifferenceInMinutes(HORA_INICIO_ALINEADA, HORA_FIN);

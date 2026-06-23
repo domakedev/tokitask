@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 
 interface RemainingTimeProps {
   endOfDay: string;
+  className?: string;
 }
 
-const RemainingTime: React.FC<RemainingTimeProps> = ({ endOfDay }) => {
+const RemainingTime: React.FC<RemainingTimeProps> = ({ endOfDay, className }) => {
   const [remaining, setRemaining] = useState("");
 
   useEffect(() => {
@@ -34,7 +35,7 @@ const RemainingTime: React.FC<RemainingTimeProps> = ({ endOfDay }) => {
     return () => clearInterval(timer);
   }, [endOfDay]);
 
-  return <p className="font-semibold text-slate-400">{remaining}</p>;
+  return <p className={className ?? "font-semibold text-slate-400"}>{remaining}</p>;
 };
 
 export default RemainingTime;
