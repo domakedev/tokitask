@@ -7,6 +7,8 @@ import ConfirmationModal from "../../../components/ConfirmationModal";
 import Icon from "../../../components/Icon";
 import LoadingScreen from "../../../components/LoadingScreen";
 import { updateUserData } from "../../../services/firestoreService";
+import { useAiUsage } from "../../../hooks/useAiUsage";
+import { AI_DAILY_LIMIT_PER_FEATURE } from "../../../config/aiLimits";
 import { useAuthStore } from "../../../stores/authStore";
 import { useScheduleStore } from "../../../stores/scheduleStore";
 import {
@@ -277,6 +279,8 @@ export default function AiPlanPage() {
   const userData = useAuthStore((state) => state.userData);
   const setUserData = useAuthStore((state) => state.setUserData);
   const setCurrentPage = useScheduleStore((state) => state.setCurrentPage);
+  const { runGuardedAi, getRemaining } = useAiUsage();
+  const plannerLeft = getRemaining("planner").feature;
 
   const [selectedDate, setSelectedDate] = useState(todayString());
   const [inputText, setInputText] = useState("");
@@ -520,7 +524,7 @@ export default function AiPlanPage() {
     }
   }, [isListening, speechSupported, startVoiceMeter, stopVoiceMeter]);
 
-  const generateAiPlan = useCallback(async (mode: GeneratePlanMode) => {
+  const generateAiPlan = useCallback(async (mode: GeneratePlanMode, force?: boolean) => {
     if (!userData) return;
     const trimmedText = inputText.trim();
 
@@ -531,36 +535,58 @@ export default function AiPlanPage() {
 
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/ai-planner", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // Gate anti-abuso + caché. El hash solo depende del texto, modo y día:
+      // re-generar lo mismo reutiliza la respuesta sin gastar cuota.
+      const result = await runGuardedAi<{
+        tasks?: AiPlannerApiTask[];
+        coachMessages?: string[];
+      }>({
+        feature: "planner",
+        input: { text: trimmedText, mode, date: selectedDate },
+        force,
+        request: async () => {
+          const response = await fetch("/api/ai-planner", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              text: trimmedText,
+              currentDate: selectedDate,
+              today: todayString(),
+              tomorrow: addDays(todayString(), 1),
+              currentTime: getCurrentTime(),
+              endOfDay: userData.endOfDay,
+              existingTasks: selectedDay?.tasks || [],
+              mode,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            let errorMessage = "Error al generar el plan.";
+            try {
+              const errorData = JSON.parse(errorText) as { error?: string };
+              errorMessage = errorData.error || errorMessage;
+            } catch {
+              if (errorText.trim()) errorMessage = errorText.trim();
+            }
+            throw new Error(errorMessage);
+          }
+
+          return await response.json();
         },
-        body: JSON.stringify({
-          text: trimmedText,
-          currentDate: selectedDate,
-          today: todayString(),
-          tomorrow: addDays(todayString(), 1),
-          currentTime: getCurrentTime(),
-          endOfDay: userData.endOfDay,
-          existingTasks: selectedDay?.tasks || [],
-          mode,
-        }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = "Error al generar el plan.";
-        try {
-          const errorData = JSON.parse(errorText) as { error?: string };
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          if (errorText.trim()) errorMessage = errorText.trim();
-        }
-        throw new Error(errorMessage);
+      if (!result.ok) {
+        toast.error(result.message || "No se pudo usar la IA.");
+        return;
+      }
+      if (result.fromCache) {
+        toast.info('Usando el último plan generado para este texto. Pulsa "Volver a generar" para regenerarlo.');
       }
 
-      const data = await response.json();
+      const data = result.data!;
       const apiTasks = Array.isArray(data.tasks) ? (data.tasks as AiPlannerApiTask[]) : [];
 
       if (apiTasks.length === 0) {
@@ -624,7 +650,7 @@ export default function AiPlanPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [inputText, persistPlanner, planner, selectedDate, selectedDay, userData]);
+  }, [inputText, persistPlanner, planner, selectedDate, selectedDay, userData, runGuardedAi]);
 
   const handleGeneratePlan = useCallback(() => {
     if (!inputText.trim()) {
@@ -1203,6 +1229,9 @@ export default function AiPlanPage() {
           >
             {hasTasks ? "Actualizar Plan IA" : "Ordenar mis tareas con IA"}
           </button>
+          <p className="mt-1 text-center text-[11px] text-slate-400">
+            {plannerLeft} de {AI_DAILY_LIMIT_PER_FEATURE} usos de IA restantes hoy
+          </p>
         </section>
 
         {hasTasks && (

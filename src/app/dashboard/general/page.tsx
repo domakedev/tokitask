@@ -12,6 +12,8 @@ import { useAuthStore } from "../../../stores/authStore";
 import LoadingScreen from "../../../components/LoadingScreen";
 import { useTaskManagement } from "../../../hooks/useTaskManagement";
 import { useAiSync } from "../../../hooks/useAiSync";
+import { useAiUsage } from "../../../hooks/useAiUsage";
+import { AI_DAILY_LIMIT_PER_FEATURE } from "../../../config/aiLimits";
 import { toast } from "react-toastify";
 import GeneralView from "../../../components/GeneralView";
 import TaskModal from "../../../components/AddTaskModal";
@@ -78,37 +80,59 @@ export default function GeneralPage() {
     []
   );
 
+  const { runGuardedAi, getRemaining } = useAiUsage();
+  const opinionLeft = getRemaining("opinion").feature;
+
   // Función para obtener la opinión de la IA sobre el horario general
-  const getAiOpinion = useCallback(async () => {
+  // (force = ignora la caché y vuelve a analizar, consumiendo un uso).
+  const getAiOpinion = useCallback(async (force?: boolean) => {
     if (!userData) return;
+
+    const generalTasks = userData.generalTasks || [];
+    const weeklyTasks = userData.weeklyTasks || {};
+    const calendarTasks = userData.calendarTasks || [];
 
     setIsLoadingAiOpinion(true);
     try {
-      const response = await fetch("/api/ai-opinion", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const result = await runGuardedAi<{ opinion: AiTipForGeneralOpinion }>({
+        feature: "opinion",
+        input: { generalTasks, weeklyTasks, calendarTasks },
+        force,
+        request: async () => {
+          const response = await fetch("/api/ai-opinion", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ generalTasks, weeklyTasks, calendarTasks }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Error al obtener la opinión de la IA");
+          }
+
+          return await response.json();
         },
-        body: JSON.stringify({
-          generalTasks: userData.generalTasks || [],
-          weeklyTasks: userData.weeklyTasks || {},
-          calendarTasks: userData.calendarTasks || [],
-        }),
       });
 
-      if (!response.ok) {
-        throw new Error("Error al obtener la opinión de la IA");
+      if (!result.ok) {
+        toast.error(result.message || "No se pudo usar la IA.");
+        return;
       }
 
-      const data = await response.json();
-      setAiOpinion(data.opinion ?? null);
+      setAiOpinion(result.data?.opinion ?? null);
+      if (result.fromCache) {
+        toast.info('Mostrando el último análisis. Usa "Volver a analizar" para regenerarlo.');
+      } else {
+        toast.success(`Análisis listo. Te quedan ${result.remaining?.feature ?? 0} usos hoy.`);
+      }
     } catch (error) {
       console.error("Error getting AI opinion:", error);
       toast.error("Error al obtener la opinión de la IA. Inténtalo de nuevo.");
     } finally {
       setIsLoadingAiOpinion(false);
     }
-  }, [userData]);
+  }, [userData, runGuardedAi]);
 
   const {
     currentPage,
@@ -827,7 +851,7 @@ export default function GeneralPage() {
       {/* Botón para obtener opinión de la IA */}
       <div className="m-4">
         <button
-          onClick={getAiOpinion}
+          onClick={() => getAiOpinion(false)}
           disabled={isLoadingAiOpinion}
           className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
@@ -843,14 +867,30 @@ export default function GeneralPage() {
             </>
           )}
         </button>
+        <p className="mt-1 text-center text-[11px] text-slate-400">
+          {opinionLeft} de {AI_DAILY_LIMIT_PER_FEATURE} usos de IA restantes hoy
+        </p>
       </div>
 
       {/* Componente para mostrar la opinión de la IA */}
       {aiOpinion && (
-        <AiTipForGeneral
-          opinion={aiOpinion}
-          onClose={() => setAiOpinion(null)}
-        />
+        <>
+          <AiTipForGeneral
+            opinion={aiOpinion}
+            onClose={() => setAiOpinion(null)}
+          />
+          <div className="px-4 -mt-2 mb-2">
+            <button
+              onClick={() => getAiOpinion(true)}
+              disabled={isLoadingAiOpinion}
+              className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Vuelve a analizar (consume un uso de IA)"
+            >
+              <Icon name="repeat" className="h-4 w-4" />
+              Volver a analizar
+            </button>
+          </div>
+        </>
       )}
 
       {generalViewComponent}

@@ -98,15 +98,14 @@ export default function DayPage() {
     setShowConfirmation(false);
   }, [handleCloneDaySchedule, setShowConfirmation]);
 
-  // Función para pedir consejo a la IA
-  const handleGetAiAdvice = useCallback(async () => {
+  // Función para pedir consejo a la IA (force = ignora caché y regenera)
+  const handleGetAiAdvice = useCallback(async (force?: boolean) => {
     if (!userData?.dayTasks) return;
-    const advice = await getAiAdvice(userData.dayTasks);
+    const advice = await getAiAdvice(userData.dayTasks, force);
     if (advice) {
       setAiTip({ message: advice, type: 'tip' });
-      showNotification("Consejo recibido de la IA.", "success");
     }
-  }, [userData?.dayTasks, getAiAdvice, setAiTip, showNotification]);
+  }, [userData?.dayTasks, getAiAdvice, setAiTip]);
 
   const dayViewComponent = useMemo(() => {
     if (!userData) {
@@ -119,7 +118,7 @@ export default function DayPage() {
         aiTip={aiTip}
         freeTime={freeTime}
         onStartDay={handleShowCloneConfirmation}
-        onSyncWithAI={syncWithAI}
+        onSyncWithAI={(force?: boolean) => syncWithAI({ force })}
         onSyncWithPseudoAI={syncWithPseudoAI}
         onGetAiAdvice={handleGetAiAdvice}
         onToggleComplete={handleToggleComplete}

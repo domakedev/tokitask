@@ -11,6 +11,8 @@ import NowFocusCard from "./NowFocusCard";
 import TimeBudgetBar from "./TimeBudgetBar";
 import Icon from "./Icon";
 import ConfirmationModal from "./ConfirmationModal";
+import { useAiUsage } from "../hooks/useAiUsage";
+import { AI_DAILY_LIMIT_PER_FEATURE } from "../config/aiLimits";
 import {
   getCurrentWeekDayName,
   getCurrentWeekDay,
@@ -24,9 +26,9 @@ interface DayViewProps {
   aiTip: { message: string; type: 'tip' | 'warning' } | null;
   freeTime: string | null;
   onStartDay: () => void;
-  onSyncWithAI: () => void;
+  onSyncWithAI: (force?: boolean) => void;
   onSyncWithPseudoAI: () => void;
-  onGetAiAdvice: () => Promise<void>;
+  onGetAiAdvice: (force?: boolean) => Promise<void>;
   onToggleComplete: (id: string) => void;
   onDelete: (id: string) => void;
   onReorder: (tasks: (DayTask | GeneralTask)[]) => Promise<void>;
@@ -59,6 +61,10 @@ const DayView: React.FC<DayViewProps> = ({
   onNavigateToGeneralCalendar,
   onRequestClearDay,
 }) => {
+  const { getRemaining } = useAiUsage();
+  const scheduleLeft = getRemaining("schedule").feature;
+  const adviceLeft = getRemaining("advice").feature;
+
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [showAiModal, setShowAiModal] = useState(false);
   const [showPseudoAiModal, setShowPseudoAiModal] = useState(false);
@@ -226,6 +232,9 @@ const DayView: React.FC<DayViewProps> = ({
                 {isSyncing ? "Calculando..." : "Organizarme con IA"}
               </span>
             </button>
+            <p className="text-center text-[11px] text-slate-400">
+              {scheduleLeft} de {AI_DAILY_LIMIT_PER_FEATURE} usos de IA restantes hoy
+            </p>
 
             {/* Acciones secundarias */}
             <div className="grid grid-cols-3 gap-2">
@@ -239,13 +248,13 @@ const DayView: React.FC<DayViewProps> = ({
                 Express
               </button>
               <button
-                onClick={onGetAiAdvice}
+                onClick={() => onGetAiAdvice(false)}
                 disabled={isSyncing}
                 className="flex items-center justify-center gap-1 bg-slate-800 border border-slate-600 text-slate-200 text-sm font-medium py-2 px-2 rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Pide un consejo contextual a la IA"
+                title={`Pide un consejo contextual a la IA · ${adviceLeft} de ${AI_DAILY_LIMIT_PER_FEATURE} usos hoy`}
               >
                 <Icon name="lightbulb" className="h-4 w-4 text-orange-400" />
-                Consejo
+                Consejo ({adviceLeft})
               </button>
               <button
                 onClick={onStartDay}
@@ -288,11 +297,22 @@ const DayView: React.FC<DayViewProps> = ({
             {headerBlock}
             <div className="px-2 md:px-6 lg:px-0 space-y-3 md:space-y-4">
               {aiTip && (
-                <AiTipCard
-                  tip={aiTip.message}
-                  type={aiTip.type}
-                  onDismiss={onDismissAiTip}
-                />
+                <div className="space-y-1">
+                  <AiTipCard
+                    tip={aiTip.message}
+                    type={aiTip.type}
+                    onDismiss={onDismissAiTip}
+                  />
+                  <button
+                    onClick={() => onGetAiAdvice(true)}
+                    disabled={isSyncing}
+                    className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed px-1"
+                    title="Genera un consejo nuevo (consume un uso de IA)"
+                  >
+                    <Icon name="repeat" className="h-3.5 w-3.5" />
+                    Intentar de nuevo
+                  </button>
+                </div>
               )}
 
               {/* Bloque AHORA: la respuesta a "¿qué hago ahora?" */}

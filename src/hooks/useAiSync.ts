@@ -9,6 +9,7 @@ import {
 } from "../utils/dateUtils";
 import { generateTaskId } from "../utils/idGenerator";
 import { toast } from "react-toastify";
+import { useAiUsage } from "./useAiUsage";
 
 export const useAiSync = (
   userData: UserData | null,
@@ -20,6 +21,7 @@ export const useAiSync = (
   const [freeTime, setFreeTime] = useState<string | null>(null);
   const [tempEndOfDay, setTempEndOfDay] = useState<string>(userData?.endOfDay || "18:00");
   const lastSyncRef = useRef<Date | null>(null);
+  const { runGuardedAi } = useAiUsage();
 
   // Sincronizar tempEndOfDay con userData.endOfDay cuando cambie
   useEffect(() => {
@@ -79,7 +81,7 @@ export const useAiSync = (
   }, [parseDurationToMinutes]);
 
   const syncWithAI = useCallback(
-    async (options?: { endOfDay?: string; tasks?: DayTask[] }) => {
+    async (options?: { endOfDay?: string; tasks?: DayTask[]; force?: boolean }) => {
       if (!userData) return;
 
       const tasksForSync = options?.tasks || userData.dayTasks || [];
@@ -160,28 +162,48 @@ export const useAiSync = (
 
       setIsSyncing(true);
       try {
-        const response = await fetch('/api/schedule', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        // Gate anti-abuso + caché. El hash de caché NO incluye userTime (cambia
+        // cada minuto); con las mismas tareas y fin de día reutiliza la respuesta.
+        const result = await runGuardedAi<{
+          updatedTasks: DayTask[];
+          freeTime: string | null;
+          tip: string | null;
+        }>({
+          feature: "schedule",
+          input: { tasks: tasksToPlan, endOfDay: endOfDayForSync },
+          force: options?.force,
+          request: async () => {
+            const response = await fetch('/api/schedule', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tasks: tasksToPlan,
+                endOfDay: endOfDayForSync,
+                userTime,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Error al sincronizar con la IA');
+            }
+
+            return await response.json();
           },
-          body: JSON.stringify({
-            tasks: tasksToPlan,
-            endOfDay: endOfDayForSync,
-            userTime,
-          }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Error al sincronizar con la IA');
+        if (!result.ok) {
+          showNotification(result.message || "No se pudo usar la IA.", "error");
+          return;
         }
 
         const {
           updatedTasks,
           freeTime: newFreeTime,
           tip,
-        } = await response.json();
+        } = result.data!;
 
         // La API ya devuelve las tareas procesadas correctamente
         const completedOriginalTasks = tasksForSync.filter((t) => t.completed);
@@ -199,7 +221,18 @@ export const useAiSync = (
         await handleUpdateUserData(updatedUserData);
         setFreeTime(newFreeTime);
         setAiTip(tip ? { message: tip, type: 'tip' } : null);
-        showNotification("Horario actualizado con IA.", "success");
+        if (result.fromCache) {
+          showNotification(
+            'Mostrando el último horario generado. Usa "Intentar de nuevo" para regenerarlo.',
+            "success"
+          );
+        } else {
+          const left = result.remaining?.feature ?? 0;
+          showNotification(
+            `Horario actualizado con IA. Te quedan ${left} usos hoy.`,
+            "success"
+          );
+        }
         lastSyncRef.current = new Date();
       } catch (error) {
         console.error("Error syncing with AI:", error);
@@ -220,7 +253,7 @@ export const useAiSync = (
         setIsSyncing(false);
       }
     },
-    [userData, handleUpdateUserData, tempEndOfDay, showNotification, recalculateCurrentDayTask, validateFixedTasksTime, parseDurationToMinutes]
+    [userData, handleUpdateUserData, tempEndOfDay, showNotification, recalculateCurrentDayTask, validateFixedTasksTime, parseDurationToMinutes, runGuardedAi]
   );
 
   const handleUpdateAiDuration = useCallback(
@@ -802,34 +835,56 @@ export const useAiSync = (
   );
 
   const getAiAdvice = useCallback(
-    async (tasks: DayTask[]) => {
+    async (tasks: DayTask[], force?: boolean) => {
       if (!userData) return null;
 
       try {
-        const response = await fetch('/api/advice', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        // Para el hash de caché solo importan nombre/estado/duración/prioridad
+        // de las tareas (lo mismo que envía el endpoint).
+        const cacheInput = tasks.map((t) => ({
+          name: t.name,
+          completed: t.completed,
+          aiDuration: t.aiDuration,
+          priority: t.priority,
+        }));
+
+        const result = await runGuardedAi<{ advice: string }>({
+          feature: "advice",
+          input: cacheInput,
+          force,
+          request: async () => {
+            const response = await fetch('/api/advice', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tasks: tasks,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Error al obtener consejo de la IA');
+            }
+
+            return await response.json();
           },
-          body: JSON.stringify({
-            tasks: tasks,
-          }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Error al obtener consejo de la IA');
+        if (!result.ok) {
+          showNotification(result.message || "No se pudo usar la IA.", "error");
+          return null;
         }
 
-        const { advice } = await response.json();
-        return advice;
+        return result.data!.advice;
       } catch (error) {
         console.error("Error getting AI advice:", error);
         showNotification("Error al obtener consejo de la IA.", "error");
         return null;
       }
     },
-    [userData, showNotification]
+    [userData, showNotification, runGuardedAi]
   );
 
   return {

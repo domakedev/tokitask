@@ -96,6 +96,15 @@ export interface UserData {
     whatsappConfigured?: boolean; // Si WhatsApp está configurado
     whatsappConfiguredAt?: Date; // Fecha de configuración
     aiPlanner?: AiPlannerState;
+    aiUsage?: AiUsageState; // Contadores anti-abuso de uso de IA (persistente en DB)
+}
+
+// Contadores de uso de IA del día actual. Se reinician cuando `date` deja de ser hoy.
+// Clave por función de IA (ver AiFeature en config/aiLimits) + total global.
+export interface AiUsageState {
+    date: string; // YYYY-MM-DD del día al que pertenecen los contadores
+    total: number; // usos totales del día (todas las funciones)
+    byFeature: Record<string, number>; // AiFeature -> número de usos del día
 }
 
 export type AiPlannerPriority = 'high' | 'medium' | 'low';

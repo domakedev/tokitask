@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para Tokitask.
+//
+// Importante sobre el límite de uso de IA (`users/{uid}.aiUsage`):
+// el contador se incrementa desde el cliente, así que estas reglas son la
+// barrera que evita que un usuario "resetee" su contador del día para saltarse
+// el límite. Concretamente, prohíben REDUCIR `aiUsage.total` dentro del mismo
+// día. (Un blindaje total exigiría incrementar el contador server-side con
+// firebase-admin; aquí se optó por el enfoque cliente + reglas.)
+//
+// Despliegue: revisa que no pise reglas existentes en tu consola de Firebase y
+// luego `firebase deploy --only firestore:rules`.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      // No se reduce el total del mismo día: si cambia el día, o no había
+      // contador previo, o el nuevo total es >= al anterior, se permite.
+      function aiUsageNotDecreased() {
+        return !('aiUsage' in request.resource.data)
+          || !('aiUsage' in resource.data)
+          || request.resource.data.aiUsage.date != resource.data.aiUsage.date
+          || request.resource.data.aiUsage.total >= resource.data.aiUsage.total;
+      }
+
+      allow read, create: if isOwner(uid);
+      allow update: if isOwner(uid) && aiUsageNotDecreased();
+      allow delete: if isOwner(uid);
+    }
+
+    match /userTokens/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+  }
+}

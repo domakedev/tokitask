@@ -258,6 +258,9 @@ export const updateUserData = async (uid: string, data: Partial<UserData>) => {
     if (data.aiPlanner !== undefined) {
       dataToUpdate.aiPlanner = removeUndefinedFields(data.aiPlanner);
     }
+    if (data.aiUsage !== undefined) {
+      dataToUpdate.aiUsage = data.aiUsage;
+    }
 
     await setDoc(userDocRef, removeUndefinedFields(dataToUpdate), { merge: true });
   }, { component: 'FirestoreService', operation: 'updateUserData', uid });
