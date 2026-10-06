@@ -312,19 +312,32 @@ export const mutateInboxTasks = async (
   }, { component: 'FirestoreService', operation: 'mutateInboxTasks', uid });
 };
 
-/** La bandeja recién leída (para refrescar al abrir el Plan IA: Kami pudo agregar algo). */
-export const getInboxTasks = async (uid: string): Promise<InboxTask[]> => {
+/**
+ * Plan IA y bandeja recién leídos (al abrir el Plan IA: Kami pudo agregar, asignar o cambiar algo
+ * mientras la web tenía cargado el estado del login). aiPlanner falta si el documento no lo tiene.
+ */
+export const getPlanIaFresh = async (
+  uid: string
+): Promise<{ aiPlanner?: UserData["aiPlanner"]; inboxTasks: InboxTask[] }> => {
   return withErrorHandling(async () => {
     if (!db) {
       throw new FirebaseError("Firebase database not initialized", undefined, {
         component: 'FirestoreService',
-        operation: 'getInboxTasks',
+        operation: 'getPlanIaFresh',
         uid
       });
     }
     const snap = await getDoc(doc(db, "users", uid));
-    return snap.exists() ? asInboxTasks(snap.data().inboxTasks) : [];
-  }, { component: 'FirestoreService', operation: 'getInboxTasks', uid });
+    if (!snap.exists()) return { inboxTasks: [] };
+    const data = snap.data();
+    const planner = data.aiPlanner as UserData["aiPlanner"] | undefined;
+    return {
+      ...(planner && typeof planner === "object"
+        ? { aiPlanner: { ...planner, days: planner.days && typeof planner.days === "object" ? planner.days : {} } }
+        : {}),
+      inboxTasks: asInboxTasks(data.inboxTasks),
+    };
+  }, { component: 'FirestoreService', operation: 'getPlanIaFresh', uid });
 };
 
 // Funciones para manejar tokens FCM

@@ -67,6 +67,9 @@ users
 - `updateUserData` NO escribe `inboxTasks` (casi siempre recibe el `userData` entero y pisaria lo que otra app
   agrego). Solo `mutateInboxTasks` lo escribe: transaccion que relee el documento y actualiza solo ese campo.
   Kami (app movil) usa la misma forma y tambien escribe con transacciones de campo.
+- Al abrir Plan IA se releen `aiPlanner` e `inboxTasks` del documento (`getPlanIaFresh`): la web carga el
+  `userData` una vez al entrar y Kami pudo agregar o pasar pendientes mientras tanto; sin esto, el siguiente
+  guardado del plan (que reescribe `aiPlanner` entero) los borraria.
 
 
 ## Archivos importantes

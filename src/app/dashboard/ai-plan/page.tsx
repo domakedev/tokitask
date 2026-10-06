@@ -7,7 +7,7 @@ import ConfirmationModal from "../../../components/ConfirmationModal";
 import Icon from "../../../components/Icon";
 import InboxPanel, { InboxAssignTarget } from "../../../components/InboxPanel";
 import LoadingScreen from "../../../components/LoadingScreen";
-import { getInboxTasks, mutateInboxTasks, updateUserData } from "../../../services/firestoreService";
+import { getPlanIaFresh, mutateInboxTasks, updateUserData } from "../../../services/firestoreService";
 import { useAiUsage } from "../../../hooks/useAiUsage";
 import { AI_DAILY_LIMIT_PER_FEATURE } from "../../../config/aiLimits";
 import { useAuthStore } from "../../../stores/authStore";
@@ -343,15 +343,24 @@ export default function AiPlanPage() {
     setCurrentPage(Page.AiPlan);
   }, [setCurrentPage]);
 
-  // La bandeja puede cambiar desde otra app (Kami): al abrir el Plan IA se relee fresca.
+  // El Plan IA y la bandeja pueden cambiar desde otra app (Kami): al abrir el Plan IA se releen
+  // frescos. Así el próximo guardado del plan (que reescribe aiPlanner entero) no deshace lo que Kami
+  // agregó o pasó desde la bandeja. Si el plan cambió aquí mientras tanto, se deja el local.
   const uid = user?.uid;
   useEffect(() => {
     if (!uid) return;
     let cancelled = false;
-    getInboxTasks(uid)
+    const plannerAtStart = useAuthStore.getState().userData?.aiPlanner;
+    getPlanIaFresh(uid)
       .then((fresh) => {
         const current = useAuthStore.getState().userData;
-        if (!cancelled && current) setUserData({ ...current, inboxTasks: fresh });
+        if (cancelled || !current) return;
+        const keepLocalPlanner = current.aiPlanner !== plannerAtStart || !fresh.aiPlanner;
+        setUserData({
+          ...current,
+          ...(keepLocalPlanner ? {} : { aiPlanner: fresh.aiPlanner }),
+          inboxTasks: fresh.inboxTasks,
+        });
       })
       .catch((error) => console.warn("No se pudo refrescar la Bandeja general:", error));
     return () => {
