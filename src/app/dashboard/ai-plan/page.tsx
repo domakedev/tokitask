@@ -5,8 +5,9 @@ import { toast } from "react-toastify";
 import AiSyncOverlay from "../../../components/AiSyncOverlay";
 import ConfirmationModal from "../../../components/ConfirmationModal";
 import Icon from "../../../components/Icon";
+import InboxPanel, { InboxAssignTarget } from "../../../components/InboxPanel";
 import LoadingScreen from "../../../components/LoadingScreen";
-import { updateUserData } from "../../../services/firestoreService";
+import { getInboxTasks, mutateInboxTasks, updateUserData } from "../../../services/firestoreService";
 import { useAiUsage } from "../../../hooks/useAiUsage";
 import { AI_DAILY_LIMIT_PER_FEATURE } from "../../../config/aiLimits";
 import { useAuthStore } from "../../../stores/authStore";
@@ -17,9 +18,19 @@ import {
   AiPlannerPriority,
   AiPlannerState,
   AiPlannerTask,
+  InboxTask,
   Page,
 } from "../../../types";
 import { generateTaskId } from "../../../utils/idGenerator";
+import {
+  buildInboxTask,
+  inboxCandidates,
+  inboxHasTitle,
+  inboxToCalendarTask,
+  inboxToPlannerTask,
+  pendingInbox,
+  setInboxCompleted,
+} from "../../../utils/inbox";
 
 interface BrowserSpeechRecognitionResult {
   isFinal: boolean;
@@ -64,6 +75,8 @@ interface AiPlannerApiTask {
   priority: AiPlannerPriority;
   estimatedMinutes: number;
   aiReason?: string;
+  /** El pendiente de la Bandeja general del que sale esta tarea (sale de la bandeja al guardar). */
+  inboxId?: string;
   microtasks: Array<{
     title: string;
     estimatedMinutes: number;
@@ -279,6 +292,7 @@ export default function AiPlanPage() {
   const userData = useAuthStore((state) => state.userData);
   const setUserData = useAuthStore((state) => state.setUserData);
   const setCurrentPage = useScheduleStore((state) => state.setCurrentPage);
+  const setCalendarTasks = useScheduleStore((state) => state.setCalendarTasks);
   const { runGuardedAi, getRemaining } = useAiUsage();
   const plannerLeft = getRemaining("planner").feature;
 
@@ -297,6 +311,9 @@ export default function AiPlanPage() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [planActionPromptOpen, setPlanActionPromptOpen] = useState(false);
   const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
+  const [selectedInboxIds, setSelectedInboxIds] = useState<Set<string>>(() => new Set());
+  const [inboxBusy, setInboxBusy] = useState(false);
+  const [inboxDeleteTarget, setInboxDeleteTarget] = useState<InboxTask | null>(null);
   const [, setNowTick] = useState(0);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -306,6 +323,12 @@ export default function AiPlanPage() {
   const planner = useMemo<AiPlannerState>(
     () => userData?.aiPlanner || getEmptyPlanner(),
     [userData?.aiPlanner]
+  );
+
+  const inboxTasks = useMemo<InboxTask[]>(() => userData?.inboxTasks || [], [userData?.inboxTasks]);
+  const selectedInbox = useMemo(
+    () => pendingInbox(inboxTasks).filter((item) => selectedInboxIds.has(item.id)),
+    [inboxTasks, selectedInboxIds]
   );
 
   const selectedDay = planner.days[selectedDate];
@@ -319,6 +342,22 @@ export default function AiPlanPage() {
   useEffect(() => {
     setCurrentPage(Page.AiPlan);
   }, [setCurrentPage]);
+
+  // La bandeja puede cambiar desde otra app (Kami): al abrir el Plan IA se relee fresca.
+  const uid = user?.uid;
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    getInboxTasks(uid)
+      .then((fresh) => {
+        const current = useAuthStore.getState().userData;
+        if (!cancelled && current) setUserData({ ...current, inboxTasks: fresh });
+      })
+      .catch((error) => console.warn("No se pudo refrescar la Bandeja general:", error));
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, setUserData]);
 
   useEffect(() => {
     setSpeechSupported(
@@ -409,8 +448,8 @@ export default function AiPlanPage() {
   }, [stopVoiceMeter]);
 
   const persistPlanner = useCallback(
-    async (nextPlanner: AiPlannerState, successMessage?: string) => {
-      if (!user || !userData) return;
+    async (nextPlanner: AiPlannerState, successMessage?: string): Promise<boolean> => {
+      if (!user || !userData) return false;
 
       const previousUserData = userData;
       const updatedUserData = {
@@ -423,13 +462,42 @@ export default function AiPlanPage() {
       try {
         await updateUserData(user.uid, { aiPlanner: nextPlanner });
         if (successMessage) toast.success(successMessage);
+        return true;
       } catch (error) {
         console.error("Error saving AI planner:", error);
         setUserData(previousUserData);
         toast.error("No se pudo guardar el Plan IA.");
+        return false;
       }
     },
     [setUserData, user, userData]
+  );
+
+  /**
+   * Bandeja general: transacción sobre el documento fresco (solo el campo inboxTasks) y luego el
+   * estado local con lo guardado. Devuelve true si se guardó.
+   */
+  const saveInbox = useCallback(
+    async (updater: (current: InboxTask[]) => InboxTask[], successMessage?: string): Promise<boolean> => {
+      if (!user) return false;
+      setInboxBusy(true);
+      try {
+        const saved = await mutateInboxTasks(user.uid, updater);
+        const current = useAuthStore.getState().userData;
+        if (current) setUserData({ ...current, inboxTasks: saved });
+        const alive = new Set(saved.filter((item) => !item.completed).map((item) => item.id));
+        setSelectedInboxIds((ids) => new Set([...ids].filter((id) => alive.has(id))));
+        if (successMessage) toast.success(successMessage);
+        return true;
+      } catch (error) {
+        console.error("Error saving inbox:", error);
+        toast.error("No se pudo guardar la Bandeja general.");
+        return false;
+      } finally {
+        setInboxBusy(false);
+      }
+    },
+    [setUserData, user]
   );
 
   const handleSelectDate = useCallback(
@@ -527,11 +595,13 @@ export default function AiPlanPage() {
   const generateAiPlan = useCallback(async (mode: GeneratePlanMode, force?: boolean) => {
     if (!userData) return;
     const trimmedText = inputText.trim();
+    const chosenInbox = selectedInbox;
 
-    if (!trimmedText) {
-      toast.error("Escribe o dicta lo que tienes que hacer primero.");
+    if (!trimmedText && chosenInbox.length === 0) {
+      toast.error("Escribe o dicta lo que tienes que hacer, o elige pendientes de tu Bandeja general.");
       return;
     }
+    const candidates = inboxCandidates(inboxTasks, new Set(chosenInbox.map((item) => item.id)));
 
     setIsGenerating(true);
     try {
@@ -542,7 +612,12 @@ export default function AiPlanPage() {
         coachMessages?: string[];
       }>({
         feature: "planner",
-        input: { text: trimmedText, mode, date: selectedDate },
+        input: {
+          text: trimmedText,
+          mode,
+          date: selectedDate,
+          inbox: chosenInbox.map((item) => item.id).sort(),
+        },
         force,
         request: async () => {
           const response = await fetch("/api/ai-planner", {
@@ -559,6 +634,7 @@ export default function AiPlanPage() {
               endOfDay: userData.endOfDay,
               existingTasks: selectedDay?.tasks || [],
               mode,
+              inboxTasks: candidates,
             }),
           });
 
@@ -602,17 +678,38 @@ export default function AiPlanPage() {
           : mode === "append"
           ? existingTasks
           : [];
-      const generatedTasks = apiTasks.map((task, index) =>
+      // Cada pendiente de la bandeja entra una sola vez; los elegidos que la IA no devolvió se
+      // agregan tal cual (nada elegido se pierde) y todos los usados salen de la bandeja.
+      const pendingInboxIds = new Set(candidates.map((item) => item.id));
+      const usedInboxIds = new Set<string>();
+      const plannedApiTasks = apiTasks.filter((task) => {
+        if (!task.inboxId || !pendingInboxIds.has(task.inboxId)) return true;
+        if (usedInboxIds.has(task.inboxId)) return false;
+        usedInboxIds.add(task.inboxId);
+        return true;
+      });
+      const generatedTasks = plannedApiTasks.map((task, index) =>
         buildPlannerTask(task, preservedTasks.length + index, selectedDate, nowIso)
       );
+      chosenInbox
+        .filter((item) => !usedInboxIds.has(item.id))
+        .forEach((item) => {
+          usedInboxIds.add(item.id);
+          generatedTasks.push(
+            inboxToPlannerTask(item, selectedDate, preservedTasks.length + generatedTasks.length, nowIso)
+          );
+        });
       const nextTasks = reindexTasks([...preservedTasks, ...generatedTasks]);
       const nextCoachMessages = Array.isArray(data.coachMessages)
         ? data.coachMessages.slice(0, 3)
         : [];
 
+      const sourceText =
+        trimmedText ||
+        `Desde la Bandeja general: ${chosenInbox.map((item) => item.title).join(", ")}`;
       const nextDay: AiPlannerDay = {
         date: selectedDate,
-        sourceText: trimmedText,
+        sourceText,
         createdAt: selectedDay?.createdAt || nowIso,
         updatedAt: nowIso,
         endOfDay: userData.endOfDay,
@@ -629,7 +726,7 @@ export default function AiPlanPage() {
       setNewMicrotaskDraft(null);
       setPlanActionPromptOpen(false);
       setReplaceConfirmOpen(false);
-      await persistPlanner(
+      const saved = await persistPlanner(
         {
           ...planner,
           selectedDate,
@@ -644,17 +741,27 @@ export default function AiPlanPage() {
           ? "Pendientes rehechos con IA."
           : "Plan IA generado."
       );
+      // Primero el plan, luego la bandeja: si esto fallara, el pendiente queda repetido, no perdido.
+      if (saved && usedInboxIds.size > 0) {
+        await saveInbox(
+          (current) => current.filter((item) => !usedInboxIds.has(item.id)),
+          usedInboxIds.size === 1
+            ? "1 pendiente salió de la Bandeja general."
+            : `${usedInboxIds.size} pendientes salieron de la Bandeja general.`
+        );
+        setSelectedInboxIds(new Set());
+      }
     } catch (error) {
       console.error("Error generating AI plan:", error);
       toast.error("No se pudo generar el plan con IA.");
     } finally {
       setIsGenerating(false);
     }
-  }, [inputText, persistPlanner, planner, selectedDate, selectedDay, userData, runGuardedAi]);
+  }, [inputText, persistPlanner, planner, selectedDate, selectedDay, userData, runGuardedAi, selectedInbox, inboxTasks, saveInbox]);
 
   const handleGeneratePlan = useCallback(() => {
-    if (!inputText.trim()) {
-      toast.error("Escribe o dicta lo que tienes que hacer primero.");
+    if (!inputText.trim() && selectedInbox.length === 0) {
+      toast.error("Escribe o dicta lo que tienes que hacer, o elige pendientes de tu Bandeja general.");
       return;
     }
 
@@ -664,7 +771,105 @@ export default function AiPlanPage() {
     }
 
     void generateAiPlan("create");
-  }, [generateAiPlan, inputText, selectedDay?.tasks.length]);
+  }, [generateAiPlan, inputText, selectedDay?.tasks.length, selectedInbox.length]);
+
+  // ---------- Bandeja general ----------
+
+  const handleAddInbox = useCallback(
+    async (input: { title: string; priority: AiPlannerPriority; estimatedMinutes: number }) => {
+      if (inboxHasTitle(inboxTasks, input.title)) {
+        toast.error(`Ya tienes "${input.title}" en tu Bandeja general.`);
+        return false;
+      }
+      const item = buildInboxTask(input, new Date().toISOString());
+      return saveInbox(
+        (current) => (inboxHasTitle(current, item.title) ? current : [...current, item]),
+        "Pendiente guardado en la Bandeja general."
+      );
+    },
+    [inboxTasks, saveInbox]
+  );
+
+  const handleToggleInbox = useCallback(
+    (item: InboxTask) => {
+      const nowIso = new Date().toISOString();
+      void saveInbox((current) => setInboxCompleted(current, item.id, !item.completed, nowIso));
+    },
+    [saveInbox]
+  );
+
+  const handleConfirmDeleteInbox = useCallback(async () => {
+    if (!inboxDeleteTarget) return;
+    const target = inboxDeleteTarget;
+    setInboxDeleteTarget(null);
+    await saveInbox((current) => current.filter((item) => item.id !== target.id), "Pendiente eliminado de la bandeja.");
+  }, [inboxDeleteTarget, saveInbox]);
+
+  const handleClearInboxDone = useCallback(() => {
+    void saveInbox((current) => current.filter((item) => !item.completed), "Hechos eliminados de la bandeja.");
+  }, [saveInbox]);
+
+  const handleToggleInboxSelect = useCallback((id: string) => {
+    setSelectedInboxIds((ids) => {
+      const next = new Set(ids);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  /** Asigna un pendiente a un día (Plan IA o calendario). Primero se crea la tarea, luego sale de la bandeja. */
+  const handleAssignInbox = useCallback(
+    async (item: InboxTask, date: string, target: InboxAssignTarget) => {
+      if (!user || !userData) return;
+      if (date < todayString()) {
+        toast.error("Elige hoy o un día futuro.");
+        return;
+      }
+      const nowIso = new Date().toISOString();
+      let created = false;
+
+      if (target === "plan") {
+        const day = planner.days[date];
+        const existing = day?.tasks || [];
+        const task = inboxToPlannerTask(item, date, existing.length, nowIso);
+        const nextDay: AiPlannerDay = {
+          date,
+          sourceText: day?.sourceText || "",
+          createdAt: day?.createdAt || nowIso,
+          updatedAt: nowIso,
+          endOfDay: day?.endOfDay || userData.endOfDay,
+          tasks: reindexTasks([...existing, task]),
+          coachMessages: day?.coachMessages || [],
+          rolloverPromptSeenAt: day?.rolloverPromptSeenAt,
+        };
+        created = await persistPlanner({ ...planner, days: { ...planner.days, [date]: nextDay } });
+      } else {
+        const previousUserData = userData;
+        const calendarTasks = [...(userData.calendarTasks || []), inboxToCalendarTask(item, date)];
+        try {
+          setCalendarTasks(calendarTasks);
+          setUserData({ ...userData, calendarTasks });
+          await updateUserData(user.uid, { calendarTasks });
+          created = true;
+        } catch (error) {
+          console.error("Error assigning inbox task to calendar:", error);
+          setCalendarTasks(previousUserData.calendarTasks || []);
+          setUserData(previousUserData);
+          toast.error("No se pudo agregar al calendario.");
+        }
+      }
+
+      if (!created) return;
+      await saveInbox(
+        (current) => current.filter((entry) => entry.id !== item.id),
+        target === "plan"
+          ? `"${item.title}" quedó en el Plan IA del ${formatShortDate(date)}.`
+          : `"${item.title}" quedó en tu calendario el ${formatShortDate(date)}.`
+      );
+    },
+    [persistPlanner, planner, saveInbox, setCalendarTasks, setUserData, user, userData]
+  );
 
   const updateSelectedDay = useCallback(
     async (updater: (day: AiPlannerDay) => AiPlannerDay, successMessage?: string) => {
@@ -1232,7 +1437,26 @@ export default function AiPlanPage() {
           <p className="mt-1 text-center text-[11px] text-slate-400">
             {plannerLeft} de {AI_DAILY_LIMIT_PER_FEATURE} usos de IA restantes hoy
           </p>
+          {selectedInbox.length > 0 && (
+            <p className="mt-1 text-center text-[11px] text-emerald-300">
+              + {selectedInbox.length} de tu Bandeja general
+            </p>
+          )}
         </section>
+
+        <InboxPanel
+          items={inboxTasks}
+          selectedIds={selectedInboxIds}
+          defaultDate={selectedDate < todayString() ? todayString() : selectedDate}
+          defaultDateLabel={selectedDate === todayString() ? "hoy" : formatShortDate(selectedDate)}
+          busy={inboxBusy}
+          onAdd={handleAddInbox}
+          onToggleSelect={handleToggleInboxSelect}
+          onToggleComplete={handleToggleInbox}
+          onDelete={setInboxDeleteTarget}
+          onClearCompleted={handleClearInboxDone}
+          onAssign={(item, date, target) => void handleAssignInbox(item, date, target)}
+        />
 
         {hasTasks && (
           <section className="rounded-lg border border-slate-700 bg-slate-800 p-3 md:p-4">
@@ -1674,6 +1898,17 @@ export default function AiPlanPage() {
         onCancel={handleArchiveRollover}
         confirmLabel="Pasar pendientes"
         cancelLabel="No, archivar"
+      />
+
+      <ConfirmationModal
+        isOpen={Boolean(inboxDeleteTarget)}
+        title="Eliminar de la bandeja"
+        message={inboxDeleteTarget ? `Esto eliminara "${inboxDeleteTarget.title}" de tu Bandeja general.` : ""}
+        onConfirm={handleConfirmDeleteInbox}
+        onCancel={() => setInboxDeleteTarget(null)}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        confirmClassName="bg-red-600 hover:bg-red-500"
       />
 
       <ConfirmationModal

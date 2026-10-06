@@ -58,6 +58,7 @@ Definido en `src/types.ts`. Hay tres “colecciones” distintas dentro del mism
 - **`generalTasks`** — biblioteca base reutilizable de tareas (`GeneralTask`).
 - **`weeklyTasks`** — `Record<WeekDay, GeneralTask[]>` indexado por día de la semana (incluye `WeekDay.All` para tareas que aplican todos los días).
 - **`calendarTasks`** — tareas atadas a una `scheduledDate` específica (`YYYY-MM-DD`).
+- **`inboxTasks`** — `InboxTask[]`, la **Bandeja general**: pendientes sin día (se gestionan en Plan IA). No pasa por `updateUserData`; se escribe solo con `mutateInboxTasks` (transacción sobre ese campo) para no pisar lo que agregue Kami.
 - **`dayTasks`** — `DayTask[]`, el horario *materializado* del día actual. Estas son las únicas con `aiDuration` (asignada por Gemini) además de `baseDuration` (la del usuario), `isCurrent` y `completed`.
 
 `progressId` es un UUID **estable** que sobrevive a clonaciones de tarea (al copiar de general → day, etc.) y es la clave usada por `taskCompletionsByProgressId` para tracking histórico de completitud — no confundir con `id`, que se regenera.

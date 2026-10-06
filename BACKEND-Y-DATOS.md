@@ -41,6 +41,8 @@ Campos principales:
 - `weeklyTasks`: tareas por dia de semana.
 - `calendarTasks`: tareas programadas para fechas especificas.
 - `taskCompletionsByProgressId`: historial de completado para habitos/progreso.
+- `aiPlanner`: Plan IA (dias con tareas y microtareas).
+- `inboxTasks`: Bandeja general, pendientes SIN dia (para cualquier dia). Puede faltar en documentos viejos (se lee como `[]`).
 
 Estructura mental:
 
@@ -52,7 +54,20 @@ users
     weeklyTasks: { monday: [], tuesday: [], ... }
     calendarTasks: []
     taskCompletionsByProgressId: {}
+    aiPlanner: { selectedDate, days: { "YYYY-MM-DD": {...} } }
+    inboxTasks: [{ id, title, priority, estimatedMinutes, completed, createdAt, updatedAt, source? }]
 ```
+
+### Bandeja general (`inboxTasks`)
+
+- Se ve y se edita en Plan IA (seccion "Bandeja general"): agregar, marcar hecho, eliminar, "Planificar"
+  (la IA del Plan IA lo incluye en el dia que estas viendo) y "Asignar" a un dia del Plan IA o al calendario.
+- Al asignarlo (a mano o porque la IA lo planifico) sale de la bandeja: primero se guarda la tarea nueva y
+  luego se quita de la bandeja (si algo falla queda repetido, nunca perdido).
+- `updateUserData` NO escribe `inboxTasks` (casi siempre recibe el `userData` entero y pisaria lo que otra app
+  agrego). Solo `mutateInboxTasks` lo escribe: transaccion que relee el documento y actualiza solo ese campo.
+  Kami (app movil) usa la misma forma y tambien escribe con transacciones de campo.
+
 
 ## Archivos importantes
 

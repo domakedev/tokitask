@@ -1,6 +1,6 @@
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction } from "firebase/firestore";
 import { db } from "./firebase";
-import { UserData, WeekDay, GeneralTask, DayTask } from "../types";
+import { UserData, WeekDay, GeneralTask, DayTask, InboxTask } from "../types";
 import { FirebaseError, ErrorLogger, withErrorHandling } from "../utils/errorHandler";
 
 // Interfaz temporal para migración de datos
@@ -15,7 +15,14 @@ interface LegacyUserData {
   taskCompletionsByProgressId?: Record<string, string[]>;
   onboardingCompleted?: boolean;
   aiPlanner?: UserData["aiPlanner"];
+  inboxTasks?: unknown;
 }
+
+/** Bandeja general leída de Firestore: siempre un arreglo de objetos (un documento viejo no la tiene). */
+export const asInboxTasks = (value: unknown): InboxTask[] =>
+  Array.isArray(value)
+    ? (value.filter((item) => item && typeof item === "object" && typeof (item as InboxTask).id === "string") as InboxTask[])
+    : [];
 
 const removeUndefinedFields = <T>(value: T): T => {
   if (Array.isArray(value)) {
@@ -131,10 +138,14 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
           }
         }
 
-        // Si se hicieron cambios, actualizar el documento
+        // Si se hicieron cambios, actualizar el documento. La bandeja NO se escribe aquí: se
+        // normaliza después en memoria (si faltaba, no hace falta crear el campo).
         if (needsUpdate) {
-          await setDoc(userDocRef, removeUndefinedFields(data), { merge: true });
+          const { inboxTasks: _inbox, ...toSave } = data;
+          void _inbox;
+          await setDoc(userDocRef, removeUndefinedFields(toSave), { merge: true });
         }
+        data.inboxTasks = asInboxTasks(data.inboxTasks);
       }
       return data as UserData;
     } else {
@@ -200,7 +211,8 @@ export const createDefaultUserDocument = async (uid: string, email: string | nul
       calendarTasks: [],
         taskCompletionsByProgressId: {},
         onboardingCompleted: false,
-        aiPlanner: { days: {} }
+        aiPlanner: { days: {} },
+        inboxTasks: []
     };
 
     await createUserDocument(defaultUserData);
@@ -261,9 +273,58 @@ export const updateUserData = async (uid: string, data: Partial<UserData>) => {
     if (data.aiUsage !== undefined) {
       dataToUpdate.aiUsage = data.aiUsage;
     }
+    // inboxTasks NO va aquí a propósito: casi todas las llamadas pasan el userData entero (posiblemente
+    // viejo) y pisarían lo que agregó otra app a la bandeja. Se escribe solo con mutateInboxTasks.
 
     await setDoc(userDocRef, removeUndefinedFields(dataToUpdate), { merge: true });
   }, { component: 'FirestoreService', operation: 'updateUserData', uid });
+};
+
+/**
+ * Bandeja general: lee el documento FRESCO dentro de una transacción, aplica `updater` a la lista
+ * actual y escribe SOLO el campo inboxTasks. Así no se pierde lo que otra app (Kami) agregó mientras
+ * la web estaba abierta. Devuelve la lista guardada (para actualizar el estado local).
+ */
+export const mutateInboxTasks = async (
+  uid: string,
+  updater: (current: InboxTask[]) => InboxTask[]
+): Promise<InboxTask[]> => {
+  return withErrorHandling(async () => {
+    if (!db) {
+      throw new FirebaseError("Firebase database not initialized", undefined, {
+        component: 'FirestoreService',
+        operation: 'mutateInboxTasks',
+        uid
+      });
+    }
+    const userDocRef = doc(db, "users", uid);
+    return runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(userDocRef);
+      const current = snap.exists() ? asInboxTasks(snap.data().inboxTasks) : [];
+      const next = removeUndefinedFields(updater(current));
+      if (snap.exists()) {
+        transaction.update(userDocRef, { inboxTasks: next });
+      } else {
+        transaction.set(userDocRef, { inboxTasks: next }, { merge: true });
+      }
+      return next;
+    });
+  }, { component: 'FirestoreService', operation: 'mutateInboxTasks', uid });
+};
+
+/** La bandeja recién leída (para refrescar al abrir el Plan IA: Kami pudo agregar algo). */
+export const getInboxTasks = async (uid: string): Promise<InboxTask[]> => {
+  return withErrorHandling(async () => {
+    if (!db) {
+      throw new FirebaseError("Firebase database not initialized", undefined, {
+        component: 'FirestoreService',
+        operation: 'getInboxTasks',
+        uid
+      });
+    }
+    const snap = await getDoc(doc(db, "users", uid));
+    return snap.exists() ? asInboxTasks(snap.data().inboxTasks) : [];
+  }, { component: 'FirestoreService', operation: 'getInboxTasks', uid });
 };
 
 // Funciones para manejar tokens FCM

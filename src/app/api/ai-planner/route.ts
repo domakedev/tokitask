@@ -45,6 +45,11 @@ const taskSchema = {
       type: Type.STRING,
       description: "Razon breve de por que esta tarea va en esa posicion.",
     },
+    inboxId: {
+      type: Type.STRING,
+      description:
+        "Solo si la tarea corresponde a un pendiente de la Bandeja general: su id exacto. Si no, vacio.",
+    },
     microtasks: {
       type: Type.ARRAY,
       items: microtaskSchema,
@@ -71,6 +76,36 @@ const responseSchema = {
   required: ["tasks", "coachMessages"],
 };
 
+interface InboxCandidate {
+  id: string;
+  title: string;
+  priority?: string;
+  estimatedMinutes?: number;
+  selected?: boolean;
+}
+
+/** Candidatos de la Bandeja general que manda la web (solo id/titulo validos, max 30). */
+const parseInboxCandidates = (value: unknown): InboxCandidate[] =>
+  Array.isArray(value)
+    ? value
+        .filter(
+          (item): item is InboxCandidate =>
+            Boolean(item) &&
+            typeof item === "object" &&
+            typeof (item as InboxCandidate).id === "string" &&
+            typeof (item as InboxCandidate).title === "string" &&
+            (item as InboxCandidate).title.trim().length > 0
+        )
+        .slice(0, 30)
+        .map((item) => ({
+          id: item.id,
+          title: item.title.trim().slice(0, 120),
+          priority: item.priority,
+          estimatedMinutes: item.estimatedMinutes,
+          selected: item.selected === true,
+        }))
+    : [];
+
 const clampMinutes = (value: unknown, fallback: number) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
@@ -90,8 +125,12 @@ export async function POST(request: Request) {
       existingTasks,
       mode,
     } = body;
+    const inboxTasks = parseInboxCandidates(body.inboxTasks);
+    const selectedInbox = inboxTasks.filter((item) => item.selected);
+    const otherInbox = inboxTasks.filter((item) => !item.selected);
+    const userText = typeof text === "string" ? text.trim() : "";
 
-    if (!text || typeof text !== "string" || text.trim().length === 0) {
+    if (!userText && selectedInbox.length === 0) {
       return NextResponse.json(
         { error: "Missing text in request body" },
         { status: 400 }
@@ -113,7 +152,13 @@ Contexto:
 - Modo de generacion: ${mode || "create"}
 
 Texto del usuario:
-${text.trim()}
+${userText || "(sin texto: planifica solo los pendientes elegidos de la Bandeja general)"}
+
+Pendientes de la Bandeja general que el usuario ELIGIO para este dia (son tan explicitos como el texto; inclúyelos todos, cada uno como una tarea con su inboxId):
+${selectedInbox.length ? JSON.stringify(selectedInbox.map(({ id, title, priority, estimatedMinutes }) => ({ id, title, priority, estimatedMinutes })), null, 2) : "(ninguno)"}
+
+Otros pendientes de su Bandeja general (NO elegidos; solo sirven para reconocerlos si el texto los menciona):
+${otherInbox.length ? JSON.stringify(otherInbox.map(({ id, title }) => ({ id, title })), null, 2) : "(ninguno)"}
 
 Reglas:
 1. Responde solo JSON segun el schema.
@@ -130,6 +175,7 @@ Reglas:
 12. Si el modo es "append", usa las tareas existentes solo para evitar duplicados; devuelve unicamente tareas explicitamente nuevas en el texto del usuario.
 13. Si el modo es "replace" o "create", puedes reorganizar solo las tareas explicitas del texto completo.
 14. El titulo de cada tarea debe ser fiel al texto del usuario. No lo conviertas en un objetivo mas amplio.
+15. Bandeja general: cada pendiente elegido va como UNA tarea con inboxId = su id exacto (titulo fiel, puedes mantener su prioridad y minutos). Si el texto del usuario menciona algo que ya esta en "Otros pendientes", usa esa tarea con su inboxId en vez de crear otra. Nunca agregues pendientes no elegidos que el texto no mencione. Si una tarea no viene de la bandeja, deja inboxId vacio.
 `;
 
     const ai = getAiClient();
@@ -145,6 +191,7 @@ Reglas:
     const textResponse = response?.text?.trim() || "";
     const parsed = JSON.parse(textResponse);
 
+    const inboxIds = new Set(inboxTasks.map((item) => item.id));
     const tasks = Array.isArray(parsed.tasks)
       ? parsed.tasks
           .filter((task: { title?: unknown }) => typeof task.title === "string" && task.title.trim())
@@ -156,6 +203,7 @@ Reglas:
                 priority?: string;
                 estimatedMinutes?: unknown;
                 aiReason?: unknown;
+                inboxId?: unknown;
                 microtasks?: Array<{ title?: unknown; estimatedMinutes?: unknown }>;
               },
               index: number
@@ -170,7 +218,13 @@ Reglas:
                     }))
                 : [];
 
+              const inboxId =
+                typeof task.inboxId === "string" && inboxIds.has(task.inboxId.trim())
+                  ? task.inboxId.trim()
+                  : undefined;
+
               return {
+                ...(inboxId ? { inboxId } : {}),
                 title: task.title.trim(),
                 priority: ["high", "medium", "low"].includes(task.priority || "")
                   ? task.priority

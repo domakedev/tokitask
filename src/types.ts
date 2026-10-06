@@ -97,6 +97,26 @@ export interface UserData {
     whatsappConfiguredAt?: Date; // Fecha de configuración
     aiPlanner?: AiPlannerState;
     aiUsage?: AiUsageState; // Contadores anti-abuso de uso de IA (persistente en DB)
+    // Bandeja general: pendientes SIN día asignado ("para cualquier día"). Campo propio de
+    // primer nivel: NO lo escribe updateUserData (que reescribe el userData entero y podría
+    // pisar lo que agregó otra app, p. ej. Kami); solo mutateInboxTasks, con una transacción.
+    // Puede faltar en documentos viejos: se lee como [].
+    inboxTasks?: InboxTask[];
+}
+
+// Un pendiente de la Bandeja general. Al asignarlo a un día (Plan IA) o al calendario sale de la
+// bandeja (se borra de aquí; la tarea nueva lleva el mismo título, prioridad y minutos).
+export interface InboxTask {
+    id: string; // UUID v4 (generateTaskId)
+    title: string;
+    priority: AiPlannerPriority; // misma escala que el Plan IA
+    estimatedMinutes: number; // 5..480, como el Plan IA
+    notes?: string;
+    completed: boolean;
+    completedAt?: string; // ISO
+    createdAt: string; // ISO
+    updatedAt: string; // ISO
+    source?: 'web' | 'kami'; // quién lo creó (solo informativo)
 }
 
 // Contadores de uso de IA del día actual. Se reinician cuando `date` deja de ser hoy.
